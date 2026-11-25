@@ -1,0 +1,93 @@
+{
+  "bundle": [
+    "index-DUqMfPP2.js"
+  ],
+  "dspk": [
+    "sceneA_full.dspk 1258792",
+    "sceneA_pruned.dspk 445550"
+  ],
+  "pruneMeta": null,
+  "res": {
+    "after": "21.72 dB · 掩膜内 17.51 dB · MAE 0.0244 · 62% 像素逐位相同 · 同资产重渲对照 逐位一致 · 误差 top1% 占 39%",
+    "agrees": true,
+    "audit": {
+      "coverage gap": "0.314 mm mean · p95 0.691 mm",
+      "full": "88,918 splats · 2.46 MB · SH1",
+      "live psnr": "21.72 dB · 掩膜内 17.51 dB · MAE 0.0244 · 62% 像素逐位相同 · 同资产重渲对照 逐位一致 · 误差 top1% 占 39%",
+      "pruned": "30,232 splats · 0.58 MB · SH0",
+      "ratio": "4.24× smaller"
+    },
+    "before": "—",
+    "busyAfter": false,
+    "caseId": "A",
+    "direct": {
+      "control": {
+        "covered": 0.3574,
+        "errorInTop1Percent": 0,
+        "identicalFraction": 1,
+        "mae": 0,
+        "maxDiff": 0,
+        "meanFull": [
+          63,
+          50,
+          45.7
+        ],
+        "meanPruned": [
+          63,
+          50,
+          45.7
+        ],
+        "psnr": 999,
+        "psnrInMask": 999
+      },
+      "covered": 0.3788,
+      "errorInTop1Percent": 0.387,
+      "identicalFraction": 0.6224,
+      "identicalSelfFraction": 1,
+      "mae": 0.0244,
+      "maxDiff": 196,
+      "meanFull": [
+        63,
+        50,
+        45.7
+      ],
+      "meanPruned": [
+        60.9,
+        49.3,
+        44.7
+      ],
+      "psnr": 21.72,
+      "psnrInMask": 17.51,
+      "psnrSelf": 999,
+      "samples": 442368
+    },
+    "dtLabels": [
+      "dataset",
+      "licence",
+      "splats",
+      "proxy",
+      "FDI",
+      "quadrant",
+      "centroid",
+      "finding",
+      "grade",
+      "full",
+      "pruned",
+      "ratio",
+      "coverage gap",
+      "live PSNR"
+    ],
+    "settleFrames": 4,
+    "settled": "PSNR changed after clicking bench",
+    "stats": {
+      "bytes": 2582852,
+      "fps": 60,
+      "frameMs": 0.19,
+      "gpu": "NVIDIA GeForce RTX 5070 Ti",
+      "sortMs": 2.4,
+      "splats": 88918,
+      "visible": 88918
+    }
+  },
+  "sha": "19adc1c5f63953cacae9867ae856d88f5819984250e8662b60a5ae39eb0e33c3"
+}

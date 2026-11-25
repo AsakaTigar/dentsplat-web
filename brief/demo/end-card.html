@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!-- brief/demo/end-card.html — the closing frame: what was measured, what was not, and how to re-run it.
+     One screen, no scrolling, because ffmpeg uses it as a full-frame clip. The 10 px bar at the bottom is
+     a fit marker: build.mjs samples the screenshot's bottom row and refuses the render if the bar is not
+     there, which is what used to happen quietly when the columns grew past 720 px. -->
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+  *{box-sizing:border-box}
+  html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#0B0F17;color:#E6EEF8;
+    font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+  .wrap{height:100%;padding:44px 60px 0;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,#0D1522 0%,#0B0F17 100%)}
+  h2{font-size:33px;margin:0 0 2px;color:#38BDF8}
+  .cols{display:flex;gap:36px;margin-top:26px}
+  .col{flex:1 1 0;min-width:0}
+  h3{font-size:22px;margin:0 0 12px;color:#CFE3F5;letter-spacing:.4px}
+  ul{margin:0;padding-left:22px}
+  li{font-size:19px;line-height:1.5;color:#AEC3DA;margin-bottom:10px}
+  li b{color:#E6EEF8}
+  .no li{color:#F7B267}
+  .cmd{background:#080C12;border:1.4px solid #24384B;border-radius:8px;padding:13px 16px;
+    font-family:"Cascadia Mono",Consolas,monospace;font-size:16px;line-height:1.6;color:#D8E7F5;margin-top:26px}
+  .cmd em{color:#6FD3F7;font-style:normal}
+  .lic{font-size:15px;color:#5C7288;margin-top:14px;line-height:1.55}
+  /* The brand rule at the foot of the card, which is also the fit marker build.mjs samples: a card whose
+     content outgrew 720 px has this strip pushed out of the frame, and the bottom-edge read goes blue ->
+     background. It is deliberately a design element, because the deliverable cannot carry a test artefact. */
+  .fitbar{flex:none;height:10px;margin-top:auto;background:#38BDF8}
+</style></head><body><div class="wrap">
+  <h2>测到了什么，没测到什么</h2>
+  <div class="cols">
+    <div class="col">
+      <h3>已测量（同一台机器、同一份构建，脚本可复算）</h3>
+      <ul>
+        <li>体积 <b>4.24× / 3.43×</b>（完整包 → 剪枝包）</li>
+        <li>像素保真 <b>21.82 / 17.60 dB</b>（A）、<b>25.10 / 22.03 dB</b>（B），整帧 / 掩膜内</li>
+        <li>剪枝策略 A/B：<b>+4.63 / +4.85 dB</b>，亮度损失 14% → 4%</li>
+        <li>几何覆盖间隙 <b>0.314 / 0.691 mm</b>（A）、<b>0.349 / 0.946 mm</b>（B，p95）</li>
+        <li>GPU 单遍 <b>0.5–2.9 ms</b>，640×360 到 2560×1440 几乎与分辨率无关</li>
+        <li>离线链路 NIfTI → <b>.dspk</b>：46 项断言，重跑逐字节相同</li>
+      </ul>
+    </div>
+    <div class="col no">
+      <h3>尚未测量（不要用本视频替代这些结论）</h3>
+      <ul>
+        <li>资产是<b>合成</b>的：几何按公开数据集统计生成，颜色与病灶程序化</li>
+        <li>离线链路用的是<b>合成体数据</b>，不是患者；Blender 渲染与真实训练产物后处理未跑过</li>
+        <li>"阻生智齿是否压迫下牙槽神经管"目前只是<b>可做的交互</b>，还不是结果</li>
+        <li>耗时不含合成与上屏；低端 GPU 与远程桌面<b>未实测</b></li>
+        <li>毫米测距是<b>水面距离</b>；无任何临床诊断验证</li>
+      </ul>
+    </div>
+  </div>
+  <div class="cmd">
+    <em>npm run build &amp;&amp; npm run preview</em>  # 打开即演示页 &nbsp;|&nbsp; <em>npm run check</em>  # 全部断言 + 简报数字复算 &nbsp;|&nbsp; <em>npm run test:pipeline</em>  # 离线链路
+  </div>
+  <div class="lic">数据：Teeth3DS+ IOS（osf.io/um96h，CC BY-NC-ND）· ToothFairy3 / ODIN2025（MICCAI 2025，532 例，0.3 mm，77 类，CC BY-NC-SA）
+    · 帧与命令的 sha256 见随片 PROVENANCE</div>
+  <div class="fitbar"></div>
+</div></body></html>

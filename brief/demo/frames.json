@@ -1,0 +1,80 @@
+{
+  "_comment": "The 60-second walkthrough, as data. Every clip names the PNG the app's own renderer produced, the sha256 prefix that identifies that exact render, the seconds it holds, and the caption burned into the frame. build.mjs re-hashes each PNG and refuses to cut a frame it cannot identify -- a demo video is the easiest place in this project to accidentally show something that never ran.",
+  "fps": 25,
+  "width": 1280,
+  "height": 720,
+  "title": { "html": "brief/demo/title-card.html", "secs": 4 },
+  "end": { "html": "brief/demo/end-card.html", "secs": 6 },
+  "clips": [
+    {
+      "png": "captures/1-frontal.png",
+      "sha": "a5b25df34974a9f2",
+      "secs": 5,
+      "caption": "Scene A · 按 Teeth3DS+ 统计生成的合成几何",
+      "sub": "88,918 splats · SH1 · 2.58 MB 单文件容器"
+    },
+    {
+      "png": "captures/4-jaw-open.png",
+      "sha": "9929fd0b053b445a",
+      "secs": 5,
+      "caption": "牙弓开合滑块：上下颌共享同一套居中",
+      "sub": "frame.json 缓存中心点与指纹，两次运行必须对齐"
+    },
+    {
+      "png": "captures/5-clip-cap.png",
+      "sha": "38194479c6b0439e",
+      "secs": 5,
+      "caption": "X / Y / Z 三轴剖切 + 断面盖片",
+      "sub": "uniform 级实现，不是黑盒库"
+    },
+    {
+      "png": "captures/6-isolate26.png",
+      "sha": "a513af1877a1bf98",
+      "secs": 5,
+      "caption": "点选牙位 26 → 高亮整颗牙，二维牙位图同步",
+      "sub": "FDI 标签写在 splat 的第四个字节里"
+    },
+    {
+      "png": "captures/7-split-pruned.png",
+      "sha": "11eaaba88705df44",
+      "secs": 5,
+      "caption": "Full vs Pruned 同屏对比",
+      "sub": "4.24× 体积 · 整帧 21.82 dB / 掩膜内 17.60 dB（浏览器回读像素）"
+    },
+    {
+      "png": "captures/6-cbct-frontal.png",
+      "sha": "4e318e93bba2b98d",
+      "secs": 5,
+      "caption": "Scene B · CBCT 六层语义（合成体数据）",
+      "sub": "牙槽骨 / 牙体 / 神经管 / 牙髓 / 修复体 / 上颌窦"
+    },
+    {
+      "png": "captures/2-b-xray.png",
+      "sha": "21fd3cde8370891a",
+      "secs": 5,
+      "caption": "分层透视：一个 uLayerAlpha 数组驱动",
+      "sub": "半透明是 3DGS 的原生能力，不是后处理"
+    },
+    {
+      "png": "captures/c-ian-solid.png",
+      "sha": "a35d4f361dfb59f4",
+      "secs": 5,
+      "caption": "下牙槽神经管与牙根 · 实体视图",
+      "sub": "交互可做；是否压迫需真实病例，目前未测"
+    },
+    {
+      "png": "captures/d-ian-xray.png",
+      "sha": "f4f1aba54eb912cf",
+      "secs": 5,
+      "caption": "下牙槽神经管与牙根 · 透视视图",
+      "sub": "剪枝后保留集的 p95 覆盖间隙 0.946 mm，仍能夹住神经管"
+    },
+    {
+      "png": "captures/sceneB_nifti_118058fc_640x397.png",
+      "sha": "0dcd45953ff0171b",
+      "secs": 5,
+      "caption": "离线链路产物：NIfTI → PLY + 标签 → .dspk",
+      "sub": "87,405 splats · 46 项断言 · 重跑逐字节相同"
+    }
+  ]
+}

@@ -1,0 +1,268 @@
+{
+  "bootStats": {
+    "bytes": 2582852,
+    "fps": 60,
+    "frameMs": 3.75,
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+    "sortMs": 2.4,
+    "splats": 88918,
+    "visible": 88918
+  },
+  "caseLoaded": true,
+  "caseNow": "A",
+  "caseStart": "A",
+  "glError": 0,
+  "measureModeOn": "measure",
+  "pickApi": {
+    "fdi": 15,
+    "meshName": "FDI_15",
+    "point": {
+      "x": -29.648902198405292,
+      "y": 9.87389993641737,
+      "z": 13.963919068404465
+    }
+  },
+  "probe": {
+    "drawn": {
+      "calls": 3,
+      "tris": 177838
+    },
+    "glError": 0,
+    "h": 186,
+    "head": [
+      0,
+      1,
+      1,
+      255,
+      0,
+      1,
+      1,
+      255,
+      0,
+      1,
+      1,
+      255,
+      0,
+      1,
+      1,
+      255,
+      0,
+      1,
+      1,
+      255,
+      0,
+      1,
+      1,
+      255,
+      0,
+      1,
+      1,
+      255,
+      0,
+      1,
+      1,
+      255
+    ],
+    "maxAlpha": 255,
+    "mean": [
+      40.4,
+      34.5,
+      31.2
+    ],
+    "paintedFraction": 0.2137,
+    "paintedLowerHalf": 6456,
+    "peak": 255,
+    "sorted": true,
+    "w": 300
+  },
+  "pump60": {
+    "frames": 60,
+    "perFrameMs": 1.23,
+    "stats": {
+      "bytes": 2582852,
+      "fps": 60,
+      "frameMs": 0.13,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+      "sortMs": 2,
+      "splats": 88918,
+      "visible": 88918
+    },
+    "wallMs": 73.6
+  },
+  "ranges": [
+    {
+      "label": "下颌开口度interincisal45 mm",
+      "max": "45",
+      "min": "0",
+      "v": "45"
+    },
+    {
+      "label": "下颌开口度interincisal45 mm",
+      "max": "1",
+      "min": "0",
+      "v": "1"
+    },
+    {
+      "label": "下颌开口度interincisal45 mm",
+      "max": "1",
+      "min": "0",
+      "v": "1"
+    },
+    {
+      "label": "下颌开口度interincisal45 mm",
+      "max": "1",
+      "min": "0",
+      "v": "1"
+    },
+    {
+      "label": "下颌开口度interincisal45 mm",
+      "max": "1",
+      "min": "0",
+      "v": "1"
+    },
+    {
+      "label": "下颌开口度interincisal45 mm",
+      "max": "1",
+      "min": "0.25",
+      "v": "1"
+    },
+    {
+      "label": "X 冠状Y 水平Z 矢状关闭反向剖切位置n·",
+      "max": "41",
+      "min": "-29",
+      "v": "0"
+    },
+    {
+      "label": "X 冠状Y 水平Z 矢状关闭反向剖切位置n·",
+      "max": "4",
+      "min": "0",
+      "v": "0.9"
+    }
+  ],
+  "selfTest": {
+    "box": {
+      "calls": 4,
+      "e0": 0,
+      "e1": 0,
+      "e2": 0,
+      "lit": 5661,
+      "mid": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "name": "box"
+    },
+    "splat": {
+      "calls": 4,
+      "e0": 0,
+      "e1": 0,
+      "e2": 0,
+      "lit": 2626,
+      "mid": [
+        143,
+        65,
+        67,
+        255
+      ],
+      "name": "splat"
+    },
+    "splatNormalBlend": {
+      "calls": 4,
+      "e0": 0,
+      "e1": 0,
+      "e2": 0,
+      "lit": 2428,
+      "mid": [
+        41,
+        18,
+        19,
+        255
+      ],
+      "name": "splat-normal"
+    },
+    "state": {
+      "attrs": [
+        "aCenter",
+        "aRot",
+        "aScale",
+        "aColor",
+        "aMisc",
+        "aSH1"
+      ],
+      "blending": 5,
+      "depthTest": false,
+      "depthWrite": false,
+      "drawRange": 533508,
+      "glslVersion": "300 es",
+      "indexType": "Uint32Array",
+      "side": 2,
+      "transparent": true
+    }
+  },
+  "step1_odo2d": {
+    "highlightedCell": "26",
+    "uniform": 26
+  },
+  "step2_tap3d": {
+    "highlightedCell": "26",
+    "pixels": [
+      80,
+      322
+    ],
+    "uniform": 26
+  },
+  "step3_measure": {
+    "centroidTruthMM": 63.9,
+    "chips": [
+      "segment 11.51 mm",
+      "segment 239.92 mm",
+      "segment 330.96 mm"
+    ],
+    "points": [
+      [
+        4.29,
+        7.67,
+        37.31
+      ],
+      [
+        3.04,
+        7.05,
+        36.71
+      ],
+      [
+        -29.65,
+        9.87,
+        13.96
+      ],
+      [
+        -6.45,
+        13.77,
+        34.1
+      ]
+    ],
+    "surfaceTruthMM": null
+  },
+  "step4_jaw": {
+    "atMax": 45,
+    "before": 45,
+    "closed": 0,
+    "max": "45"
+  },
+  "step5_clip": {
+    "band": 0.9,
+    "count": 0,
+    "plane": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "visible": 88918
+  },
+  "step5_clipOff": {
+    "count": 0
+  },
+  "truthCount": 32
+}

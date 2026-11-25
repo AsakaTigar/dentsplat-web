@@ -1,0 +1,54 @@
+{
+  "bundle": [
+    "index-DUqMfPP2.js"
+  ],
+  "dspk": [
+    "sceneA_full.dspk=1258792",
+    "sceneA_pruned.dspk=435115",
+    "sceneB_full.dspk=622422",
+    "sceneB_pruned.dspk=259765",
+    "sceneA_full.dspk=1258792",
+    "sceneA_pruned.dspk=435115",
+    "sceneB_full.dspk=622422",
+    "sceneB_pruned.dspk=259765",
+    "sceneA_full.dspk=1258792",
+    "sceneA_pruned.dspk=435115",
+    "sceneB_full.dspk=622422",
+    "sceneB_pruned.dspk=259765",
+    "sceneA_full.dspk=1258792",
+    "sceneA_pruned.dspk=435115",
+    "sceneB_full.dspk=622422",
+    "sceneB_pruned.dspk=259765"
+  ],
+  "job": [
+    "B",
+    "opaque"
+  ],
+  "kind": "bench-opaque",
+  "res": {
+    "allLayers": "23.43 dB · 掩膜内 19.18 dB · MAE 0.0212 · 61% 像素逐位相同 · 同资产重渲对照 逐位一致 · 误差 top1% 占 41%",
+    "buttonLabel": "跑一次 bench(384²)",
+    "caseId": "B",
+    "innerProbeSha": "19adc1c5f63953cacae9867ae856d88f5819984250e8662b60a5ae39eb0e33c3",
+    "layersHidden": [
+      "3",
+      "4",
+      "5",
+      "6",
+      "7"
+    ],
+    "opaqueOnly": {
+      "covered": 0.3755,
+      "identicalFraction": 0.6099,
+      "mae": 0.0212,
+      "psnr": 23.43,
+      "psnrInMask": 19.18,
+      "psnrSelf": 999
+    },
+    "restoredMatchesPrev": true,
+    "rowAfterRestore": "23.43 dB · 掩膜内 19.18 dB · MAE 0.0212 · 61% 像素逐位相同 · 同资产重渲对照 逐位一致 · 误差 top1% 占 41%"
+  },
+  "sha": "051911d09f9d44bbd0a35279b1684d1f62dfafcb2a6ad843552791cd7462f2c3",
+  "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Qoder/0.5",
+  "wallMs": 176
+}

@@ -1,0 +1,1213 @@
+{
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "arch_extent_mm": 125.128,
+  "case": "case",
+  "arch": "both",
+  "source": "case.nii.gz",
+  "schema": "tf3",
+  "label_map_used": {
+    "1": "alveolar",
+    "2": "alveolar",
+    "3": "nerve",
+    "4": "nerve",
+    "11": "teeth",
+    "12": "teeth",
+    "13": "teeth",
+    "14": "teeth",
+    "15": "teeth",
+    "16": "teeth",
+    "17": "teeth",
+    "18": "teeth",
+    "21": "teeth",
+    "22": "teeth",
+    "23": "teeth",
+    "24": "teeth",
+    "25": "teeth",
+    "26": "teeth",
+    "27": "teeth",
+    "28": "teeth",
+    "31": "teeth",
+    "32": "teeth",
+    "33": "teeth",
+    "34": "teeth",
+    "35": "teeth",
+    "36": "teeth",
+    "37": "teeth",
+    "38": "teeth",
+    "41": "teeth",
+    "42": "teeth",
+    "43": "teeth",
+    "44": "teeth",
+    "45": "teeth",
+    "46": "teeth",
+    "47": "teeth",
+    "48": "teeth",
+    "103": "nerve",
+    "104": "nerve",
+    "105": "nerve",
+    "111": "pulp",
+    "112": "pulp",
+    "113": "pulp",
+    "114": "pulp",
+    "115": "pulp",
+    "116": "pulp",
+    "117": "pulp",
+    "118": "pulp",
+    "121": "pulp",
+    "122": "pulp",
+    "123": "pulp",
+    "124": "pulp",
+    "125": "pulp",
+    "126": "pulp",
+    "127": "pulp",
+    "128": "pulp",
+    "131": "pulp",
+    "132": "pulp",
+    "133": "pulp",
+    "134": "pulp",
+    "135": "pulp",
+    "136": "pulp",
+    "137": "pulp",
+    "138": "pulp",
+    "141": "pulp",
+    "142": "pulp",
+    "143": "pulp",
+    "144": "pulp",
+    "145": "pulp",
+    "146": "pulp",
+    "147": "pulp",
+    "148": "pulp"
+  },
+  "per_layer": {
+    "alveolar": {
+      "voxels": 59316,
+      "candidate_voxels": 59316,
+      "points": 5627,
+      "hu_window": [
+        0.0,
+        1.0
+      ],
+      "fdi_labeled_points": 0,
+      "fdi_ids": []
+    },
+    "teeth": {
+      "voxels": 16064,
+      "candidate_voxels": 16064,
+      "points": 3195,
+      "hu_window": [
+        0.0,
+        1.0
+      ],
+      "fdi_labeled_points": 3195,
+      "fdi_ids": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48
+      ]
+    },
+    "nerve": {
+      "voxels": 1293,
+      "candidate_voxels": 1293,
+      "points": 305,
+      "hu_window": [
+        0.0,
+        1.0
+      ],
+      "fdi_labeled_points": 0,
+      "fdi_ids": []
+    },
+    "pulp": {
+      "voxels": 2276,
+      "candidate_voxels": 2276,
+      "points": 621,
+      "hu_window": [
+        0.0,
+        1.0
+      ],
+      "fdi_labeled_points": 621,
+      "fdi_ids": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48
+      ]
+    }
+  },
+  "note": "ToothFairy2/3 merge crown+root per tooth, so 'teeth' is not enamel-only. Points with fdi 0 are jawbone, canals, sinus or prosthetics -- prosthetics are left unlabeled rather than guessed onto a neighbouring tooth.",
+  "teeth": {
+    "LAYER_TEETH": {
+      "fdi": 0,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_code": 1,
+      "centroid_mm": [
+        0.371,
+        -0.988,
+        15.141
+      ],
+      "bbox_min_mm": [
+        -37.0,
+        -29.5,
+        -12.0
+      ],
+      "bbox_max_mm": [
+        38.0,
+        29.5,
+        36.0
+      ],
+      "n_vertices": 3195
+    },
+    "LAYER_ALVEOLAR": {
+      "fdi": 0,
+      "arch": "upper",
+      "layer": "alveolar",
+      "layer_code": 3,
+      "centroid_mm": [
+        0.225,
+        -0.885,
+        13.769
+      ],
+      "bbox_min_mm": [
+        -40.0,
+        -26.5,
+        -14.0
+      ],
+      "bbox_max_mm": [
+        40.0,
+        25.5,
+        38.0
+      ],
+      "n_vertices": 5627
+    },
+    "LAYER_NERVE": {
+      "fdi": 0,
+      "arch": "upper",
+      "layer": "nerve",
+      "layer_code": 4,
+      "centroid_mm": [
+        0.02,
+        -20.382,
+        -4.328
+      ],
+      "bbox_min_mm": [
+        -21.0,
+        -21.5,
+        -38.0
+      ],
+      "bbox_max_mm": [
+        21.0,
+        -6.5,
+        29.0
+      ],
+      "n_vertices": 305
+    },
+    "LAYER_PULP": {
+      "fdi": 0,
+      "arch": "upper",
+      "layer": "pulp",
+      "layer_code": 6,
+      "centroid_mm": [
+        2.375,
+        -1.052,
+        15.064
+      ],
+      "bbox_min_mm": [
+        -35.0,
+        -28.5,
+        -9.0
+      ],
+      "bbox_max_mm": [
+        35.0,
+        27.5,
+        33.0
+      ],
+      "n_vertices": 621
+    },
+    "FDI_11": {
+      "fdi": 11,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -4.579,
+        21.079,
+        31.341
+      ],
+      "bbox_min_mm": [
+        -8.0,
+        14.5,
+        28.0
+      ],
+      "bbox_max_mm": [
+        -2.0,
+        28.5,
+        36.0
+      ],
+      "n_vertices": 126
+    },
+    "FDI_12": {
+      "fdi": 12,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -11.516,
+        21.105,
+        29.427
+      ],
+      "bbox_min_mm": [
+        -15.0,
+        14.5,
+        26.0
+      ],
+      "bbox_max_mm": [
+        -8.0,
+        28.5,
+        33.0
+      ],
+      "n_vertices": 124
+    },
+    "FDI_13": {
+      "fdi": 13,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -17.843,
+        21.126,
+        25.73
+      ],
+      "bbox_min_mm": [
+        -21.0,
+        14.5,
+        22.0
+      ],
+      "bbox_max_mm": [
+        -15.0,
+        28.5,
+        30.0
+      ],
+      "n_vertices": 115
+    },
+    "FDI_14": {
+      "fdi": 14,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -23.057,
+        21.019,
+        20.811
+      ],
+      "bbox_min_mm": [
+        -27.0,
+        14.5,
+        17.0
+      ],
+      "bbox_max_mm": [
+        -20.0,
+        28.5,
+        25.0
+      ],
+      "n_vertices": 106
+    },
+    "FDI_15": {
+      "fdi": 15,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -27.73,
+        21.008,
+        14.713
+      ],
+      "bbox_min_mm": [
+        -31.0,
+        14.5,
+        11.0
+      ],
+      "bbox_max_mm": [
+        -24.0,
+        28.5,
+        19.0
+      ],
+      "n_vertices": 122
+    },
+    "FDI_16": {
+      "fdi": 16,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -30.827,
+        20.385,
+        7.692
+      ],
+      "bbox_min_mm": [
+        -35.0,
+        14.5,
+        4.0
+      ],
+      "bbox_max_mm": [
+        -28.0,
+        25.5,
+        12.0
+      ],
+      "n_vertices": 104
+    },
+    "FDI_17": {
+      "fdi": 17,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -32.933,
+        21.05,
+        0.075
+      ],
+      "bbox_min_mm": [
+        -37.0,
+        14.5,
+        -3.0
+      ],
+      "bbox_max_mm": [
+        -30.0,
+        28.5,
+        4.0
+      ],
+      "n_vertices": 120
+    },
+    "FDI_18": {
+      "fdi": 18,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -33.872,
+        21.14,
+        -8.2
+      ],
+      "bbox_min_mm": [
+        -37.0,
+        14.5,
+        -12.0
+      ],
+      "bbox_max_mm": [
+        -30.0,
+        29.5,
+        -4.0
+      ],
+      "n_vertices": 125
+    },
+    "FDI_21": {
+      "fdi": 21,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        5.127,
+        21.127,
+        31.432
+      ],
+      "bbox_min_mm": [
+        2.0,
+        14.5,
+        28.0
+      ],
+      "bbox_max_mm": [
+        8.0,
+        28.5,
+        36.0
+      ],
+      "n_vertices": 118
+    },
+    "FDI_22": {
+      "fdi": 22,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        11.811,
+        21.122,
+        29.528
+      ],
+      "bbox_min_mm": [
+        8.0,
+        14.5,
+        26.0
+      ],
+      "bbox_max_mm": [
+        15.0,
+        28.5,
+        33.0
+      ],
+      "n_vertices": 127
+    },
+    "FDI_23": {
+      "fdi": 23,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        18.0,
+        21.047,
+        25.889
+      ],
+      "bbox_min_mm": [
+        15.0,
+        14.5,
+        22.0
+      ],
+      "bbox_max_mm": [
+        21.0,
+        28.5,
+        30.0
+      ],
+      "n_vertices": 117
+    },
+    "FDI_24": {
+      "fdi": 24,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        23.555,
+        20.118,
+        20.927
+      ],
+      "bbox_min_mm": [
+        20.0,
+        14.5,
+        17.0
+      ],
+      "bbox_max_mm": [
+        27.0,
+        25.5,
+        25.0
+      ],
+      "n_vertices": 110
+    },
+    "FDI_25": {
+      "fdi": 25,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        27.958,
+        21.113,
+        14.773
+      ],
+      "bbox_min_mm": [
+        25.0,
+        14.5,
+        11.0
+      ],
+      "bbox_max_mm": [
+        31.0,
+        28.5,
+        19.0
+      ],
+      "n_vertices": 119
+    },
+    "FDI_26": {
+      "fdi": 26,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        31.65,
+        21.0,
+        7.842
+      ],
+      "bbox_min_mm": [
+        28.0,
+        14.5,
+        4.0
+      ],
+      "bbox_max_mm": [
+        35.0,
+        28.5,
+        12.0
+      ],
+      "n_vertices": 120
+    },
+    "FDI_27": {
+      "fdi": 27,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        33.661,
+        21.097,
+        0.024
+      ],
+      "bbox_min_mm": [
+        31.0,
+        14.5,
+        -3.0
+      ],
+      "bbox_max_mm": [
+        37.0,
+        28.5,
+        4.0
+      ],
+      "n_vertices": 124
+    },
+    "FDI_28": {
+      "fdi": 28,
+      "arch": "upper",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        34.126,
+        21.13,
+        -8.15
+      ],
+      "bbox_min_mm": [
+        31.0,
+        14.5,
+        -12.0
+      ],
+      "bbox_max_mm": [
+        38.0,
+        29.5,
+        -4.0
+      ],
+      "n_vertices": 127
+    },
+    "FDI_31": {
+      "fdi": 31,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        5.127,
+        -22.873,
+        31.432
+      ],
+      "bbox_min_mm": [
+        2.0,
+        -29.5,
+        28.0
+      ],
+      "bbox_max_mm": [
+        8.0,
+        -15.5,
+        36.0
+      ],
+      "n_vertices": 118
+    },
+    "FDI_32": {
+      "fdi": 32,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        11.811,
+        -22.878,
+        29.528
+      ],
+      "bbox_min_mm": [
+        8.0,
+        -29.5,
+        26.0
+      ],
+      "bbox_max_mm": [
+        15.0,
+        -15.5,
+        33.0
+      ],
+      "n_vertices": 127
+    },
+    "FDI_33": {
+      "fdi": 33,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        17.94,
+        -22.974,
+        25.888
+      ],
+      "bbox_min_mm": [
+        15.0,
+        -29.5,
+        22.0
+      ],
+      "bbox_max_mm": [
+        21.0,
+        -15.5,
+        30.0
+      ],
+      "n_vertices": 116
+    },
+    "FDI_34": {
+      "fdi": 34,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        23.626,
+        -23.118,
+        20.927
+      ],
+      "bbox_min_mm": [
+        20.0,
+        -29.5,
+        17.0
+      ],
+      "bbox_max_mm": [
+        27.0,
+        -15.5,
+        25.0
+      ],
+      "n_vertices": 123
+    },
+    "FDI_35": {
+      "fdi": 35,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        27.958,
+        -22.887,
+        14.773
+      ],
+      "bbox_min_mm": [
+        25.0,
+        -29.5,
+        11.0
+      ],
+      "bbox_max_mm": [
+        31.0,
+        -15.5,
+        19.0
+      ],
+      "n_vertices": 119
+    },
+    "FDI_36": {
+      "fdi": 36,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        31.65,
+        -23.0,
+        7.842
+      ],
+      "bbox_min_mm": [
+        28.0,
+        -29.5,
+        4.0
+      ],
+      "bbox_max_mm": [
+        35.0,
+        -15.5,
+        12.0
+      ],
+      "n_vertices": 120
+    },
+    "FDI_37": {
+      "fdi": 37,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        33.661,
+        -22.903,
+        0.024
+      ],
+      "bbox_min_mm": [
+        31.0,
+        -29.5,
+        -3.0
+      ],
+      "bbox_max_mm": [
+        37.0,
+        -15.5,
+        4.0
+      ],
+      "n_vertices": 124
+    },
+    "FDI_38": {
+      "fdi": 38,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        34.126,
+        -22.87,
+        -8.15
+      ],
+      "bbox_min_mm": [
+        31.0,
+        -29.5,
+        -12.0
+      ],
+      "bbox_max_mm": [
+        38.0,
+        -14.5,
+        -4.0
+      ],
+      "n_vertices": 127
+    },
+    "FDI_41": {
+      "fdi": 41,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -4.579,
+        -22.921,
+        31.341
+      ],
+      "bbox_min_mm": [
+        -8.0,
+        -29.5,
+        28.0
+      ],
+      "bbox_max_mm": [
+        -2.0,
+        -15.5,
+        36.0
+      ],
+      "n_vertices": 126
+    },
+    "FDI_42": {
+      "fdi": 42,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -11.516,
+        -22.895,
+        29.427
+      ],
+      "bbox_min_mm": [
+        -15.0,
+        -29.5,
+        26.0
+      ],
+      "bbox_max_mm": [
+        -8.0,
+        -15.5,
+        33.0
+      ],
+      "n_vertices": 124
+    },
+    "FDI_43": {
+      "fdi": 43,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -17.752,
+        -23.014,
+        25.789
+      ],
+      "bbox_min_mm": [
+        -21.0,
+        -29.5,
+        22.0
+      ],
+      "bbox_max_mm": [
+        -15.0,
+        -15.5,
+        30.0
+      ],
+      "n_vertices": 109
+    },
+    "FDI_44": {
+      "fdi": 44,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -23.084,
+        -22.995,
+        20.86
+      ],
+      "bbox_min_mm": [
+        -27.0,
+        -29.5,
+        17.0
+      ],
+      "bbox_max_mm": [
+        -20.0,
+        -15.5,
+        25.0
+      ],
+      "n_vertices": 107
+    },
+    "FDI_45": {
+      "fdi": 45,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -27.73,
+        -22.992,
+        14.713
+      ],
+      "bbox_min_mm": [
+        -31.0,
+        -29.5,
+        11.0
+      ],
+      "bbox_max_mm": [
+        -24.0,
+        -15.5,
+        19.0
+      ],
+      "n_vertices": 122
+    },
+    "FDI_46": {
+      "fdi": 46,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -30.905,
+        -22.1,
+        7.705
+      ],
+      "bbox_min_mm": [
+        -35.0,
+        -27.5,
+        4.0
+      ],
+      "bbox_max_mm": [
+        -28.0,
+        -15.5,
+        12.0
+      ],
+      "n_vertices": 105
+    },
+    "FDI_47": {
+      "fdi": 47,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -32.933,
+        -22.95,
+        0.075
+      ],
+      "bbox_min_mm": [
+        -37.0,
+        -29.5,
+        -3.0
+      ],
+      "bbox_max_mm": [
+        -30.0,
+        -15.5,
+        4.0
+      ],
+      "n_vertices": 120
+    },
+    "FDI_48": {
+      "fdi": 48,
+      "arch": "lower",
+      "layer": "teeth",
+      "layer_codes": [
+        1,
+        6
+      ],
+      "layers": [
+        "teeth",
+        "pulp"
+      ],
+      "centroid_mm": [
+        -33.872,
+        -22.86,
+        -8.2
+      ],
+      "bbox_min_mm": [
+        -37.0,
+        -29.5,
+        -12.0
+      ],
+      "bbox_max_mm": [
+        -30.0,
+        -14.5,
+        -4.0
+      ],
+      "n_vertices": 125
+    }
+  }
+}

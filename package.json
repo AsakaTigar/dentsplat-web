@@ -1,0 +1,50 @@
+{
+  "name": "dent-splat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "gen": "node tools/gen-dental-assets.ts",
+    "ply2dspk": "node tools/ply2dspk.ts",
+    "test:dspk": "node tools/test-ply2dspk.ts",
+    "test:labels": "node tools/test-label-sync.mjs",
+    "test:gpu": "node tools/test-gpu-name.mjs",
+    "dspk:head": "node tools/dspk-head.ts --in tools/out/cbct_route/sceneB_from_nifti.dspk",
+    "selftest:page": "node tools/pagefn-selftest.mjs tools/probe-smoke.js --quiet && node tools/pagefn-selftest.mjs tools/probe-perf.js --quiet && node tools/pagefn-selftest.mjs tools/probe-bench.js --quiet && node tools/pagefn-selftest.mjs tools/probe-bench-opaque.js --quiet",
+    "selftest:nifti": "node tools/probe-nifti.selftest.mjs",
+    "nifti:report": "node tools/nifti-report.mjs",
+    "test:pipeline": "node tools/test-pipeline.mjs",
+    "test:claims": "node tools/verify-claims.mjs",
+    "test:claims:mut": "node tools/mutate-claims-test.mjs",
+    "brief": "node brief/build-pdf.mjs",
+    "brief:selftest": "node brief/build-pdf.selftest.mjs",
+    "demo": "node brief/demo/build.mjs",
+    "demo:selftest": "node brief/demo/card-fit.selftest.mjs",
+    "method:doc": "node tools/build-method-doc.mjs",
+    "method:doc:verify": "node tools/build-method-doc.mjs --verify",
+    "method:doc:selftest": "node tools/build-method-doc.mjs --selftest",
+    "pycheck": "node tools/pycheck.mjs pipeline/dental_lib.py pipeline/dental_pipeline_blender.py pipeline/postprocess_dental_gs.py pipeline/toothfairy2_to_layers.py",
+    "check": "npm run test:dspk && npm run test:labels && npm run test:gpu && npm run selftest:page && npm run selftest:nifti && npm run test:claims && npm run test:claims:mut && npm run pycheck && npm run method:doc:verify && tsc --noEmit",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 5177"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.187.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  },
+  "private": true
+}

@@ -1,0 +1,86 @@
+{
+  "generator": "tools/gen-dental-assets.ts",
+  "seed": 1337,
+  "density": 1,
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "note": "SYNTHETIC preview assets; identical contract to pipeline output",
+  "scenes": {
+    "sceneA_ios": {
+      "full": {
+        "splats": 88918,
+        "bytes": 2582852,
+        "mb": 2.46,
+        "sh_degree": 1,
+        "bytes_per_splat": 29
+      },
+      "pruned": {
+        "splats": 30232,
+        "bytes": 609126,
+        "mb": 0.58,
+        "sh_degree": 0,
+        "bytes_per_splat": 20
+      },
+      "bytes_ratio": 4.24,
+      "compression_fidelity_mm": {
+        "coverage_gap_mean": 0.314,
+        "coverage_gap_p95": 0.691,
+        "coverage_gap_max": 4.796,
+        "kept_subset_of_original": true,
+        "sampled_pairs": 2532,
+        "note": "mean nearest-neighbour distance from removed splats to the retained set; PSNR is measured live in-browser (bench mode), not estimated"
+      },
+      "proxy": {
+        "bytes": 230792,
+        "kb": 225.4,
+        "nodes": 34,
+        "triangles": 11824
+      },
+      "metrics": {}
+    },
+    "sceneB_cbct": {
+      "full": {
+        "splats": 44738,
+        "bytes": 1301244,
+        "mb": 1.24,
+        "sh_degree": 1,
+        "bytes_per_splat": 29
+      },
+      "pruned": {
+        "splats": 18790,
+        "bytes": 379898,
+        "mb": 0.36,
+        "sh_degree": 0,
+        "bytes_per_splat": 20
+      },
+      "bytes_ratio": 3.43,
+      "compression_fidelity_mm": {
+        "coverage_gap_mean": 0.349,
+        "coverage_gap_p95": 0.946,
+        "coverage_gap_max": 1.297,
+        "kept_subset_of_original": true,
+        "sampled_pairs": 2632,
+        "note": "mean nearest-neighbour distance from removed splats to the retained set; PSNR is measured live in-browser (bench mode), not estimated"
+      },
+      "proxy": {
+        "bytes": 224660,
+        "kb": 219.4,
+        "nodes": 33,
+        "triangles": 11512
+      },
+      "metrics": {
+        "ian_48_min_mm": 2.35,
+        "tooth_48_at_mm": [
+          -19,
+          -6.1,
+          -12.7
+        ],
+        "nerve_at_mm": [
+          -20,
+          -7.6,
+          -11.1
+        ]
+      }
+    }
+  }
+}

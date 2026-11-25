@@ -1,0 +1,369 @@
+{
+  "bundle": [
+    "index-DUqMfPP2.js"
+  ],
+  "dspk": [
+    "sceneA_full.dspk=1258792",
+    "sceneA_pruned.dspk=435115"
+  ],
+  "job": [
+    "A",
+    "full"
+  ],
+  "kind": "perf",
+  "res": {
+    "canvas": {
+      "dpr": 1,
+      "hidden": true,
+      "hud": {
+        "bytes": 2582852,
+        "fps": 60,
+        "frameMs": 0.03,
+        "gpu": "NVIDIA GeForce RTX 5070 Ti",
+        "sortMs": 2.2,
+        "splats": 88918,
+        "visible": 88918
+      },
+      "screen": {
+        "h": 1,
+        "w": 428
+      },
+      "visState": "hidden"
+    },
+    "caseId": "A",
+    "definition": "perf(): gpuMs = a render serialised by a 1x1 readback; syncOnlyMs = the same readbacks with no render, i.e. the IPC floor; netGpuMs = gpuMs.p50 - syncOnlyMs.p50, the figure to quote. finishMs = the loop closed with gl.finish(); submitMs = the batch with no sync; drainMs = the finish after that batch -- finishMs ~= submitMs is what proves finish() is not a GPU sync here. sortMs = one CPU counting-sort pass; readbackFullMs = the w x h transfer behind paintedFraction and is not a frame time. timer[] = hardware EXT_disjoint_timer_query_webgl2 over the same pass, with got/unavailable/disjoint reported so a starved query set cannot read as fast.",
+    "gpu": "NVIDIA GeForce RTX 5070 Ti",
+    "mode": "full",
+    "perf": [
+      {
+        "drainMs": 0,
+        "drawn": {
+          "calls": 1,
+          "tris": 177836
+        },
+        "finishMs": {
+          "max": 0.6,
+          "min": 0,
+          "n": 20,
+          "p50": 0.1,
+          "p95": 0.3
+        },
+        "fpsAtThisSize": 344.8,
+        "fpsBasis": "netGpuMs = serialMs.p50 - syncOnlyMs.p50",
+        "glError": 0,
+        "gpu": "NVIDIA GeForce RTX 5070 Ti",
+        "gpuMs": {
+          "max": 98.7,
+          "min": 2.8,
+          "n": 20,
+          "p50": 3.1,
+          "p95": 4.7
+        },
+        "h": 360,
+        "iters": 20,
+        "method": "serialised 1x1 readback, sync latency subtracted",
+        "netGpuMs": 2.9,
+        "paintedFraction": 0.1954,
+        "readbackFullMs": 102.4,
+        "serialMs": {
+          "max": 98.7,
+          "min": 2.8,
+          "n": 20,
+          "p50": 3.1,
+          "p95": 4.7
+        },
+        "sortMs": 2.1,
+        "splats": 88918,
+        "submitMs": 0.065,
+        "syncConfirmed": true,
+        "syncOnlyMs": {
+          "max": 0.5,
+          "min": 0.1,
+          "n": 20,
+          "p50": 0.2,
+          "p95": 0.5
+        },
+        "tag": "full",
+        "timerSupported": true,
+        "variant": "full",
+        "visible": 88918,
+        "w": 640
+      },
+      {
+        "drainMs": 0,
+        "drawn": {
+          "calls": 1,
+          "tris": 177836
+        },
+        "finishMs": {
+          "max": 0.6,
+          "min": 0,
+          "n": 20,
+          "p50": 0,
+          "p95": 0.3
+        },
+        "fpsAtThisSize": 357.1,
+        "fpsBasis": "netGpuMs = serialMs.p50 - syncOnlyMs.p50",
+        "glError": 0,
+        "gpu": "NVIDIA GeForce RTX 5070 Ti",
+        "gpuMs": {
+          "max": 4.3,
+          "min": 2.8,
+          "n": 20,
+          "p50": 3.1,
+          "p95": 3.7
+        },
+        "h": 720,
+        "iters": 20,
+        "method": "serialised 1x1 readback, sync latency subtracted",
+        "netGpuMs": 2.8,
+        "paintedFraction": 0.1941,
+        "readbackFullMs": 105.6,
+        "serialMs": {
+          "max": 4.3,
+          "min": 2.8,
+          "n": 20,
+          "p50": 3.1,
+          "p95": 3.7
+        },
+        "sortMs": 2,
+        "splats": 88918,
+        "submitMs": 0.015,
+        "syncConfirmed": true,
+        "syncOnlyMs": {
+          "max": 0.6,
+          "min": 0.1,
+          "n": 20,
+          "p50": 0.3,
+          "p95": 0.5
+        },
+        "tag": "full",
+        "timerSupported": true,
+        "variant": "full",
+        "visible": 88918,
+        "w": 1280
+      },
+      {
+        "drainMs": 0,
+        "drawn": {
+          "calls": 1,
+          "tris": 177836
+        },
+        "finishMs": {
+          "max": 0.2,
+          "min": 0,
+          "n": 10,
+          "p50": 0,
+          "p95": 0.1
+        },
+        "fpsAtThisSize": 384.6,
+        "fpsBasis": "netGpuMs = serialMs.p50 - syncOnlyMs.p50",
+        "glError": 0,
+        "gpu": "NVIDIA GeForce RTX 5070 Ti",
+        "gpuMs": {
+          "max": 4.9,
+          "min": 2.8,
+          "n": 10,
+          "p50": 3,
+          "p95": 3.9
+        },
+        "h": 1080,
+        "iters": 10,
+        "method": "serialised 1x1 readback, sync latency subtracted",
+        "netGpuMs": 2.6,
+        "paintedFraction": 0.1938,
+        "readbackFullMs": 55.7,
+        "serialMs": {
+          "max": 4.9,
+          "min": 2.8,
+          "n": 10,
+          "p50": 3,
+          "p95": 3.9
+        },
+        "sortMs": 2.3,
+        "splats": 88918,
+        "submitMs": 0.04,
+        "syncConfirmed": true,
+        "syncOnlyMs": {
+          "max": 0.5,
+          "min": 0.2,
+          "n": 10,
+          "p50": 0.4,
+          "p95": 0.5
+        },
+        "tag": "full",
+        "timerSupported": true,
+        "variant": "full",
+        "visible": 88918,
+        "w": 1920
+      },
+      {
+        "drainMs": 0.1,
+        "drawn": {
+          "calls": 1,
+          "tris": 177836
+        },
+        "finishMs": {
+          "max": 0.1,
+          "min": 0,
+          "n": 10,
+          "p50": 0,
+          "p95": 0.1
+        },
+        "fpsAtThisSize": 370.4,
+        "fpsBasis": "netGpuMs = serialMs.p50 - syncOnlyMs.p50",
+        "glError": 0,
+        "gpu": "NVIDIA GeForce RTX 5070 Ti",
+        "gpuMs": {
+          "max": 4.6,
+          "min": 2.7,
+          "n": 10,
+          "p50": 3.1,
+          "p95": 4.4
+        },
+        "h": 1440,
+        "iters": 10,
+        "method": "serialised 1x1 readback, sync latency subtracted",
+        "netGpuMs": 2.7,
+        "paintedFraction": 0.1937,
+        "readbackFullMs": 58,
+        "serialMs": {
+          "max": 4.6,
+          "min": 2.7,
+          "n": 10,
+          "p50": 3.1,
+          "p95": 4.4
+        },
+        "sortMs": 2.2,
+        "splats": 88918,
+        "submitMs": 0.01,
+        "syncConfirmed": true,
+        "syncOnlyMs": {
+          "max": 0.5,
+          "min": 0.3,
+          "n": 10,
+          "p50": 0.4,
+          "p95": 0.5
+        },
+        "tag": "full",
+        "timerSupported": true,
+        "variant": "full",
+        "visible": 88918,
+        "w": 2560
+      }
+    ],
+    "selfTest": {
+      "box": 6544,
+      "errors": [
+        0,
+        0,
+        0
+      ],
+      "splat": 7296,
+      "splatMid": [
+        146,
+        62,
+        66,
+        255
+      ]
+    },
+    "timer": [
+      {
+        "asked": 20,
+        "disjoint": 0,
+        "drawn": {
+          "calls": 1,
+          "tris": 177836
+        },
+        "fpsAtThisSize": null,
+        "glError": 0,
+        "got": 0,
+        "gpu": "NVIDIA GeForce RTX 5070 Ti",
+        "gpuMs": null,
+        "h": 360,
+        "iters": 20,
+        "method": "EXT_disjoint_timer_query_webgl2",
+        "sortMs": 2,
+        "splats": 88918,
+        "tag": "full",
+        "unavailable": 20,
+        "variant": "full",
+        "visible": 88918,
+        "w": 640
+      },
+      {
+        "asked": 20,
+        "disjoint": 0,
+        "drawn": {
+          "calls": 1,
+          "tris": 177836
+        },
+        "fpsAtThisSize": null,
+        "glError": 0,
+        "got": 0,
+        "gpu": "NVIDIA GeForce RTX 5070 Ti",
+        "gpuMs": null,
+        "h": 720,
+        "iters": 20,
+        "method": "EXT_disjoint_timer_query_webgl2",
+        "sortMs": 2.5,
+        "splats": 88918,
+        "tag": "full",
+        "unavailable": 20,
+        "variant": "full",
+        "visible": 88918,
+        "w": 1280
+      },
+      {
+        "asked": 10,
+        "disjoint": 0,
+        "drawn": {
+          "calls": 1,
+          "tris": 177836
+        },
+        "fpsAtThisSize": null,
+        "glError": 0,
+        "got": 0,
+        "gpu": "NVIDIA GeForce RTX 5070 Ti",
+        "gpuMs": null,
+        "h": 1080,
+        "iters": 10,
+        "method": "EXT_disjoint_timer_query_webgl2",
+        "sortMs": 3.1,
+        "splats": 88918,
+        "tag": "full",
+        "unavailable": 10,
+        "variant": "full",
+        "visible": 88918,
+        "w": 1920
+      },
+      {
+        "asked": 10,
+        "disjoint": 0,
+        "drawn": {
+          "calls": 1,
+          "tris": 177836
+        },
+        "fpsAtThisSize": null,
+        "glError": 0,
+        "got": 0,
+        "gpu": "NVIDIA GeForce RTX 5070 Ti",
+        "gpuMs": null,
+        "h": 1440,
+        "iters": 10,
+        "method": "EXT_disjoint_timer_query_webgl2",
+        "sortMs": 2.4,
+        "splats": 88918,
+        "tag": "full",
+        "unavailable": 10,
+        "variant": "full",
+        "visible": 88918,
+        "w": 2560
+      }
+    ],
+    "variantNow": "full"
+  },
+  "sha": "44bff418284fdb39bd13bce59a78d09f5f35ff6c872bcbe2b1e1896f258b1533",
+  "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Qoder/0.5",
+  "wallMs": 1653
+}

@@ -1,0 +1,10 @@
+# DentSplat offline pipeline -- system Python 3.10+ only.
+# Blender's bundled Python needs none of this except numpy (already shipped with Blender).
+# Training itself lives in the gsplat / 2DGS repos, which carry their own requirements;
+# nothing here is imported by the trainers.
+
+numpy>=1.24,<3          # arrays, RNG (default_rng), linear algebra
+scipy>=1.10             # cKDTree for nearest-neighbour FDI/layer binding
+trimesh>=4              # proxy .glb reading (fast=True path in postprocess)
+plyfile>=1.0            # read/write standard 3DGS .ply with structured dtypes
+nibabel>=5              # CBCT .nii.gz volumes + affine handling (ToothFairy2 route)

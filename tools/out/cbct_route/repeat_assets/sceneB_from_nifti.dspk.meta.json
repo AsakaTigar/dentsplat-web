@@ -1,0 +1,438 @@
+{
+  "name": "sceneB_from_nifti.dspk",
+  "kind": "cbct",
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "source": {
+    "ply": "tools/out/cbct_route/web_assets/cbct_layers.ply",
+    "ply_sha256": "b6f6e7d20b35690ede6edb9adb5aa778",
+    "ply_vertices": 87405,
+    "format": "format binary_little_endian 1.0",
+    "labels_manifest": "tools/out/cbct_route/web_assets/labels_manifest.json",
+    "order": "as-written",
+    "spacing_mm": 1,
+    "appearance": {
+      "color": "red/green/blue bytes",
+      "alpha": "alpha byte (linear)",
+      "scale": "synthesised 0.600 mm from lattice pitch 1 x 0.6",
+      "rotation": "identity (no rot_ bands in the PLY)",
+      "sh1": "none (SH degree 0)"
+    }
+  },
+  "provenance": "segmentation-sampled point cloud + side-car semantics via tools/ply2dspk.ts (splat size derived from the sampling pitch, see source.appearance)",
+  "teeth": {
+    "FDI_11": {
+      "fdi": 11,
+      "arch": "upper",
+      "at": [
+        -4.97,
+        20.5,
+        32.08
+      ],
+      "splats": 584
+    },
+    "FDI_12": {
+      "fdi": 12,
+      "arch": "upper",
+      "at": [
+        -11.71,
+        20.5,
+        30.07
+      ],
+      "splats": 581
+    },
+    "FDI_13": {
+      "fdi": 13,
+      "arch": "upper",
+      "at": [
+        -17.85,
+        20.5,
+        26.52
+      ],
+      "splats": 572
+    },
+    "FDI_14": {
+      "fdi": 14,
+      "arch": "upper",
+      "at": [
+        -23.33,
+        20.5,
+        21.56
+      ],
+      "splats": 604
+    },
+    "FDI_15": {
+      "fdi": 15,
+      "arch": "upper",
+      "at": [
+        -27.84,
+        20.5,
+        15.44
+      ],
+      "splats": 585
+    },
+    "FDI_16": {
+      "fdi": 16,
+      "arch": "upper",
+      "at": [
+        -31.23,
+        19.62,
+        8.4
+      ],
+      "splats": 513
+    },
+    "FDI_17": {
+      "fdi": 17,
+      "arch": "upper",
+      "at": [
+        -33.29,
+        20.5,
+        0.65
+      ],
+      "splats": 593
+    },
+    "FDI_18": {
+      "fdi": 18,
+      "arch": "upper",
+      "at": [
+        -34,
+        20.5,
+        -7.5
+      ],
+      "splats": 573
+    },
+    "FDI_21": {
+      "fdi": 21,
+      "arch": "upper",
+      "at": [
+        4.97,
+        20.5,
+        32.08
+      ],
+      "splats": 584
+    },
+    "FDI_22": {
+      "fdi": 22,
+      "arch": "upper",
+      "at": [
+        11.71,
+        20.5,
+        30.07
+      ],
+      "splats": 581
+    },
+    "FDI_23": {
+      "fdi": 23,
+      "arch": "upper",
+      "at": [
+        17.85,
+        20.5,
+        26.52
+      ],
+      "splats": 572
+    },
+    "FDI_24": {
+      "fdi": 24,
+      "arch": "upper",
+      "at": [
+        23.31,
+        19.57,
+        21.57
+      ],
+      "splats": 516
+    },
+    "FDI_25": {
+      "fdi": 25,
+      "arch": "upper",
+      "at": [
+        27.84,
+        20.5,
+        15.44
+      ],
+      "splats": 585
+    },
+    "FDI_26": {
+      "fdi": 26,
+      "arch": "upper",
+      "at": [
+        31.23,
+        20.5,
+        8.38
+      ],
+      "splats": 597
+    },
+    "FDI_27": {
+      "fdi": 27,
+      "arch": "upper",
+      "at": [
+        33.29,
+        20.5,
+        0.65
+      ],
+      "splats": 593
+    },
+    "FDI_28": {
+      "fdi": 28,
+      "arch": "upper",
+      "at": [
+        34,
+        20.5,
+        -7.5
+      ],
+      "splats": 573
+    },
+    "FDI_31": {
+      "fdi": 31,
+      "arch": "lower",
+      "at": [
+        4.97,
+        -23.5,
+        32.08
+      ],
+      "splats": 584
+    },
+    "FDI_32": {
+      "fdi": 32,
+      "arch": "lower",
+      "at": [
+        11.71,
+        -23.5,
+        30.07
+      ],
+      "splats": 581
+    },
+    "FDI_33": {
+      "fdi": 33,
+      "arch": "lower",
+      "at": [
+        17.68,
+        -23.68,
+        26.56
+      ],
+      "splats": 526
+    },
+    "FDI_34": {
+      "fdi": 34,
+      "arch": "lower",
+      "at": [
+        23.49,
+        -23.62,
+        21.56
+      ],
+      "splats": 570
+    },
+    "FDI_35": {
+      "fdi": 35,
+      "arch": "lower",
+      "at": [
+        27.84,
+        -23.5,
+        15.44
+      ],
+      "splats": 585
+    },
+    "FDI_36": {
+      "fdi": 36,
+      "arch": "lower",
+      "at": [
+        31.23,
+        -23.5,
+        8.38
+      ],
+      "splats": 597
+    },
+    "FDI_37": {
+      "fdi": 37,
+      "arch": "lower",
+      "at": [
+        33.29,
+        -23.5,
+        0.65
+      ],
+      "splats": 593
+    },
+    "FDI_38": {
+      "fdi": 38,
+      "arch": "lower",
+      "at": [
+        34,
+        -23.5,
+        -7.5
+      ],
+      "splats": 573
+    },
+    "FDI_41": {
+      "fdi": 41,
+      "arch": "lower",
+      "at": [
+        -4.97,
+        -23.5,
+        32.08
+      ],
+      "splats": 584
+    },
+    "FDI_42": {
+      "fdi": 42,
+      "arch": "lower",
+      "at": [
+        -11.71,
+        -23.5,
+        30.07
+      ],
+      "splats": 581
+    },
+    "FDI_43": {
+      "fdi": 43,
+      "arch": "lower",
+      "at": [
+        -17.68,
+        -23.68,
+        26.56
+      ],
+      "splats": 526
+    },
+    "FDI_44": {
+      "fdi": 44,
+      "arch": "lower",
+      "at": [
+        -23.49,
+        -23.62,
+        21.56
+      ],
+      "splats": 570
+    },
+    "FDI_45": {
+      "fdi": 45,
+      "arch": "lower",
+      "at": [
+        -27.84,
+        -23.5,
+        15.44
+      ],
+      "splats": 585
+    },
+    "FDI_46": {
+      "fdi": 46,
+      "arch": "lower",
+      "at": [
+        -31.23,
+        -22.62,
+        8.4
+      ],
+      "splats": 513
+    },
+    "FDI_47": {
+      "fdi": 47,
+      "arch": "lower",
+      "at": [
+        -33.29,
+        -23.5,
+        0.65
+      ],
+      "splats": 593
+    },
+    "FDI_48": {
+      "fdi": 48,
+      "arch": "lower",
+      "at": [
+        -34,
+        -23.5,
+        -7.5
+      ],
+      "splats": 573
+    }
+  },
+  "conversion": {
+    "out": "tools/out/cbct_route/repeat_assets/sceneB_from_nifti.dspk",
+    "converted_at": "2026-11-24T20:44:43.074Z",
+    "bytes": 1748976,
+    "splats": 87405,
+    "dropped": 0,
+    "sh_degree": 0,
+    "bytes_per_splat": 20.01,
+    "bbox_mm": [
+      [
+        -40.5,
+        -32,
+        -39
+      ],
+      [
+        40.5,
+        32,
+        39
+      ]
+    ],
+    "encoded": {
+      "scale_mm": [
+        0.6,
+        0.6
+      ],
+      "alpha_byte": [
+        255,
+        255
+      ],
+      "distinct_colors": 542,
+      "distinct_rotations": 1,
+      "input_kind": "point_cloud"
+    },
+    "appearance": {
+      "color": "red/green/blue bytes",
+      "alpha": "alpha byte (linear)",
+      "scale": "synthesised 0.600 mm from lattice pitch 1 x 0.6",
+      "rotation": "identity (no rot_ bands in the PLY)",
+      "sh1": "none (SH degree 0)"
+    },
+    "fdi_histogram": {
+      "0": 69065,
+      "11": 584,
+      "12": 581,
+      "13": 572,
+      "14": 604,
+      "15": 585,
+      "16": 513,
+      "17": 593,
+      "18": 573,
+      "21": 584,
+      "22": 581,
+      "23": 572,
+      "24": 516,
+      "25": 585,
+      "26": 597,
+      "27": 593,
+      "28": 573,
+      "31": 584,
+      "32": 581,
+      "33": 526,
+      "34": 570,
+      "35": 585,
+      "36": 597,
+      "37": 593,
+      "38": 573,
+      "41": 584,
+      "42": 581,
+      "43": 526,
+      "44": 570,
+      "45": 585,
+      "46": 513,
+      "47": 593,
+      "48": 573
+    },
+    "layer_histogram": {
+      "1": 16064,
+      "3": 59316,
+      "4": 1293,
+      "6": 2276,
+      "7": 8074,
+      "8": 382
+    },
+    "alignment": {
+      "ply_vertices": 87405,
+      "fdi_rows": 87405,
+      "layer_rows": 87405,
+      "manifest_count": null,
+      "manifest_order": null,
+      "ply_sha256": "b6f6e7d20b35690ede6edb9adb5aa778",
+      "manifest_ply_sha256": null
+    }
+  }
+}

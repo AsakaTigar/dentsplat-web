@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>DentSplat 技术简报</title>
+<style>
+  /* 单页 A4，打印友好（白底 + PACS 青蓝点缀）。字号与行距按"一页装得下"倒推，不是随手写的。 */
+  @page { size: A4; margin: 10mm 11mm 9mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #fff; color: #101826;
+    font-family: "Segoe UI", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+    font-size: 8.5pt; line-height: 1.34;
+  }
+  .head { display: flex; align-items: flex-end; justify-content: space-between;
+          border-bottom: 2px solid #0B0F17; padding-bottom: 4px; }
+  h1 { font-size: 13pt; margin: 0; letter-spacing: .2px; }
+  h1 .en { color: #0A7EA4; font-weight: 600; }
+  .sub { font-size: 8pt; color: #47566b; margin-top: 1px; }
+  .meta { text-align: right; font-size: 7.4pt; color: #47566b; line-height: 1.3; white-space: nowrap; }
+  .meta b { color: #0B0F17; }
+  h2 { font-size: 9.2pt; margin: 7px 0 2px; color: #0B0F17; }
+  h2 .n { display: inline-block; width: 13.5px; height: 13.5px; line-height: 13.5px; text-align: center;
+          background: #0B0F17; color: #fff; border-radius: 3px; font-size: 7.4pt; margin-right: 4px; }
+  p { margin: 0 0 2px; }
+  .lead { font-size: 8.8pt; }
+  .hl { background: linear-gradient(transparent 62%, #CFEEFB 62%); font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin: 2px 0; font-size: 7.8pt; }
+  th, td { border-bottom: 1px solid #dde4ee; padding: 1.8px 4px; text-align: left; vertical-align: top; }
+  th { background: #F3F7FB; font-weight: 600; border-bottom: 1.3px solid #b9c6d8; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .cols { display: flex; gap: 9px; }
+  .col { flex: 1; }
+  ul { margin: 1px 0 2px; padding-left: 13px; }
+  li { margin-bottom: 1.2px; }
+  .grid2 { display: flex; gap: 9px; margin-top: 2px; }
+  .card { flex: 1; border: 1px solid #dbe3ee; border-radius: 5px; padding: 5px 7px; background: #FBFDFF; }
+  .card h3 { margin: 0 0 1px; font-size: 8.4pt; color: #0A5B78; }
+  .warn { border: 1.3px solid #C2410C; background: #FFF7F2; border-radius: 5px; padding: 5px 7px; }
+  .warn h3 { margin: 0 0 1px; font-size: 8.6pt; color: #9A3412; }
+  code, .mono { font-family: "Cascadia Mono", Consolas, monospace; font-size: 7.5pt; background: #EEF2F7;
+                padding: 0 2.5px; border-radius: 2px; }
+  .cmd { background: #0B0F17; color: #D8E7F5; border-radius: 4px; padding: 4px 6px;
+         font-family: "Cascadia Mono", Consolas, monospace; font-size: 7.1pt; line-height: 1.45; }
+  .cmd em { color: #6FD3F7; font-style: normal; }
+  .foot { margin-top: 5px; border-top: 1px solid #c9d4e3; padding-top: 3px; font-size: 7.1pt; color: #55647a; }
+  .tag { display: inline-block; border: 1px solid #0A7EA4; color: #0A5B78; border-radius: 999px;
+         padding: 0 5px; font-size: 7.1pt; font-weight: 600; }
+  .badge { display: inline-block; background: #FEF3C7; border: 1px solid #D97706; color: #92400E;
+           border-radius: 3px; padding: 0 4px; font-size: 7.1pt; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div>
+    <h1>DentSplat <span class="en">· 浏览器里的 3DGS 牙科原型</span></h1>
+    <div class="sub">从公开牙科数据到可交互、可核查的三维牙列，全程零安装 · 一页技术简报</div>
+  </div>
+  <div class="meta">
+    <div><b>日期</b> 2026-11-25</div>
+    <div><b>环境</b> RTX 5070 Ti / ANGLE-D3D11 / Chromium 150</div>
+    <div><b>状态</b> 渲染与编码链路已测量 <span class="badge">SYNTHETIC PREVIEW</span></div>
+  </div>
+</div>
+
+<p class="lead" style="margin-top:5px">
+  一句话：把牙科数据压进一个自描述容器 <span class="mono">.dspk</span>，在浏览器里用一次 draw call 画出来，
+  并且让<span class="hl">每一个交互、每一个数字都能被脚本重新测出来</span>——随附的 60 秒走查只是把这些数字念出来，字幕里的每个数值仍由同一批脚本复算。
+</p>
+
+<div class="grid2">
+  <div class="card">
+    <h3>① 数据 → 容器</h3>
+    两条真实数据形态的路线：Scene A 走表面网格（Teeth3DS / 3DTeethSeg 的 OBJ + 逐顶点 FDI 标注），
+    Scene B 走 CBCT 分割体（ToothFairy3 的 77 类 NIfTI）。离线管线 <code>pipeline/run_case.sh</code>
+    产出渲染图 + COLMAP 位姿 + 代理网格 + <code>fdi/layer_labels.bin</code>，训练后由
+    <code>tools/ply2dspk.ts</code> 封成 <code>.dspk</code>。
+  </div>
+  <div class="card">
+    <h3>② 容器里写了什么</h3>
+    128 B 头 + 内嵌 JSON 元数据 + 每 splat 20/29 B：位置在 bbox 内 u16 插值、旋转 snorm、尺度 log 域 u8、
+    颜色 u8，<b>第四个字节带 FDI 与语义层标签</b>。标签随点走而不是外挂，因为 ksplat / spz 的 Morton
+    重排会让旁挂标签错位——这正是牙位定位能不能做对的分水岭。
+  </div>
+  <div class="card">
+    <h3>③ 交互在着色器里</h3>
+    牙弓开合、X/Y/Z 三轴剖切加断面盖片、按层透明度的 X 光模式、点选高亮与二维牙位图双向联动、毫米级测距、
+    Full / Pruned 同屏对比、性能 HUD。<span class="hl">裁剪与高亮是 uniform 级实现</span>，不是黑盒库，
+    所以能被脚本逐层验证。
+  </div>
+</div>
+
+<h2><span class="n">4</span>已经测出来的数字（同一台机器、同一份构建，全部由 <code>npm run check</code> 复算）</h2>
+<table>
+  <tr><th>指标</th><th>Scene A（Teeth3DS+ IOS）</th><th>Scene B（ToothFairy3 CBCT）</th><th>说明</th></tr>
+  <tr><td>体积</td><td class="num">2,582,852 → 609,126 B（<b>4.24×</b>）</td><td class="num">1,301,244 → 379,898 B（<b>3.43×</b>）</td><td>完整包 vs 剪枝包，同一个文件</td></tr>
+  <tr><td>splat 数</td><td class="num">88,918 → 30,232</td><td class="num">44,738 → 18,790</td><td>SH1 / SH0</td></tr>
+  <tr><td>GPU 单遍耗时</td><td class="num">2.6–2.9 ms → 0.7–0.9 ms</td><td class="num">1.3–1.5 ms → 0.5–0.7 ms</td><td>640×360 到 2560×1440 几乎<b>与分辨率无关</b>；1 draw call、glError 0</td></tr>
+  <tr><td>像素保真（整帧 / 掩膜内）</td><td class="num">21.82 / 17.60 dB</td><td class="num">25.10 / 22.03 dB</td><td>浏览器回读像素算 PSNR；同包重渲染对照 = 逐比特相同（999 dB）</td></tr>
+  <tr><td>剪枝策略 A/B</td><td class="num" colspan="2">朴素 top-score 17.19 / 12.75 dB → 覆盖感知 21.82 / 17.60 dB（<b>+4.63 / +4.85 dB</b>）</td><td>亮度损失 14% → 4%；代价只有元数据 +224 B</td></tr>
+  <tr><td>几何覆盖间隙 mean/p95/max</td><td class="num">0.314 / 0.691 / 4.796 mm</td><td class="num">0.349 / <b>0.946</b> / 1.297 mm</td><td>被删 splat 到保留集的真实最近邻距离；B 的 p95 由 3.389 → 0.946 mm，保留集仍"夹住"下牙槽神经管</td></tr>
+  <tr><td>离线 CBCT 链路</td><td class="num" colspan="3">NIfTI → 87,405 splats / 0.6 mm / 32 个 FDI / 542 种颜色 / 六个语义层 → <code>.dspk</code> 1,748,976 B（<span class="mono">118058fc…</span>），页面加载 134.2 ms；重跑两次<b>逐字节相同</b>，46 项断言全过</td></tr>
+</table>
+
+<h2><span class="n">5</span>为什么这件事值得用 3DGS，而不是 Mesh 或体渲染</h2>
+<div class="cols">
+  <div class="col">
+    <ul>
+      <li><b>同一个文件既能画又能定位。</b>标签在 splat 里，点一下就知道是 36 号牙、是牙根还是根管，
+          不必另维护 mesh-tooth 映射；Mesh 路线要重网格或逐面片属性，体渲染路线要在图像空间反查解剖。</li>
+      <li><b>成本与分辨率解耦。</b>0.5–2.9 ms 的单遍开销从 360p 到 1440p 基本不变，瓶颈是顶点与排序而非填充率；
+          在这台 5070 Ti 上相对 60 fps 预算余量约 5×（A 完整包 1440p）到 12×（剪枝包），CPU 排序 0.9–2.3 ms 也放得进 16.6 ms。
+          <b>低端集成显卡与远程桌面尚未实测</b>，但这条曲线形状说明它不是填充率受限的场景；体渲染的光线步数则随分辨率线性上涨。</li>
+      <li><b>半透明是原生能力。</b>釉质/牙根/神经管/上颌窦的分层透视由一个 <code>uLayerAlpha</code> 数组驱动，
+          拉动滑块就能把牙根与下牙槽神经管的上下关系显示出来（是否"压迫"要真实病例，见第 7 节）；
+          Mesh 要穿透遮挡，体渲染要为透明重排采样。</li>
+    </ul>
+  </div>
+  <div class="col">
+    <h2 style="margin-top:0"><span class="n">6</span>与课题组临床问题的接口</h2>
+    <ul>
+      <li><b>牙位定位：</b>FDI 编号贯穿 OBJ 顶点标签 → 训练点云 → <code>.dspk</code> 第四字节 → 点击高亮 →
+          二维牙位图，每一跳都有断言；CBCT 侧根管沿用 <span class="mono">FDI + 100</span>，
+          所以"点牙冠亮整颗牙含根管"不需要旁挂文件。</li>
+      <li><b>CBCT 高效阅读：</b>六个语义层（牙槽骨 / 牙体 / 神经管 / 牙髓 / 修复体 / 上颌窦）分别可调可隔离，
+          测量给出真实毫米数。</li>
+      <li><b>可核查证据：</b>界面里的证据卡记下每个结论的来源、判据与失败条件——与我在 BIBM 上的证据审计工作连成一条线：
+          没有可复算出处的数字就写作待测，不写进结论。</li>
+    </ul>
+  </div>
+</div>
+
+<div class="warn" style="margin-top:5px">
+  <h3>7 · 这份简报不证明什么（先说清楚，免得后面被动）</h3>
+  <ul>
+    <li><b>界面里的资产仍是合成预览：</b>几何按公开数据集的牙弓与牙管统计生成，颜色与病灶是程序化的，
+        界面上常驻 SYNTHETIC 角标。所以第 4 节量的是<b>编解码与渲染契约</b>，不是真实扫描训练出的 3DGS 的保真度。</li>
+    <li><b>离线 CBCT 链路用的是合成体数据</b>（解析标注的 fixture 体积），不是患者；Scene A 前端的 Blender 渲染与
+        <code>postprocess_dental_gs.py</code> 尚未在真实训练产物上跑过，本机也没有 Blender。</li>
+    <li><b>耗时只含 GPU 渲染遍与 CPU 排序</b>，不含合成与上屏，且测于隐藏自动化窗口——只用于比较两种剪枝策略，不用于宣称帧率。
+        毫米测距打在隐形代理网格上，是水面距离而非 splat 质心距离。<b>"拉动滑块看阻生智齿牙根是否压迫下牙槽神经管"目前只是可做的交互，
+        还不是结果</b>：合成 fixture 里的牙根与神经管并不相邻，真实 ToothFairy3 病例上还没有可测样例；<b>也没有任何临床诊断验证</b>。</li>
+  </ul>
+</div>
+
+<h2><span class="n">8</span>复现</h2>
+<div class="cmd">
+<em>npm run build &amp;&amp; npm run preview</em>        # 打开即演示页（首屏目标 2 秒内，端到端计时代测）<br>
+<em>npm run check</em>                     # 全绿：容器往返、标签同步、4 个页面探针自检、23 项 nifti 探针 mock 检查（含 FLIP_ROWS / SCRAMBLE 反例）、本简报与 MEASUREMENTS.md 的数字复算、变异测试（逐条改坏一个数字，确认闸门真的会响），再 tsc --noEmit<br>
+<em>npm run test:pipeline</em>              # 离线链路 46 项：NIfTI → PLY + 标签 → .dspk，含重跑可重复与逐字节一致判定<br>
+<em>npm run demo</em>                     # 60 秒走查：逐帧核对 sha256、卡片排版不越界，再交给 ffmpeg；旁附 PROVENANCE<br>
+数据：Teeth3DS+ IOS（osf.io/um96h，CC BY-NC-ND）· ToothFairy3 / ODIN2025（MICCAI 2025，532 例，0.3 mm，77 类，CC BY-NC-SA）
+</div>
+
+<div class="foot">
+  <span class="tag">零安装</span> <span class="tag">单文件容器</span> <span class="tag">着色器级裁剪与高亮</span>
+  <span class="tag">1 单位 = 1 mm，Y-up</span> <span class="tag">证据可复算</span>
+  &nbsp;·&nbsp; 数字出处：<code>MEASUREMENTS.md</code> §1–§8 与 <code>tools/out/*.json</code>、<code>captures/PROVENANCE.md</code>（逐文件 sha256）。
+  本简报每个数值都由构建脚本与同一份 JSON 复核，未测得的项目写作"待测"。
+</div>
+
+</body>
+</html>

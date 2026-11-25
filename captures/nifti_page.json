@@ -1,0 +1,487 @@
+{
+  "launcherBytes": 2689,
+  "launcherSha256": "cf13f7c913ed81ee3d1d2a4e53ae7372",
+  "out": {
+    "asset": "/assets/sceneB_from_nifti.dspk",
+    "bundle": [
+      "index-DUqMfPP2.js"
+    ],
+    "caseIdBefore": "A",
+    "dspk": [
+      "sceneA_full.dspk=1258792",
+      "sceneA_pruned.dspk=435115",
+      "sceneB_from_nifti.dspk=358679",
+      "sceneB_from_nifti.dspk=358679",
+      "sceneB_from_nifti.dspk=358679"
+    ],
+    "pngChars": 100466,
+    "probeBytes": 12134,
+    "probeSha256": "1bd02bda25db5deaf754cd79baf8de8e",
+    "res": {
+      "after": {
+        "altSplats": 87405,
+        "appearance": {
+          "alpha": "alpha byte (linear)",
+          "color": "red/green/blue bytes",
+          "rotation": "identity (no rot_ bands in the PLY)",
+          "scale": "synthesised 0.600 mm from lattice pitch 1 x 0.6",
+          "sh1": "none (SH degree 0)"
+        },
+        "bbox": [
+          [
+            -40.5,
+            -32,
+            -39
+          ],
+          [
+            40.5,
+            32,
+            39
+          ]
+        ],
+        "caseId": "A",
+        "extentMm": [
+          81,
+          64,
+          78
+        ],
+        "frame": "glTF_Y_up",
+        "hasSH1": false,
+        "metaKind": "cbct",
+        "scaleMm": [
+          0.6,
+          0.6
+        ],
+        "sortMs": 3.3,
+        "splats": 87405,
+        "stride": 20
+      },
+      "allLayers": {
+        "drawn": {
+          "calls": 1,
+          "tris": 174810
+        },
+        "frac": 0.2444,
+        "glError": 0,
+        "h": 223,
+        "lit": 19622,
+        "mean": [
+          25,
+          25,
+          23
+        ],
+        "meanRow": 103,
+        "paintedFraction": 0.243,
+        "peak": 211,
+        "rowSpan": [
+          31,
+          172
+        ],
+        "rowsHigh": 8574,
+        "rowsLow": 11048,
+        "sorted": true,
+        "w": 360
+      },
+      "alphasNow": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "8": 1
+      },
+      "alphasRestored": true,
+      "asset": {
+        "bytes": 1748976,
+        "content_length": null,
+        "declared_bytes": null,
+        "sha256": "118058fc20aaec001a253dc4210138e4",
+        "status": 200,
+        "url": "/assets/sceneB_from_nifti.dspk"
+      },
+      "before": {
+        "caseId": "A",
+        "splats": 88918,
+        "variant": "full"
+      },
+      "byLayer": {
+        "1:enamel/teeth": {
+          "drawn": {
+            "calls": 1,
+            "tris": 174810
+          },
+          "frac": 0.1318,
+          "glError": 0,
+          "h": 174,
+          "lit": 6423,
+          "mean": [
+            26,
+            26,
+            25
+          ],
+          "meanRow": 79.2,
+          "paintedFraction": 0.1299,
+          "peak": 213,
+          "rowSpan": [
+            24,
+            131
+          ],
+          "rowsHigh": 3235,
+          "rowsLow": 3188,
+          "sorted": true,
+          "w": 280
+        },
+        "3:alveolar": {
+          "drawn": {
+            "calls": 1,
+            "tris": 174810
+          },
+          "frac": 0.2171,
+          "glError": 0,
+          "h": 174,
+          "lit": 10579,
+          "mean": [
+            19,
+            19,
+            17
+          ],
+          "meanRow": 78.5,
+          "paintedFraction": 0.2155,
+          "peak": 96.7,
+          "rowSpan": [
+            30,
+            125
+          ],
+          "rowsHigh": 4365,
+          "rowsLow": 6214,
+          "sorted": true,
+          "w": 280
+        },
+        "4:nerve": {
+          "drawn": {
+            "calls": 1,
+            "tris": 174810
+          },
+          "frac": 0.0156,
+          "glError": 0,
+          "h": 174,
+          "lit": 760,
+          "mean": [
+            3,
+            3,
+            2
+          ],
+          "meanRow": 55.9,
+          "paintedFraction": 0.0149,
+          "peak": 143,
+          "rowSpan": [
+            40,
+            82
+          ],
+          "rowsHigh": 0,
+          "rowsLow": 760,
+          "sorted": true,
+          "w": 280
+        },
+        "6:pulp": {
+          "drawn": {
+            "calls": 1,
+            "tris": 174810
+          },
+          "frac": 0.0699,
+          "glError": 0,
+          "h": 174,
+          "lit": 3404,
+          "mean": [
+            11,
+            5,
+            5
+          ],
+          "meanRow": 79.7,
+          "paintedFraction": 0.0667,
+          "peak": 117.3,
+          "rowSpan": [
+            29,
+            127
+          ],
+          "rowsHigh": 1733,
+          "rowsLow": 1671,
+          "sorted": true,
+          "w": 280
+        },
+        "7:sinus": {
+          "drawn": {
+            "calls": 1,
+            "tris": 174810
+          },
+          "frac": 0.0261,
+          "glError": 0,
+          "h": 174,
+          "lit": 1271,
+          "mean": [
+            1,
+            3,
+            3
+          ],
+          "meanRow": 120.8,
+          "paintedFraction": 0.0255,
+          "peak": 85.7,
+          "rowSpan": [
+            107,
+            134
+          ],
+          "rowsHigh": 1271,
+          "rowsLow": 0,
+          "sorted": true,
+          "w": 280
+        },
+        "8:restoration": {
+          "drawn": {
+            "calls": 1,
+            "tris": 174810
+          },
+          "frac": 0.0084,
+          "glError": 0,
+          "h": 174,
+          "lit": 408,
+          "mean": [
+            1,
+            2,
+            2
+          ],
+          "meanRow": 97.8,
+          "paintedFraction": 0.0079,
+          "peak": 177.7,
+          "rowSpan": [
+            35,
+            131
+          ],
+          "rowsHigh": 276,
+          "rowsLow": 132,
+          "sorted": true,
+          "w": 280
+        }
+      },
+      "container": {
+        "alpha_byte": [
+          255,
+          255
+        ],
+        "checks": {
+          "all_32_teeth": true,
+          "incisors_forward": true,
+          "right_side_at_minus_x": true,
+          "sinus_above_nerve": true,
+          "upper_above_lower": true
+        },
+        "distinct_colors": 542,
+        "distinct_fdi": 32,
+        "fdi_ids": [
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48
+        ],
+        "layer_geometry": {
+          "1:enamel/teeth": {
+            "mean": [
+              0.18,
+              -1.46,
+              15.87
+            ],
+            "n": 16064,
+            "yRange": [
+              -31.5,
+              28.5
+            ]
+          },
+          "3:alveolar": {
+            "mean": [
+              0,
+              -1.48,
+              14.96
+            ],
+            "n": 59316,
+            "yRange": [
+              -27.5,
+              24.5
+            ]
+          },
+          "4:nerve": {
+            "mean": [
+              0,
+              -21.09,
+              -3.71
+            ],
+            "n": 1293,
+            "yRange": [
+              -22.5,
+              -7.5
+            ]
+          },
+          "6:pulp": {
+            "mean": [
+              0.14,
+              -1.45,
+              15.84
+            ],
+            "n": 2276,
+            "yRange": [
+              -29.5,
+              26.5
+            ]
+          },
+          "7:sinus": {
+            "mean": [
+              0,
+              22.5,
+              -17.5
+            ],
+            "n": 8074,
+            "yRange": [
+              13.5,
+              31.5
+            ]
+          },
+          "8:restoration": {
+            "mean": [
+              -12.68,
+              8.03,
+              12.79
+            ],
+            "n": 382,
+            "yRange": [
+              -31.5,
+              28.5
+            ]
+          }
+        },
+        "layer_hist": {
+          "1:enamel/teeth": 16064,
+          "3:alveolar": 59316,
+          "4:nerve": 1293,
+          "6:pulp": 2276,
+          "7:sinus": 8074,
+          "8:restoration": 382
+        },
+        "teeth": {
+          "incisors": {
+            "mean": [
+              0,
+              -1.5,
+              31.08
+            ],
+            "splats": 4660,
+            "teeth": 4660
+          },
+          "left": {
+            "mean": [
+              23.09,
+              -1.59,
+              15.77
+            ],
+            "splats": 9210,
+            "teeth": 9210
+          },
+          "lower": {
+            "mean": [
+              0.29,
+              -23.48,
+              15.82
+            ],
+            "splats": 9134,
+            "teeth": 9134
+          },
+          "molars": {
+            "mean": [
+              0.76,
+              -1.5,
+              0.43
+            ],
+            "splats": 6884,
+            "teeth": 6884
+          },
+          "right": {
+            "mean": [
+              -22.94,
+              -1.32,
+              15.96
+            ],
+            "splats": 9130,
+            "teeth": 9130
+          },
+          "upper": {
+            "mean": [
+              0.06,
+              20.4,
+              15.91
+            ],
+            "splats": 9206,
+            "teeth": 9206
+          }
+        }
+      },
+      "loadMs": 134.2,
+      "orientation": {
+        "arch_upright": true,
+        "buf": {
+          "h": 174,
+          "w": 280
+        },
+        "halves": {
+          "nerve": [
+            760,
+            0
+          ],
+          "sinus": [
+            0,
+            1271
+          ]
+        },
+        "meanRow": {
+          "nerve": 55.9,
+          "sinus": 120.8
+        },
+        "modelMeanY": {
+          "nerve": -21.09,
+          "sinus": 22.5
+        },
+        "row0_is": "bottom scanline (GL convention; higher model Y -> higher buffer row)",
+        "rowsDrawn": {
+          "nerve": 760,
+          "sinus": 1271
+        }
+      },
+      "pngChars": 100466
+    },
+    "url": "/probes/probe-nifti.js",
+    "wallMs": 1025
+  },
+  "ranAt": "2026-11-24T20:33:31.187Z"
+}

@@ -1,0 +1,414 @@
+{
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "kind": "cbct",
+  "bbox_min": [
+    -43.54999728099631,
+    -25.96613465349189,
+    -27.7169768652261
+  ],
+  "bbox_max": [
+    43.54999728099631,
+    29.706782678214466,
+    44.61000000000001
+  ],
+  "teeth": {
+    "FDI_11": {
+      "fdi": 11,
+      "arch": "upper",
+      "pos": 1,
+      "side": "right",
+      "centroid_mm": [
+        -6.81,
+        5.69,
+        34
+      ],
+      "layer": "teeth"
+    },
+    "FDI_12": {
+      "fdi": 12,
+      "arch": "upper",
+      "pos": 2,
+      "side": "right",
+      "centroid_mm": [
+        -14.15,
+        5.05,
+        31.15
+      ],
+      "layer": "teeth"
+    },
+    "FDI_13": {
+      "fdi": 13,
+      "arch": "upper",
+      "pos": 3,
+      "side": "right",
+      "centroid_mm": [
+        -20.21,
+        5.75,
+        27.27
+      ],
+      "layer": "teeth"
+    },
+    "FDI_14": {
+      "fdi": 14,
+      "arch": "upper",
+      "pos": 4,
+      "side": "right",
+      "centroid_mm": [
+        -25.23,
+        6.2,
+        21.47
+      ],
+      "layer": "teeth"
+    },
+    "FDI_15": {
+      "fdi": 15,
+      "arch": "upper",
+      "pos": 5,
+      "side": "right",
+      "centroid_mm": [
+        -28.95,
+        7.31,
+        15.53
+      ],
+      "layer": "teeth"
+    },
+    "FDI_16": {
+      "fdi": 16,
+      "arch": "upper",
+      "pos": 6,
+      "side": "right",
+      "centroid_mm": [
+        -31.79,
+        6.28,
+        7.04
+      ],
+      "layer": "teeth"
+    },
+    "FDI_17": {
+      "fdi": 17,
+      "arch": "upper",
+      "pos": 7,
+      "side": "right",
+      "centroid_mm": [
+        -32.23,
+        5.88,
+        -3.55
+      ],
+      "layer": "teeth"
+    },
+    "FDI_18": {
+      "fdi": 18,
+      "arch": "upper",
+      "pos": 8,
+      "side": "right",
+      "centroid_mm": [
+        -29.68,
+        5.63,
+        -13.21
+      ],
+      "layer": "teeth"
+    },
+    "FDI_21": {
+      "fdi": 21,
+      "arch": "upper",
+      "pos": 1,
+      "side": "left",
+      "centroid_mm": [
+        6.02,
+        5.69,
+        34.15
+      ],
+      "layer": "teeth"
+    },
+    "FDI_22": {
+      "fdi": 22,
+      "arch": "upper",
+      "pos": 2,
+      "side": "left",
+      "centroid_mm": [
+        13.83,
+        5.05,
+        31.3
+      ],
+      "layer": "teeth"
+    },
+    "FDI_23": {
+      "fdi": 23,
+      "arch": "upper",
+      "pos": 3,
+      "side": "left",
+      "centroid_mm": [
+        20.53,
+        5.75,
+        27.02
+      ],
+      "layer": "teeth"
+    },
+    "FDI_24": {
+      "fdi": 24,
+      "arch": "upper",
+      "pos": 4,
+      "side": "left",
+      "centroid_mm": [
+        25.76,
+        6.2,
+        20.79
+      ],
+      "layer": "teeth"
+    },
+    "FDI_25": {
+      "fdi": 25,
+      "arch": "upper",
+      "pos": 5,
+      "side": "left",
+      "centroid_mm": [
+        29.61,
+        7.31,
+        14.14
+      ],
+      "layer": "teeth"
+    },
+    "FDI_26": {
+      "fdi": 26,
+      "arch": "upper",
+      "pos": 6,
+      "side": "left",
+      "centroid_mm": [
+        32.09,
+        5.97,
+        5.35
+      ],
+      "layer": "teeth"
+    },
+    "FDI_27": {
+      "fdi": 27,
+      "arch": "upper",
+      "pos": 7,
+      "side": "left",
+      "centroid_mm": [
+        31.96,
+        5.88,
+        -5.6
+      ],
+      "layer": "teeth"
+    },
+    "FDI_28": {
+      "fdi": 28,
+      "arch": "upper",
+      "pos": 8,
+      "side": "left",
+      "centroid_mm": [
+        28.68,
+        5.63,
+        -15.39
+      ],
+      "layer": "teeth"
+    },
+    "FDI_41": {
+      "fdi": 41,
+      "arch": "lower",
+      "pos": 1,
+      "side": "right",
+      "centroid_mm": [
+        -3.83,
+        -5.06,
+        29.69
+      ],
+      "layer": "teeth"
+    },
+    "FDI_42": {
+      "fdi": 42,
+      "arch": "lower",
+      "pos": 2,
+      "side": "right",
+      "centroid_mm": [
+        -9.3,
+        -5.3,
+        28.34
+      ],
+      "layer": "teeth"
+    },
+    "FDI_43": {
+      "fdi": 43,
+      "arch": "lower",
+      "pos": 3,
+      "side": "right",
+      "centroid_mm": [
+        -15.21,
+        -5.88,
+        25.3
+      ],
+      "layer": "teeth"
+    },
+    "FDI_44": {
+      "fdi": 44,
+      "arch": "lower",
+      "pos": 4,
+      "side": "right",
+      "centroid_mm": [
+        -20.82,
+        -6.15,
+        20.5
+      ],
+      "layer": "teeth"
+    },
+    "FDI_45": {
+      "fdi": 45,
+      "arch": "lower",
+      "pos": 5,
+      "side": "right",
+      "centroid_mm": [
+        -25.17,
+        -5.95,
+        14.07
+      ],
+      "layer": "teeth"
+    },
+    "FDI_47": {
+      "fdi": 47,
+      "arch": "lower",
+      "pos": 7,
+      "side": "right",
+      "centroid_mm": [
+        -27.5,
+        -5.43,
+        -8.03
+      ],
+      "layer": "teeth"
+    },
+    "FDI_48": {
+      "fdi": 48,
+      "arch": "lower",
+      "pos": 8,
+      "side": "right",
+      "centroid_mm": [
+        -20.16,
+        -2.1,
+        -17.07
+      ],
+      "layer": "teeth"
+    },
+    "FDI_31": {
+      "fdi": 31,
+      "arch": "lower",
+      "pos": 1,
+      "side": "left",
+      "centroid_mm": [
+        4.35,
+        -5.06,
+        29.6
+      ],
+      "layer": "teeth"
+    },
+    "FDI_32": {
+      "fdi": 32,
+      "arch": "lower",
+      "pos": 2,
+      "side": "left",
+      "centroid_mm": [
+        9.65,
+        -5.3,
+        28.2
+      ],
+      "layer": "teeth"
+    },
+    "FDI_33": {
+      "fdi": 33,
+      "arch": "lower",
+      "pos": 3,
+      "side": "left",
+      "centroid_mm": [
+        15.21,
+        -5.88,
+        25.3
+      ],
+      "layer": "teeth"
+    },
+    "FDI_34": {
+      "fdi": 34,
+      "arch": "lower",
+      "pos": 4,
+      "side": "left",
+      "centroid_mm": [
+        20.54,
+        -6.15,
+        20.83
+      ],
+      "layer": "teeth"
+    },
+    "FDI_35": {
+      "fdi": 35,
+      "arch": "lower",
+      "pos": 5,
+      "side": "left",
+      "centroid_mm": [
+        24.89,
+        -5.95,
+        14.63
+      ],
+      "layer": "teeth"
+    },
+    "FDI_36": {
+      "fdi": 36,
+      "arch": "lower",
+      "pos": 6,
+      "side": "left",
+      "centroid_mm": [
+        28.11,
+        -5.61,
+        5.07
+      ],
+      "layer": "teeth"
+    },
+    "FDI_37": {
+      "fdi": 37,
+      "arch": "lower",
+      "pos": 7,
+      "side": "left",
+      "centroid_mm": [
+        27.72,
+        -5.43,
+        -7.11
+      ],
+      "layer": "teeth"
+    },
+    "FDI_38": {
+      "fdi": 38,
+      "arch": "lower",
+      "pos": 8,
+      "side": "left",
+      "centroid_mm": [
+        23.32,
+        -5.2,
+        -17.7
+      ],
+      "layer": "teeth"
+    },
+    "FDI_46": {
+      "fdi": 46,
+      "arch": "lower",
+      "pos": 6,
+      "side": "right",
+      "centroid_mm": [
+        -28.18,
+        -2,
+        4.54
+      ],
+      "layer": "restoration"
+    }
+  },
+  "metrics": {
+    "ian_48_min_mm": 2.35,
+    "tooth_48_at_mm": [
+      -19,
+      -6.1,
+      -12.7
+    ],
+    "nerve_at_mm": [
+      -20,
+      -7.6,
+      -11.1
+    ]
+  }
+}

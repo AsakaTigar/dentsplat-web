@@ -1,0 +1,88 @@
+{
+  "bundle": [
+    "index-DUqMfPP2.js"
+  ],
+  "res": {
+    "after": "17.17 dB · 掩膜内 12.77 dB · MAE 0.0369 · 77% 像素逐位相同 · 同资产重渲对照 逐位一致 · 误差 top1% 占 29%",
+    "agrees": false,
+    "audit": {
+      "coverage gap": "0.469 mm mean · p95 1.359 mm",
+      "full": "88,918 splats · 2.46 MB · SH1",
+      "live psnr": "17.17 dB · 掩膜内 12.77 dB · MAE 0.0369 · 77% 像素逐位相同 · 同资产重渲对照 逐位一致 · 误差 top1% 占 29%",
+      "pruned": "30,232 splats · 0.58 MB · SH0",
+      "ratio": "4.24× smaller"
+    },
+    "before": "—",
+    "busyAfter": false,
+    "caseId": "A",
+    "direct": {
+      "control": {
+        "covered": 0.3597,
+        "errorInTop1Percent": 0,
+        "identicalFraction": 1,
+        "mae": 0,
+        "maxDiff": 0,
+        "meanFull": [
+          63.4,
+          50.3,
+          46
+        ],
+        "meanPruned": [
+          63.4,
+          50.3,
+          46
+        ],
+        "psnr": 999,
+        "psnrInMask": 999
+      },
+      "covered": 0.3597,
+      "errorInTop1Percent": 0.291,
+      "identicalFraction": 0.7737,
+      "identicalSelfFraction": 1,
+      "mae": 0.0367,
+      "maxDiff": 220,
+      "meanFull": [
+        63.4,
+        50.3,
+        46
+      ],
+      "meanPruned": [
+        54.5,
+        39.6,
+        37.6
+      ],
+      "psnr": 17.19,
+      "psnrInMask": 12.75,
+      "psnrSelf": 999,
+      "samples": 442368
+    },
+    "dtLabels": [
+      "dataset",
+      "licence",
+      "splats",
+      "proxy",
+      "FDI",
+      "quadrant",
+      "centroid",
+      "finding",
+      "grade",
+      "full",
+      "pruned",
+      "ratio",
+      "coverage gap",
+      "live PSNR"
+    ],
+    "settleFrames": 4,
+    "settled": "PSNR changed after clicking bench",
+    "stats": {
+      "bytes": 2582852,
+      "fps": 60,
+      "frameMs": 5.09,
+      "gpu": "NVIDIA GeForce RTX 5070 Ti",
+      "sortMs": 2.1,
+      "splats": 88918,
+      "visible": 88918
+    }
+  },
+  "sha": "19adc1c5f63953cacae9867ae856d88f5819984250e8662b60a5ae39eb0e33c3"
+}

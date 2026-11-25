@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<!-- brief/demo/title-card.html — the 60 s walkthrough's opening frame.
+     Sized to exactly 1280x720 because Edge screenshots it at that window size and ffmpeg treats the PNG
+     as a full-frame clip. box-sizing is pinned and the last element is a 10 px marker bar for that
+     reason: build.mjs samples the bottom row of the screenshot and fails if the bar is not there, which
+     is how a footer silently pushed below the fold used to ship. -->
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+  *{box-sizing:border-box}
+  html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#0B0F17;color:#E6EEF8;
+    font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+  .wrap{height:100%;padding:64px 88px 0;display:flex;flex-direction:column;justify-content:center;
+    background:
+      radial-gradient(1100px 520px at 78% 18%, rgba(56,189,248,.16), transparent 62%),
+      linear-gradient(180deg,#0B0F17 0%,#0D1522 100%);}
+  .kicker{font-size:19px;letter-spacing:3px;color:#38BDF8;font-weight:600}
+  h1{font-size:58px;line-height:1.14;margin:12px 0 0;font-weight:700}
+  h1 .en{color:#38BDF8;display:block}
+  .sub{font-size:25px;color:#AEC3DA;margin-top:18px;line-height:1.5}
+  .tags{margin-top:28px;display:flex;gap:12px;flex-wrap:wrap}
+  .tag{border:1.6px solid #2A4258;border-radius:999px;padding:6px 16px;font-size:19px;color:#CFE3F5}
+  .badge{margin-top:30px;font-size:20px;color:#FDE68A;border:1.6px solid #B45309;background:rgba(180,83,9,.18);
+    border-radius:8px;padding:9px 15px;display:inline-block;width:max-content}
+  .foot{font-size:18px;color:#5C7288;margin-top:26px}
+  /* Same device as the end card: the brand rule at the foot doubles as the fit marker build.mjs samples,
+     so it has to look intentional -- a card that outgrew 720 px pushes this strip out of frame instead of
+     pushing a footer out of frame. */
+  .fitbar{flex:none;height:10px;margin-top:auto;background:#38BDF8}
+</style></head><body><div class="wrap">
+  <div class="kicker">DENTAL 3D GAUSSIAN SPLATTING IN THE BROWSER</div>
+  <h1>DentSplat <span class="en">浏览器里的 3DGS 牙科原型</span></h1>
+  <div class="sub">从公开牙科数据到可交互、可核查的三维牙列——不装任何软件，不依赖插件</div>
+  <div class="tags">
+    <div class="tag">零安装</div><div class="tag">单文件容器 .dspk</div>
+    <div class="tag">着色器级裁剪与高亮</div><div class="tag">1 单位 = 1 mm</div>
+    <div class="tag">证据可复算</div>
+  </div>
+  <div class="badge">当前资产为合成预览（SYNTHETIC PREVIEW），界面内常驻同一标注</div>
+  <div class="foot">2026-11-25 · RTX 5070 Ti / ANGLE-D3D11 / Chromium · 画面为渲染视口，非实时录屏</div>
+  <div class="fitbar"></div>
+</div></body></html>

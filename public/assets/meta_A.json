@@ -1,0 +1,434 @@
+{
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "kind": "ios",
+  "bbox_min": [
+    -38.111919838481654,
+    -25.96613465349189,
+    -26.730613279290544
+  ],
+  "bbox_max": [
+    38.289757146337635,
+    27.284441140043345,
+    38.878096107390036
+  ],
+  "teeth": {
+    "FDI_11": {
+      "fdi": 11,
+      "arch": "upper",
+      "pos": 1,
+      "side": "right",
+      "centroid_mm": [
+        -6.79,
+        5.44,
+        33.95
+      ],
+      "layer": "enamel",
+      "lesion": "white-spot"
+    },
+    "FDI_12": {
+      "fdi": 12,
+      "arch": "upper",
+      "pos": 2,
+      "side": "right",
+      "centroid_mm": [
+        -14.13,
+        4.8,
+        31.11
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_13": {
+      "fdi": 13,
+      "arch": "upper",
+      "pos": 3,
+      "side": "right",
+      "centroid_mm": [
+        -20.19,
+        5.43,
+        27.23
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_14": {
+      "fdi": 14,
+      "arch": "upper",
+      "pos": 4,
+      "side": "right",
+      "centroid_mm": [
+        -25.24,
+        5.65,
+        21.43
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_15": {
+      "fdi": 15,
+      "arch": "upper",
+      "pos": 5,
+      "side": "right",
+      "centroid_mm": [
+        -28.97,
+        6.56,
+        15.45
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_16": {
+      "fdi": 16,
+      "arch": "upper",
+      "pos": 6,
+      "side": "right",
+      "centroid_mm": [
+        -31.8,
+        5.65,
+        6.95
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_17": {
+      "fdi": 17,
+      "arch": "upper",
+      "pos": 7,
+      "side": "right",
+      "centroid_mm": [
+        -32.23,
+        5.28,
+        -3.65
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_18": {
+      "fdi": 18,
+      "arch": "upper",
+      "pos": 8,
+      "side": "right",
+      "centroid_mm": [
+        -29.65,
+        5.06,
+        -13.33
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_21": {
+      "fdi": 21,
+      "arch": "upper",
+      "pos": 1,
+      "side": "left",
+      "centroid_mm": [
+        6.02,
+        5.44,
+        34.1
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_22": {
+      "fdi": 22,
+      "arch": "upper",
+      "pos": 2,
+      "side": "left",
+      "centroid_mm": [
+        13.82,
+        4.8,
+        31.26
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_23": {
+      "fdi": 23,
+      "arch": "upper",
+      "pos": 3,
+      "side": "left",
+      "centroid_mm": [
+        20.49,
+        5.43,
+        26.99
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_24": {
+      "fdi": 24,
+      "arch": "upper",
+      "pos": 4,
+      "side": "left",
+      "centroid_mm": [
+        25.72,
+        5.65,
+        20.81
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_25": {
+      "fdi": 25,
+      "arch": "upper",
+      "pos": 5,
+      "side": "left",
+      "centroid_mm": [
+        29.57,
+        6.56,
+        14.2
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_26": {
+      "fdi": 26,
+      "arch": "upper",
+      "pos": 6,
+      "side": "left",
+      "centroid_mm": [
+        32.09,
+        5.65,
+        5.39
+      ],
+      "layer": "enamel",
+      "lesion": "calculus"
+    },
+    "FDI_27": {
+      "fdi": 27,
+      "arch": "upper",
+      "pos": 7,
+      "side": "left",
+      "centroid_mm": [
+        31.98,
+        5.28,
+        -5.5
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_28": {
+      "fdi": 28,
+      "arch": "upper",
+      "pos": 8,
+      "side": "left",
+      "centroid_mm": [
+        28.75,
+        5.06,
+        -15.28
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_41": {
+      "fdi": 41,
+      "arch": "lower",
+      "pos": 1,
+      "side": "right",
+      "centroid_mm": [
+        -3.84,
+        -4.82,
+        29.71
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_42": {
+      "fdi": 42,
+      "arch": "lower",
+      "pos": 2,
+      "side": "right",
+      "centroid_mm": [
+        -9.31,
+        -5.06,
+        28.35
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_43": {
+      "fdi": 43,
+      "arch": "lower",
+      "pos": 3,
+      "side": "right",
+      "centroid_mm": [
+        -15.22,
+        -5.6,
+        25.32
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_44": {
+      "fdi": 44,
+      "arch": "lower",
+      "pos": 4,
+      "side": "right",
+      "centroid_mm": [
+        -20.82,
+        -5.61,
+        20.53
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_45": {
+      "fdi": 45,
+      "arch": "lower",
+      "pos": 5,
+      "side": "right",
+      "centroid_mm": [
+        -25.17,
+        -5.4,
+        14.1
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_46": {
+      "fdi": 46,
+      "arch": "lower",
+      "pos": 6,
+      "side": "right",
+      "centroid_mm": [
+        -28.21,
+        -5.09,
+        4.33
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_47": {
+      "fdi": 47,
+      "arch": "lower",
+      "pos": 7,
+      "side": "right",
+      "centroid_mm": [
+        -27.51,
+        -4.93,
+        -7.99
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_48": {
+      "fdi": 48,
+      "arch": "lower",
+      "pos": 8,
+      "side": "right",
+      "centroid_mm": [
+        -21.16,
+        -1.34,
+        -17.45
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_31": {
+      "fdi": 31,
+      "arch": "lower",
+      "pos": 1,
+      "side": "left",
+      "centroid_mm": [
+        4.35,
+        -4.82,
+        29.63
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_32": {
+      "fdi": 32,
+      "arch": "lower",
+      "pos": 2,
+      "side": "left",
+      "centroid_mm": [
+        9.64,
+        -5.06,
+        28.23
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_33": {
+      "fdi": 33,
+      "arch": "lower",
+      "pos": 3,
+      "side": "left",
+      "centroid_mm": [
+        15.22,
+        -5.6,
+        25.32
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_34": {
+      "fdi": 34,
+      "arch": "lower",
+      "pos": 4,
+      "side": "left",
+      "centroid_mm": [
+        20.56,
+        -5.61,
+        20.82
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_35": {
+      "fdi": 35,
+      "arch": "lower",
+      "pos": 5,
+      "side": "left",
+      "centroid_mm": [
+        24.91,
+        -5.4,
+        14.61
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_36": {
+      "fdi": 36,
+      "arch": "lower",
+      "pos": 6,
+      "side": "left",
+      "centroid_mm": [
+        28.11,
+        -5.09,
+        5.03
+      ],
+      "layer": "enamel",
+      "lesion": "occlusal-caries"
+    },
+    "FDI_37": {
+      "fdi": 37,
+      "arch": "lower",
+      "pos": 7,
+      "side": "left",
+      "centroid_mm": [
+        27.71,
+        -4.93,
+        -7.15
+      ],
+      "layer": "enamel",
+      "lesion": null
+    },
+    "FDI_38": {
+      "fdi": 38,
+      "arch": "lower",
+      "pos": 8,
+      "side": "left",
+      "centroid_mm": [
+        23.29,
+        -4.72,
+        -17.74
+      ],
+      "layer": "enamel",
+      "lesion": null
+    }
+  },
+  "metrics": {}
+}

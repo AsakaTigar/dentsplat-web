@@ -1,0 +1,38 @@
+{
+  "buttons": [
+    "Case A · IOS",
+    "Case B · CBCT",
+    "牙位拾取",
+    "mm 测量",
+    "Full",
+    "Pruned",
+    "Split"
+  ],
+  "bytes": {
+    "clip": 196814,
+    "front": 270714,
+    "iso": 271406,
+    "jaw": 361138,
+    "left": 303898,
+    "split": 255974,
+    "upper": 504450
+  },
+  "shots": {
+    "clipY": 196814,
+    "frontal": 270714,
+    "isolate26": 271406,
+    "jaw30": 361138,
+    "left": 303898,
+    "split": 255974,
+    "upper": 504450
+  },
+  "stats": {
+    "bytes": 2437127,
+    "fps": 60,
+    "frameMs": 0.13,
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+    "sortMs": 2.1,
+    "splats": 83893,
+    "visible": 83893
+  }
+}

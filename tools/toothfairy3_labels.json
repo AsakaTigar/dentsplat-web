@@ -1,0 +1,471 @@
+{
+  "_source": "https://ditto.ing.unimore.it/toothfairy3/  (the labels JSON embedded in the dataset volume viewer)",
+  "_fetched_utc": "2026-11-24T18:23:05Z",
+  "_extractor": "tools/vendor-toothfairy3-labels.mjs",
+  "_note": "Verbatim vendor of the official class table so pipeline label maps are checked against ground truth instead of a re-derived formula. Only markdown escapes from the saved page copy were undone; ids, names, groups and colours are untouched.",
+  "_classes_claimed_on_page": "77",
+  "labels": [
+    {
+      "value": 1,
+      "name": "Lower Jawbone",
+      "group": "Jaws",
+      "color": "#782506"
+    },
+    {
+      "value": 2,
+      "name": "Upper Jawbone",
+      "group": "Jaws",
+      "color": "#56638a"
+    },
+    {
+      "value": 3,
+      "name": "Left Inferior Alveolar Canal",
+      "group": "Mandibular canal",
+      "color": "#ba274a"
+    },
+    {
+      "value": 4,
+      "name": "Right Inferior Alveolar Canal",
+      "group": "Mandibular canal",
+      "color": "#d55e00"
+    },
+    {
+      "value": 5,
+      "name": "Left Maxillary Sinus",
+      "group": "Maxillary sinus",
+      "color": "#5e7349"
+    },
+    {
+      "value": 6,
+      "name": "Right Maxillary Sinus",
+      "group": "Maxillary sinus",
+      "color": "#999933"
+    },
+    {
+      "value": 7,
+      "name": "Pharynx",
+      "group": "Pharynx",
+      "color": "#8fadb2"
+    },
+    {
+      "value": 8,
+      "name": "Bridge",
+      "group": "Crowns/Bridges",
+      "color": "#5e7349"
+    },
+    {
+      "value": 9,
+      "name": "Crown",
+      "group": "Crowns/Bridges",
+      "color": "#88456a"
+    },
+    {
+      "value": 10,
+      "name": "Implant",
+      "group": "Implants",
+      "color": "#5a6b6a"
+    },
+    {
+      "value": 11,
+      "name": "Upper Right Central Incisor",
+      "group": "Teeth",
+      "color": "#332288"
+    },
+    {
+      "value": 12,
+      "name": "Upper Right Lateral Incisor",
+      "group": "Teeth",
+      "color": "#117733"
+    },
+    {
+      "value": 13,
+      "name": "Upper Right Canine",
+      "group": "Teeth",
+      "color": "#44aa99"
+    },
+    {
+      "value": 14,
+      "name": "Upper Right First Premolar",
+      "group": "Teeth",
+      "color": "#88ccee"
+    },
+    {
+      "value": 15,
+      "name": "Upper Right Second Premolar",
+      "group": "Teeth",
+      "color": "#ddcc77"
+    },
+    {
+      "value": 16,
+      "name": "Upper Right First Molar",
+      "group": "Teeth",
+      "color": "#cc6677"
+    },
+    {
+      "value": 17,
+      "name": "Upper Right Second Molar",
+      "group": "Teeth",
+      "color": "#aa4499"
+    },
+    {
+      "value": 18,
+      "name": "Upper Right Third Molar (Wisdom Tooth)",
+      "group": "Teeth",
+      "color": "#882255"
+    },
+    {
+      "value": 21,
+      "name": "Upper Left Central Incisor",
+      "group": "Teeth",
+      "color": "#332288"
+    },
+    {
+      "value": 22,
+      "name": "Upper Left Lateral Incisor",
+      "group": "Teeth",
+      "color": "#117733"
+    },
+    {
+      "value": 23,
+      "name": "Upper Left Canine",
+      "group": "Teeth",
+      "color": "#44aa99"
+    },
+    {
+      "value": 24,
+      "name": "Upper Left First Premolar",
+      "group": "Teeth",
+      "color": "#88ccee"
+    },
+    {
+      "value": 25,
+      "name": "Upper Left Second Premolar",
+      "group": "Teeth",
+      "color": "#ddcc77"
+    },
+    {
+      "value": 26,
+      "name": "Upper Left First Molar",
+      "group": "Teeth",
+      "color": "#cc6677"
+    },
+    {
+      "value": 27,
+      "name": "Upper Left Second Molar",
+      "group": "Teeth",
+      "color": "#aa4499"
+    },
+    {
+      "value": 28,
+      "name": "Upper Left Third Molar (Wisdom Tooth)",
+      "group": "Teeth",
+      "color": "#882255"
+    },
+    {
+      "value": 31,
+      "name": "Lower Left Central Incisor",
+      "group": "Teeth",
+      "color": "#332288"
+    },
+    {
+      "value": 32,
+      "name": "Lower Left Lateral Incisor",
+      "group": "Teeth",
+      "color": "#117733"
+    },
+    {
+      "value": 33,
+      "name": "Lower Left Canine",
+      "group": "Teeth",
+      "color": "#44aa99"
+    },
+    {
+      "value": 34,
+      "name": "Lower Left First Premolar",
+      "group": "Teeth",
+      "color": "#88ccee"
+    },
+    {
+      "value": 35,
+      "name": "Lower Left Second Premolar",
+      "group": "Teeth",
+      "color": "#ddcc77"
+    },
+    {
+      "value": 36,
+      "name": "Lower Left First Molar",
+      "group": "Teeth",
+      "color": "#cc6677"
+    },
+    {
+      "value": 37,
+      "name": "Lower Left Second Molar",
+      "group": "Teeth",
+      "color": "#aa4499"
+    },
+    {
+      "value": 38,
+      "name": "Lower Left Third Molar (Wisdom Tooth)",
+      "group": "Teeth",
+      "color": "#882255"
+    },
+    {
+      "value": 41,
+      "name": "Lower Right Central Incisor",
+      "group": "Teeth",
+      "color": "#332288"
+    },
+    {
+      "value": 42,
+      "name": "Lower Right Lateral Incisor",
+      "group": "Teeth",
+      "color": "#117733"
+    },
+    {
+      "value": 43,
+      "name": "Lower Right Canine",
+      "group": "Teeth",
+      "color": "#44aa99"
+    },
+    {
+      "value": 44,
+      "name": "Lower Right First Premolar",
+      "group": "Teeth",
+      "color": "#88ccee"
+    },
+    {
+      "value": 45,
+      "name": "Lower Right Second Premolar",
+      "group": "Teeth",
+      "color": "#ddcc77"
+    },
+    {
+      "value": 46,
+      "name": "Lower Right First Molar",
+      "group": "Teeth",
+      "color": "#cc6677"
+    },
+    {
+      "value": 47,
+      "name": "Lower Right Second Molar",
+      "group": "Teeth",
+      "color": "#aa4499"
+    },
+    {
+      "value": 48,
+      "name": "Lower Right Third Molar (Wisdom Tooth)",
+      "group": "Teeth",
+      "color": "#882255"
+    },
+    {
+      "value": 103,
+      "name": "Left Mandibular Incisive Canal",
+      "group": "Mandibular canal",
+      "color": "#ba274a"
+    },
+    {
+      "value": 104,
+      "name": "Right Mandibular Incisive Canal",
+      "group": "Mandibular canal",
+      "color": "#d55e00"
+    },
+    {
+      "value": 105,
+      "name": "Lingual Canal",
+      "group": "Mandibular canal",
+      "color": "#ba274a"
+    },
+    {
+      "value": 111,
+      "name": "Upper Right Central Incisor Pulp",
+      "group": "Roots/Pulps",
+      "color": "#332288"
+    },
+    {
+      "value": 112,
+      "name": "Upper Right Lateral Incisor Pulp",
+      "group": "Roots/Pulps",
+      "color": "#117733"
+    },
+    {
+      "value": 113,
+      "name": "Upper Right Canine Pulp",
+      "group": "Roots/Pulps",
+      "color": "#44aa99"
+    },
+    {
+      "value": 114,
+      "name": "Upper Right First Premolar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#88ccee"
+    },
+    {
+      "value": 115,
+      "name": "Upper Right Second Premolar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#ddcc77"
+    },
+    {
+      "value": 116,
+      "name": "Upper Right First Molar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#cc6677"
+    },
+    {
+      "value": 117,
+      "name": "Upper Right Second Molar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#aa4499"
+    },
+    {
+      "value": 118,
+      "name": "Upper Right Third Molar (Wisdom Tooth) Pulp",
+      "group": "Roots/Pulps",
+      "color": "#882255"
+    },
+    {
+      "value": 121,
+      "name": "Upper Left Central Incisor Pulp",
+      "group": "Roots/Pulps",
+      "color": "#332288"
+    },
+    {
+      "value": 122,
+      "name": "Upper Left Lateral Incisor Pulp",
+      "group": "Roots/Pulps",
+      "color": "#117733"
+    },
+    {
+      "value": 123,
+      "name": "Upper Left Canine Pulp",
+      "group": "Roots/Pulps",
+      "color": "#44aa99"
+    },
+    {
+      "value": 124,
+      "name": "Upper Left First Premolar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#88ccee"
+    },
+    {
+      "value": 125,
+      "name": "Upper Left Second Premolar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#ddcc77"
+    },
+    {
+      "value": 126,
+      "name": "Upper Left First Molar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#cc6677"
+    },
+    {
+      "value": 127,
+      "name": "Upper Left Second Molar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#aa4499"
+    },
+    {
+      "value": 128,
+      "name": "Upper Left Third Molar (Wisdom Tooth) Pulp",
+      "group": "Roots/Pulps",
+      "color": "#882255"
+    },
+    {
+      "value": 131,
+      "name": "Lower Left Central Incisor Pulp",
+      "group": "Roots/Pulps",
+      "color": "#332288"
+    },
+    {
+      "value": 132,
+      "name": "Lower Left Lateral Incisor Pulp",
+      "group": "Roots/Pulps",
+      "color": "#117733"
+    },
+    {
+      "value": 133,
+      "name": "Lower Left Canine Pulp",
+      "group": "Roots/Pulps",
+      "color": "#44aa99"
+    },
+    {
+      "value": 134,
+      "name": "Lower Left First Premolar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#88ccee"
+    },
+    {
+      "value": 135,
+      "name": "Lower Left Second Premolar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#ddcc77"
+    },
+    {
+      "value": 136,
+      "name": "Lower Left First Molar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#cc6677"
+    },
+    {
+      "value": 137,
+      "name": "Lower Left Second Molar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#aa4499"
+    },
+    {
+      "value": 138,
+      "name": "Lower Left Third Molar (Wisdom Tooth) Pulp",
+      "group": "Roots/Pulps",
+      "color": "#882255"
+    },
+    {
+      "value": 141,
+      "name": "Lower Right Central Incisor Pulp",
+      "group": "Roots/Pulps",
+      "color": "#332288"
+    },
+    {
+      "value": 142,
+      "name": "Lower Right Lateral Incisor Pulp",
+      "group": "Roots/Pulps",
+      "color": "#117733"
+    },
+    {
+      "value": 143,
+      "name": "Lower Right Canine Pulp",
+      "group": "Roots/Pulps",
+      "color": "#44aa99"
+    },
+    {
+      "value": 144,
+      "name": "Lower Right First Premolar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#88ccee"
+    },
+    {
+      "value": 145,
+      "name": "Lower Right Second Premolar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#ddcc77"
+    },
+    {
+      "value": 146,
+      "name": "Lower Right First Molar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#cc6677"
+    },
+    {
+      "value": 147,
+      "name": "Lower Right Second Molar Pulp",
+      "group": "Roots/Pulps",
+      "color": "#aa4499"
+    },
+    {
+      "value": 148,
+      "name": "Lower Right Third Molar (Wisdom Tooth) Pulp",
+      "group": "Roots/Pulps",
+      "color": "#882255"
+    }
+  ]
+}

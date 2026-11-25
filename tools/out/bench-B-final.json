@@ -1,0 +1,105 @@
+{
+  "bundle": [
+    "index-DUqMfPP2.js"
+  ],
+  "dspk": [
+    "sceneA_full.dspk=1258792",
+    "sceneA_pruned.dspk=435115",
+    "sceneB_full.dspk=622422",
+    "sceneB_pruned.dspk=259765",
+    "sceneA_full.dspk=1258792",
+    "sceneA_pruned.dspk=435115",
+    "sceneB_full.dspk=622422",
+    "sceneB_pruned.dspk=259765"
+  ],
+  "job": [
+    "B",
+    "bench"
+  ],
+  "kind": "bench",
+  "res": {
+    "after": "25.1 dB · 掩膜内 22.03 dB · MAE 0.016 · 50% 像素逐位相同 · 同资产重渲对照 逐位一致 · 误差 top1% 占 56%",
+    "agrees": true,
+    "audit": {
+      "coverage gap": "0.349 mm mean · p95 0.946 mm",
+      "full": "44,738 splats · 1.24 MB · SH1",
+      "live psnr": "25.1 dB · 掩膜内 22.03 dB · MAE 0.016 · 50% 像素逐位相同 · 同资产重渲对照 逐位一致 · 误差 top1% 占 56%",
+      "pruned": "18,790 splats · 0.36 MB · SH0",
+      "ratio": "3.43× smaller"
+    },
+    "before": "—",
+    "busyAfter": false,
+    "caseId": "B",
+    "direct": {
+      "control": {
+        "covered": 0.4627,
+        "errorInTop1Percent": 0,
+        "identicalFraction": 1,
+        "mae": 0,
+        "maxDiff": 0,
+        "meanFull": [
+          72.8,
+          71.2,
+          68.7
+        ],
+        "meanPruned": [
+          72.8,
+          71.2,
+          68.7
+        ],
+        "psnr": 999,
+        "psnrInMask": 999
+      },
+      "covered": 0.4921,
+      "errorInTop1Percent": 0.565,
+      "identicalFraction": 0.499,
+      "identicalSelfFraction": 1,
+      "mae": 0.016,
+      "maxDiff": 172,
+      "meanFull": [
+        72.8,
+        71.2,
+        68.7
+      ],
+      "meanPruned": [
+        75.5,
+        73.9,
+        71.6
+      ],
+      "psnr": 25.1,
+      "psnrInMask": 22.03,
+      "psnrSelf": 999,
+      "samples": 442368
+    },
+    "dtLabels": [
+      "dataset",
+      "licence",
+      "splats",
+      "proxy",
+      "FDI",
+      "quadrant",
+      "centroid",
+      "finding",
+      "grade",
+      "full",
+      "pruned",
+      "ratio",
+      "coverage gap",
+      "live PSNR"
+    ],
+    "settleFrames": 4,
+    "settled": "PSNR changed after clicking bench",
+    "stats": {
+      "bytes": 379898,
+      "fps": 60,
+      "frameMs": 0.07,
+      "gpu": "NVIDIA GeForce RTX 5070 Ti",
+      "sortMs": 0.6,
+      "splats": 18790,
+      "visible": 18790
+    }
+  },
+  "sha": "19adc1c5f63953cacae9867ae856d88f5819984250e8662b60a5ae39eb0e33c3",
+  "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Qoder/0.5",
+  "wallMs": 164
+}

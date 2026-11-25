@@ -1,0 +1,65 @@
+{
+  "beforeTap": 26,
+  "canvasCss": {
+    "h": 746,
+    "w": 894
+  },
+  "clipMoved": {
+    "band": 0.9,
+    "cap": 1,
+    "count": 1,
+    "plane": [
+      0,
+      1,
+      0,
+      6
+    ],
+    "visible": 88918
+  },
+  "clipOff": {
+    "count": 0
+  },
+  "clipOn": {
+    "band": 0.9,
+    "count": 1
+  },
+  "clipProbe": {
+    "glError": 0,
+    "mean": [
+      52.8,
+      49,
+      51.2
+    ],
+    "painted": 0.3117
+  },
+  "clipSlider": {
+    "max": "41",
+    "min": "-29"
+  },
+  "glError": 0,
+  "mode": "pick",
+  "pickScan": {
+    "first": {
+      "fdi": 23,
+      "gx": 0.24,
+      "gy": 0.15,
+      "mesh": "FDI_23",
+      "point": [
+        22.24,
+        24.31,
+        29.27
+      ],
+      "px": [
+        215,
+        112
+      ]
+    },
+    "toothPixels": 1
+  },
+  "step2b_tap3d": {
+    "expect": 23,
+    "highlightedCell": "23",
+    "probeText": "",
+    "uniform": 23
+  }
+}

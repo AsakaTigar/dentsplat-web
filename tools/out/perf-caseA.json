@@ -1,0 +1,320 @@
+{
+  "canvas": {
+    "dpr": 1,
+    "hidden": true,
+    "hud": {
+      "bytes": 2582852,
+      "fps": 60,
+      "frameMs": 7.56,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+      "sortMs": 0,
+      "splats": 88918,
+      "visible": 88918
+    },
+    "screen": {
+      "h": 1,
+      "w": 428
+    },
+    "visState": "hidden"
+  },
+  "caseId": "A",
+  "definition": "gpuMs = wall time around renderer.render()+gl.finish() into a w x h render target, splats already sorted. submitMs = the same batch with no finish (proves whether finish really synchronises here); drainMs = the finish after that queue; readbackMs = render + full pixel readback, an unavoidable sync. syncConfirmed false => the per-frame figure is submission cost, not GPU cost.",
+  "perf": [
+    {
+      "drainMs": 0,
+      "drawn": {
+        "calls": 1,
+        "tris": 177836
+      },
+      "fpsAtThisSize": null,
+      "glError": 0,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+      "gpuMs": {
+        "max": 1.8,
+        "min": 0,
+        "p50": 0.1,
+        "p95": 0.7
+      },
+      "h": 360,
+      "iters": 20,
+      "paintedFraction": 0.1954,
+      "readbackMs": 143.8,
+      "sortMs": 2.3,
+      "splats": 88918,
+      "submitMs": 0.06,
+      "syncConfirmed": false,
+      "tag": "full",
+      "variant": "full",
+      "visible": 88918,
+      "w": 640
+    },
+    {
+      "drainMs": 0.1,
+      "drawn": {
+        "calls": 1,
+        "tris": 177836
+      },
+      "fpsAtThisSize": null,
+      "glError": 0,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+      "gpuMs": {
+        "max": 0.4,
+        "min": 0,
+        "p50": 0.1,
+        "p95": 0.3
+      },
+      "h": 720,
+      "iters": 20,
+      "paintedFraction": 0.1942,
+      "readbackMs": 134.2,
+      "sortMs": 2.1,
+      "splats": 88918,
+      "submitMs": 0.085,
+      "syncConfirmed": false,
+      "tag": "full",
+      "variant": "full",
+      "visible": 88918,
+      "w": 1280
+    },
+    {
+      "drainMs": 0,
+      "drawn": {
+        "calls": 1,
+        "tris": 177836
+      },
+      "fpsAtThisSize": null,
+      "glError": 0,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+      "gpuMs": {
+        "max": 0.5,
+        "min": 0,
+        "p50": 0,
+        "p95": 0.2
+      },
+      "h": 1080,
+      "iters": 20,
+      "paintedFraction": 0.1939,
+      "readbackMs": 149.1,
+      "sortMs": 2,
+      "splats": 88918,
+      "submitMs": 0.05,
+      "syncConfirmed": false,
+      "tag": "full",
+      "variant": "full",
+      "visible": 88918,
+      "w": 1920
+    },
+    {
+      "drainMs": 0,
+      "drawn": {
+        "calls": 1,
+        "tris": 177836
+      },
+      "fpsAtThisSize": null,
+      "glError": 0,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+      "gpuMs": {
+        "max": 0.5,
+        "min": 0,
+        "p50": 0.1,
+        "p95": 0.4
+      },
+      "h": 1440,
+      "iters": 20,
+      "paintedFraction": 0.1938,
+      "readbackMs": 139.4,
+      "sortMs": 2.9,
+      "splats": 88918,
+      "submitMs": 0.065,
+      "syncConfirmed": false,
+      "tag": "full",
+      "variant": "full",
+      "visible": 88918,
+      "w": 2560
+    },
+    {
+      "drainMs": 0,
+      "drawn": {
+        "calls": 1,
+        "tris": 60464
+      },
+      "fpsAtThisSize": null,
+      "glError": 0,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+      "gpuMs": {
+        "max": 0.5,
+        "min": 0,
+        "p50": 0,
+        "p95": 0.5
+      },
+      "h": 360,
+      "iters": 20,
+      "paintedFraction": 0.173,
+      "readbackMs": 92.5,
+      "sortMs": 0.9,
+      "splats": 30232,
+      "submitMs": 0.075,
+      "syncConfirmed": false,
+      "tag": "pruned",
+      "variant": "pruned",
+      "visible": 30232,
+      "w": 640
+    },
+    {
+      "drainMs": 0,
+      "drawn": {
+        "calls": 1,
+        "tris": 60464
+      },
+      "fpsAtThisSize": null,
+      "glError": 0,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+      "gpuMs": {
+        "max": 0.7,
+        "min": 0,
+        "p50": 0.1,
+        "p95": 0.2
+      },
+      "h": 720,
+      "iters": 20,
+      "paintedFraction": 0.1719,
+      "readbackMs": 43,
+      "sortMs": 0.8,
+      "splats": 30232,
+      "submitMs": 0.04,
+      "syncConfirmed": false,
+      "tag": "pruned",
+      "variant": "pruned",
+      "visible": 30232,
+      "w": 1280
+    },
+    {
+      "drainMs": 0,
+      "drawn": {
+        "calls": 1,
+        "tris": 60464
+      },
+      "fpsAtThisSize": null,
+      "glError": 0,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+      "gpuMs": {
+        "max": 0.2,
+        "min": 0,
+        "p50": 0,
+        "p95": 0.2
+      },
+      "h": 1080,
+      "iters": 20,
+      "paintedFraction": 0.1717,
+      "readbackMs": 47.4,
+      "sortMs": 1,
+      "splats": 30232,
+      "submitMs": 0.045,
+      "syncConfirmed": false,
+      "tag": "pruned",
+      "variant": "pruned",
+      "visible": 30232,
+      "w": 1920
+    },
+    {
+      "drainMs": 0,
+      "drawn": {
+        "calls": 1,
+        "tris": 60464
+      },
+      "fpsAtThisSize": null,
+      "glError": 0,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+      "gpuMs": {
+        "max": 0.5,
+        "min": 0,
+        "p50": 0.1,
+        "p95": 0.4
+      },
+      "h": 1440,
+      "iters": 20,
+      "paintedFraction": 0.1716,
+      "readbackMs": 48,
+      "sortMs": 0.8,
+      "splats": 30232,
+      "submitMs": 0.04,
+      "syncConfirmed": false,
+      "tag": "pruned",
+      "variant": "pruned",
+      "visible": 30232,
+      "w": 2560
+    },
+    {
+      "drainMs": 0,
+      "drawn": {
+        "calls": 1,
+        "tris": 177836
+      },
+      "fpsAtThisSize": null,
+      "glError": 0,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+      "gpuMs": {
+        "max": 0.4,
+        "min": 0,
+        "p50": 0.1,
+        "p95": 0.3
+      },
+      "h": 360,
+      "iters": 20,
+      "paintedFraction": 0.1954,
+      "readbackMs": 223,
+      "sortMs": 2.5,
+      "splats": 88918,
+      "submitMs": 0.1,
+      "syncConfirmed": false,
+      "tag": "full#2",
+      "variant": "full",
+      "visible": 88918,
+      "w": 640
+    },
+    {
+      "drainMs": 0,
+      "drawn": {
+        "calls": 1,
+        "tris": 177836
+      },
+      "fpsAtThisSize": null,
+      "glError": 0,
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti ",
+      "gpuMs": {
+        "max": 1.5,
+        "min": 0,
+        "p50": 0.1,
+        "p95": 1.4
+      },
+      "h": 720,
+      "iters": 20,
+      "paintedFraction": 0.1941,
+      "readbackMs": 125.6,
+      "sortMs": 2,
+      "splats": 88918,
+      "submitMs": 0.015,
+      "syncConfirmed": false,
+      "tag": "full#2",
+      "variant": "full",
+      "visible": 88918,
+      "w": 1280
+    }
+  ],
+  "prunedNote": "ok",
+  "selfTest": {
+    "box": 6545,
+    "errors": [
+      0,
+      0,
+      0
+    ],
+    "splat": 7296,
+    "splatMid": [
+      146,
+      62,
+      66,
+      255
+    ]
+  }
+}

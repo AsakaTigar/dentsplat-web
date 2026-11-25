@@ -1,0 +1,1219 @@
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { SplatLayer } from './SplatLayer.ts';
+import { decodeSplatCloud } from './dspk.ts';
+
+export type ClipAxis = 'x' | 'y' | 'z' | null;
+
+export type ViewPreset = {
+  id: string; label: string; sub?: string;
+  theta: number; phi: number; radius: number; target?: [number, number, number]; fov?: number;
+};
+
+export type PickerHit = { fdi: number; point: THREE.Vector3; meshName: string } | null;
+
+export type BenchPair = {
+  /** Mean over the whole frame, background included. 999 = bit-identical (PSNR is undefined at MSE 0). */
+  psnr: number;
+  /** Mean over pixels where at least one side painted: the figure that describes the teeth. */
+  psnrInMask: number;
+  mae: number;
+  /** Fraction of pixels with content in either shot. */
+  covered: number;
+  identicalFraction: number;
+  /** Share of total squared error held by the worst 1% of pixels: ~1 = edges only, ~0.1 = whole surface. */
+  errorInTop1Percent: number;
+  maxDiff: number;
+  meanFull: [number, number, number];
+  meanPruned: [number, number, number];
+};
+
+export type BenchResult = BenchPair & {
+  samples: number;
+  /** Full rendered twice through the same target: the determinism control that licenses the headline. */
+  control: BenchPair; psnrSelf: number; identicalSelfFraction: number;
+};
+
+export type Stats = {
+  fps: number; splats: number; visible: number; sortMs: number; frameMs: number;
+  bytes: number; gpu: string;
+};
+
+export type CaseAsset = {
+  fullUrl: string; prunedUrl: string; proxyUrl: string;
+  fullBytes: number; prunedBytes: number;
+  defaultLayerAlpha?: Record<number, number>;
+};
+
+export type ProbeResult = {
+  error?: string;
+  w?: number; h?: number;
+  sorted?: boolean;
+  drawn?: { calls: number; tris: number };
+  glError?: number;
+  paintedFraction?: number;
+  paintedLowerHalf?: number;
+  mean?: [number, number, number];
+  peak?: number;
+  buf?: Uint8Array;
+};
+
+const AXIS_VEC: Record<Exclude<ClipAxis, null>, THREE.Vector3> = {
+  x: new THREE.Vector3(1, 0, 0),
+  y: new THREE.Vector3(0, 1, 0),
+  z: new THREE.Vector3(0, 0, 1),
+};
+
+function disposeMaterial(m: THREE.Material | THREE.Material[] | undefined | null) {
+  if (!m) return;
+  if (Array.isArray(m)) m.forEach((x) => x.dispose());
+  else m.dispose();
+}
+
+const FDI_RE = /^FDI_(\d{1,2})(?:\b|_)/;
+
+/**
+ * Resolve the tooth id a proxy mesh belongs to. `GLTFLoader` names meshes from the glTF
+ * *mesh* entry (`mesh_0` when absent) while node names — where our generator writes
+ * `FDI_36` — end up on the Object3D, so walk the ancestor chain before giving up.
+ */
+function fdiNameOf(obj: THREE.Object3D): string {
+  for (let o: THREE.Object3D | null = obj; o; o = o.parent) {
+    const cand = [
+      typeof o.userData?.name === 'string' ? o.userData.name : '',
+      typeof o.name === 'string' ? o.name : '',
+    ];
+    for (const c of cand) if (FDI_RE.test(c)) return c;
+  }
+  return obj.name ?? '';
+}
+
+export class DentSplatViewer {
+  readonly renderer: THREE.WebGLRenderer;
+  readonly scene = new THREE.Scene();
+  readonly camera: THREE.PerspectiveCamera;
+  layer: SplatLayer | null = null;
+  layerAlt: SplatLayer | null = null;
+  proxy: THREE.Group | null = null;
+  variant: 'full' | 'pruned' = 'full';
+  splitCompare = false;
+  measureMode: 'off' | 'measure' | 'pick' = 'pick';
+  /** Which case is loaded; set by App on every case switch, read by the HUD and the checks. */
+  caseId: 'A' | 'B' = 'A';
+  onPick?: (hit: PickerHit) => void;
+  onStats?: (s: Stats) => void;
+  onMeasure?: (m: { mm: number; a: THREE.Vector3; b: THREE.Vector3 } | null) => void;
+  selectedTooth = 0;
+  clip: { axis: ClipAxis; offset: number; band: number; cap: boolean } = { axis: null, offset: 0, band: 0.9, cap: true };
+  private target = new THREE.Vector3(0, 0, 0);
+  private theta = 0.42; private phi = 0.32; private radius = 125;
+  private goal: { theta: number; phi: number; radius: number; target: THREE.Vector3 } | null = null;
+  private raf = 0;
+  private clock = new THREE.Clock();
+  private fpsEMA = 60;
+  private frameEMA = 8;
+  private raycaster = new THREE.Raycaster();
+  private pointers = new Map<number, { x: number; y: number }>();
+  private press: { id: number; moved: number } | null = null;
+  private gesture: { mode: 'orbit' | 'pan' | 'zoom'; dist: number } | null = null;
+  /** Public for the automated end-to-end check; the tap sequence that fills it is user-driven. */
+  measurePts: THREE.Vector3[] = [];
+  private measureGroup = new THREE.Group();
+  private gizmo = new THREE.Group();
+  private wireRoot: THREE.Group | null = null;
+  private disposed = false;
+  showWire = false;
+  autoRotate = true;
+  private gpu = 'unknown';
+
+  constructor(private canvas: HTMLCanvasElement) {
+    this.renderer = new THREE.WebGLRenderer({
+      canvas, antialias: false, alpha: true, powerPreference: 'high-performance',
+      preserveDrawingBuffer: true,
+    });
+    this.renderer.setClearColor(0x000000, 0);
+    this.camera = new THREE.PerspectiveCamera(32, 1, 0.5, 2000);
+    const dbg = this.renderer.getContext().getExtension('WEBGL_debug_renderer_info');
+    if (dbg) {
+      // ANGLE returns e.g. "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti (0x00002C05) Direct3D11
+      // vs_5_0 ps_5_0, D3D11)" or, on macOS, "ANGLE (Apple, ANGLE Metal Renderer: Apple M3,
+      // Unspecified Version)". A blind slice(0, 42) cut the first one mid-word in the HUD chip. The
+      // device name is not always the field after the first comma either -- AMD puts backend noise
+      // there ("Advanced Micro Devices, Inc. on Direct3D11 ...") -- so strip the wrapper and the
+      // id/backend tokens, drop exact vendor names, and keep the longest remaining fragment.
+      const raw = String(this.renderer.getContext().getParameter(dbg.UNMASKED_RENDERER_WEBGL));
+      const inner = raw.replace(/^ANGLE\s*\(/, '').replace(/\)\s*$/, '');
+      const metal = /Metal Renderer:\s*(.+?)(?:,|$)/.exec(inner);
+      const VENDOR = /^(nvidia|intel|apple|microsoft|amd|advanced micro devices|google inc|img technologies|arm holdings|mesa|vmware|basic render driver)(,?\s*(inc|corp|ltd)\.?)?$/i;
+      const parts = inner
+        .replace(/\((?:0x|Vendor:)[^)]*\)/g, '')
+        .replace(/\s*\b(direct3d\d+|vs_\d+_\d+|ps_\d+_\d+)\b[^,]*/gi, '')
+        .split(',').map((x) => x.trim()).filter((x) => x.length > 3 && !/^d3d\d+$/i.test(x));
+      const named = parts.filter((x) => !VENDOR.test(x));
+      const name = metal ? metal[1] : (named.length ? named : parts).sort((a, b) => b.length - a.length)[0];
+      this.gpu = (name || raw).trim().slice(0, 40);
+    }
+    this.scene.add(this.measureGroup, this.gizmo);
+    this.attachInput();
+    this.resize();
+    this.loop();
+  }
+
+  // ------------------------------------------------------------------ assets
+
+  async loadCase(asset: CaseAsset) {
+    this.disposeLayers();
+    this.fullBytes = asset.fullBytes;
+    this.prunedBytes = asset.prunedBytes;
+    const [fullBuf, prunedBuf] = await Promise.all([
+      fetch(asset.fullUrl).then((r) => r.arrayBuffer()),
+      fetch(asset.prunedUrl).then((r) => r.arrayBuffer()),
+    ]);
+    const full = decodeSplatCloud(fullBuf);
+    const pruned = decodeSplatCloud(prunedBuf);
+    this.layer = new SplatLayer(full, { opacityScale: 1 });
+    this.layerAlt = new SplatLayer(pruned, { opacityScale: 1 });
+    this.layerAlphas = { ...this.layerAlphas, ...(asset.defaultLayerAlpha ?? {}) };
+    for (const l of [this.layer, this.layerAlt]) {
+      if (!l) continue;
+      l.setLayerAlphas(this.layerAlphas);
+      this.scene.add(l.mesh);
+    }
+    const loader = new GLTFLoader();
+    // Keep the exported graph intact (Blender wraps meshes in nodes carrying the Y-up
+    // conversion); hide every mesh and resolve the FDI id by walking ancestors.
+    const gltf = await loader.loadAsync(asset.proxyUrl);
+    const root = gltf.scene;
+    root.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      m.visible = false;
+      m.frustumCulled = false;
+      m.userData.name = fdiNameOf(m);
+      m.geometry.computeBoundingSphere();
+      m.geometry.computeBoundingBox();
+    });
+    root.updateMatrixWorld(true);
+    this.proxy = root;
+    this.scene.add(root);
+    this.forceSort = true;
+    this.applyUniforms();
+  }
+
+  private disposeLayers() {
+    for (const l of [this.layer, this.layerAlt]) {
+      if (!l) continue;
+      this.scene.remove(l.mesh);
+      l.dispose();
+    }
+    this.clearWire();
+    this.showWire = false;
+    if (this.proxy) this.scene.remove(this.proxy);
+    this.layer = null; this.layerAlt = null; this.proxy = null;
+    this.clearMeasure();
+  }
+
+  // ------------------------------------------------------------------ input
+
+  private attachInput() {
+    const c = this.canvas;
+    c.style.touchAction = 'none';
+    c.addEventListener('pointerdown', (e) => {
+      // A synthetic PointerEvent (automated capture, scripted taps) has no live pointer, so
+      // setPointerCapture throws InvalidPointerId and would swallow the whole gesture state.
+      try { c.setPointerCapture(e.pointerId); } catch { /* not a trusted pointer id */ }
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      this.press = { id: e.pointerId, moved: 0 };
+      if (this.pointers.size === 2) {
+        const p = [...this.pointers.values()];
+        this.gesture = { mode: 'zoom', dist: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) };
+      } else {
+        this.gesture = { mode: e.button === 2 || e.shiftKey ? 'pan' : 'orbit', dist: 0 };
+      }
+      this.autoRotate = false;
+    });
+    c.addEventListener('pointermove', (e) => {
+      const prev = this.pointers.get(e.pointerId);
+      if (!prev || !this.gesture) return;
+      const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (this.press?.id === e.pointerId) this.press.moved += Math.abs(dx) + Math.abs(dy);
+      if (this.gesture.mode === 'orbit') {
+        this.theta -= dx * 0.006;
+        this.phi = Math.max(-1.5, Math.min(1.5, this.phi + dy * 0.005));
+        this.goal = null;
+      } else if (this.gesture.mode === 'pan') {
+        const s = this.radius * 0.0016;
+        const right = new THREE.Vector3(Math.cos(this.theta), 0, -Math.sin(this.theta));
+        const up = new THREE.Vector3(0, 1, 0);
+        this.target.addScaledVector(right, -dx * s).addScaledVector(up, dy * s);
+        this.goal = null;
+      } else if (this.pointers.size === 2) {
+        const p = [...this.pointers.values()];
+        const d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+        this.radius = Math.max(28, Math.min(420, this.radius * (this.gesture.dist / Math.max(1, d))));
+        this.gesture.dist = d;
+        this.goal = null;
+      }
+    });
+    const end = (e: PointerEvent, isTapCandidate: boolean) => {
+      const wasPress = this.press?.id === e.pointerId;
+      const moved = this.press?.moved ?? 0;
+      this.pointers.delete(e.pointerId);
+      if (this.pointers.size < 2) this.gesture = null;
+      if (wasPress) this.press = null;
+      if (isTapCandidate && wasPress && moved < 5) this.tap(e);
+    };
+    c.addEventListener('pointerup', (e) => end(e, true));
+    c.addEventListener('pointercancel', (e) => end(e, false));
+    c.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.radius = Math.max(24, Math.min(460, this.radius * (1 + Math.sign(e.deltaY) * 0.08)));
+      this.goal = null;
+      this.autoRotate = false;
+    }, { passive: false });
+    c.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  private tap(e: PointerEvent) {
+    const hit = this.pick(e.clientX, e.clientY);
+    if (this.measureMode === 'measure') {
+      const p = hit?.point ?? this.pickSplatCenter(e.clientX, e.clientY);
+      if (p) {
+        this.measurePts.push(p.clone());
+        if (this.measurePts.length >= 2) {
+          const a = this.measurePts[this.measurePts.length - 2];
+          const b = this.measurePts[this.measurePts.length - 1];
+          this.drawMeasure(a, b);
+          this.onMeasure?.({ mm: a.distanceTo(b), a: a.clone(), b: b.clone() });
+        }
+      }
+      return;
+    }
+    this.onPick?.(hit);
+  }
+
+  private ndc(clientX: number, clientY: number) {
+    const r = this.canvas.getBoundingClientRect();
+    return new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+  }
+
+  /** Raycast against the invisible FDI proxy: exact tooth id + exact mm surface point. */
+  pick(clientX: number, clientY: number): PickerHit {
+    if (!this.proxy) return null;
+    this.raycaster.setFromCamera(this.ndc(clientX, clientY), this.camera);
+    const hits = this.raycaster.intersectObjects(this.proxy.children, true);
+    for (const h of hits) {
+      const name = fdiNameOf(h.object);
+      const m = /^FDI_(\d+)/.exec(name);
+      if (!m) continue;
+      return { fdi: Number(m[1]), point: h.point.clone(), meshName: name };
+    }
+    const first = hits[0];
+    if (first) return { fdi: 0, point: first.point.clone(), meshName: fdiNameOf(first.object) };
+    return null;
+  }
+
+  /** Fallback for measurement on non-proxy geometry: nearest splat centre on screen. */
+  pickSplatCenter(clientX: number, clientY: number): THREE.Vector3 | null {
+    const l = this.activeLayer();
+    if (!l) return null;
+    const r = this.canvas.getBoundingClientRect();
+    const px = clientX - r.left, py = clientY - r.top;
+    const v = new THREE.Vector3();
+    let best = 14; let out: THREE.Vector3 | null = null;
+    const proj = new THREE.Matrix4().multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+    const c = l.centers;
+    const n = c.length / 3;
+    for (let i = 0; i < n; i++) {
+      const b = i * 3;
+      v.set(c[b], c[b + 1], c[b + 2]).applyMatrix4(proj);
+      if (v.z > 1 || v.z < -1) continue;
+      const sx = (v.x * 0.5 + 0.5) * r.width, sy = (-v.y * 0.5 + 0.5) * r.height;
+      const d = Math.hypot(sx - px, sy - py);
+      if (d < best) { best = d; out = new THREE.Vector3(c[b], c[b + 1], c[b + 2]); }
+    }
+    return out;
+  }
+
+  private drawMeasure(a: THREE.Vector3, b: THREE.Vector3) {
+    const g = new THREE.BufferGeometry().setFromPoints([a, b]);
+    const line = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x7dd3fc }));
+    const label = this.makeLabel(`${a.distanceTo(b).toFixed(1)} mm`);
+    label.position.copy(a).lerp(b, 0.5).add(new THREE.Vector3(0, 1.6, 0));
+    this.measureGroup.add(line, label);
+  }
+
+  private makeLabel(text: string) {
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 64;
+    const ctx = c.getContext('2d')!;
+    ctx.fillStyle = 'rgba(6,12,20,0.78)';
+    ctx.strokeStyle = 'rgba(125,211,252,0.9)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.roundRect(4, 10, 248, 44, 10); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e2f3ff';
+    ctx.font = '600 30px ui-sans-serif, system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, 128, 33);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+    spr.scale.set(16, 4, 1);
+    return spr;
+  }
+
+  clearMeasure() {
+    for (const o of [...this.measureGroup.children]) {
+      this.measureGroup.remove(o);
+      const anyO = o as THREE.Mesh & THREE.Sprite;
+      anyO.geometry?.dispose?.();
+      (anyO.material as THREE.SpriteMaterial | undefined)?.map?.dispose?.();
+      disposeMaterial(anyO.material);
+    }
+    this.measurePts = [];
+  }
+
+  // ------------------------------------------------------------------ state
+
+  activeLayer(): SplatLayer | null { return this.variant === 'full' ? this.layer : this.layerAlt; }
+  primaryLayer(): SplatLayer | null { return this.layer; }
+
+  applyUniforms() {
+    const layers = [this.layer, this.layerAlt];
+    for (const l of layers) {
+      if (!l) continue;
+      l.setSelected(this.selectedTooth);
+      l.u.uJawGap.value = this.jawGap;
+      l.u.uSheen.value = this.sheen * (l.cloud.hasSH1 ? 1 : 0);
+      l.u.uOutline.value = this.outline;
+      l.u.uShowLesions.value = this.showLesions ? 1 : 0;
+      l.u.uOpacityScale.value = this.opacity;
+      l.setClipPlanes(this.clipPlanes(), this.clip.band, this.clip.cap);
+    }
+    this.updateGizmo();
+  }
+
+  jawGap = 0; sheen = 1; outline = 0.9; showLesions = true; opacity = 1; isolateTooth = false;
+  hiddenTeeth: number[] = [];
+  /** Per-anatomical-layer transparency (the four CBCT sliders live here). */
+  layerAlphas: Record<number, number> = {};
+
+  /** Highlight one FDI tooth (also used by the 2D odontogram). */
+  select(fdi: number, opts: { pulse?: boolean } = {}) {
+    this.selectedTooth = fdi;
+    this.applyUniforms();
+    if (opts.pulse !== false) {
+      const t0 = performance.now();
+      const step = () => {
+        const k = Math.min(1, (performance.now() - t0) / 620);
+        const pulse = Math.sin(k * Math.PI) * (1 - k * 0.35);
+        for (const l of [this.layer, this.layerAlt]) { l?.setPulse(fdi, pulse); l?.setSelected(fdi); }
+        if (k < 1 && !this.disposed) requestAnimationFrame(step);
+        else for (const l of [this.layer, this.layerAlt]) l?.setPulse(fdi, 0);
+      };
+      requestAnimationFrame(step);
+    }
+    if (this.isolateTooth) this.set({});
+  }
+
+  setLayerAlpha(id: number, v: number) {    this.layerAlphas[id] = v;
+    for (const l of [this.layer, this.layerAlt]) l?.setLayerAlpha(id, v);
+  }
+
+  setLayerAlphaMap(map: Record<number, number>) {
+    this.layerAlphas = { ...map };
+    for (const l of [this.layer, this.layerAlt]) l?.setLayerAlphas(this.layerAlphas);
+  }
+
+  set(patch: Partial<Pick<DentSplatViewer, 'jawGap' | 'sheen' | 'outline' | 'showLesions' | 'opacity' | 'isolateTooth' | 'hiddenTeeth'> & { clip: DentSplatViewer['clip'] }>) {
+    Object.assign(this, patch);
+    if (patch.clip) this.clip = patch.clip;
+    // The hinge moves splats in depth, so the bucket order has to be rebuilt.
+    if (patch.jawGap !== undefined) this.forceSort = true;
+    if (patch.hiddenTeeth || patch.isolateTooth !== undefined) {
+      const hidden = this.isolateTooth && this.selectedTooth ? this.allFdIs().filter((f) => f !== this.selectedTooth) : this.hiddenTeeth;
+      for (const l of [this.layer, this.layerAlt]) l?.setHidden(hidden);
+    }
+    this.applyUniforms();
+  }
+
+  private allFdIs(): number[] {
+    const s = new Set<number>();
+    this.proxy?.traverse((o) => {
+      const m = /^FDI_(\d+)/.exec(fdiNameOf(o));
+      if (m) s.add(Number(m[1]));
+    });
+    return [...s].sort((a, b) => a - b);
+  }
+
+  clipPlanes(): THREE.Vector4[] {
+    if (!this.clip.axis) return [];
+    const n = AXIS_VEC[this.clip.axis];
+    return [new THREE.Vector4(n.x, n.y, n.z, this.clip.offset)];
+  }
+
+  private updateGizmo() {
+    for (const o of [...this.gizmo.children]) {
+      this.gizmo.remove(o);
+      (o as THREE.Mesh).geometry?.dispose?.();
+      disposeMaterial((o as THREE.Mesh).material);
+    }
+    if (!this.clip.axis) return;
+    const n = AXIS_VEC[this.clip.axis];
+    const geo = new THREE.PlaneGeometry(150, 120);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8, transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false,
+    });
+    const plane = new THREE.Mesh(geo, mat);
+    plane.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n);
+    plane.position.copy(n).multiplyScalar(this.clip.offset);
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo),
+      new THREE.LineBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.55 }),
+    );
+    edges.quaternion.copy(plane.quaternion);
+    edges.position.copy(plane.position);
+    this.gizmo.add(plane, edges);
+  }
+
+  setVariant(v: 'full' | 'pruned', split = this.splitCompare) {
+    this.variant = v;
+    this.splitCompare = split;
+  }
+
+  setWireframe(on: boolean) {
+    this.showWire = on;
+    this.clearWire();
+    if (!on || !this.proxy) return;
+    const root = new THREE.Group();
+    this.proxy.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh || !m.geometry) return;
+      const ls = new THREE.LineSegments(
+        new THREE.EdgesGeometry(m.geometry, 24),
+        new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.45, depthTest: false }),
+      );
+      // Freeze the mesh's absolute transform: the wireframe must land on the splats
+      // tooth-for-tooth, otherwise the alignment check proves nothing.
+      m.updateWorldMatrix(true, false);
+      ls.matrixAutoUpdate = false;
+      ls.matrix.copy(m.matrixWorld);
+      ls.renderOrder = 900;
+      root.add(ls);
+    });
+    this.wireRoot = root;
+    this.scene.add(root);
+  }
+
+  private clearWire() {
+    const root = this.wireRoot;
+    if (!root) return;
+    root.traverse((o) => {
+      const l = o as THREE.LineSegments;
+      l.geometry?.dispose?.();
+      const mat = l.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(mat)) mat.forEach((x) => x.dispose());
+      else mat?.dispose?.();
+    });
+    this.scene.remove(root);
+    this.wireRoot = null;
+  }
+
+  focus(target: [number, number, number], radius: number) {
+    this.goal = {
+      theta: this.theta, phi: this.phi, radius, target: new THREE.Vector3(...target),
+    };
+  }
+
+  flyTo(p: ViewPreset) {
+    this.goal = {
+      theta: (p.theta * Math.PI) / 180, phi: (p.phi * Math.PI) / 180, radius: p.radius,
+      target: new THREE.Vector3(...(p.target ?? [0, 0, 0])),
+    };
+    if (p.fov !== undefined) { this.camera.fov = p.fov; this.camera.updateProjectionMatrix(); }
+    this.autoRotate = false;
+  }
+
+  /** Proxy mesh for one FDI tooth, whatever node nesting the exporter produced. */
+  proxyMesh(fdi: number): THREE.Mesh | null {
+    let out: THREE.Mesh | null = null;
+    this.proxy?.traverse((o) => {
+      if (out) return;
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      const id = /^FDI_(\d+)/.exec(fdiNameOf(m));
+      if (id && Number(id[1]) === fdi) out = m;
+    });
+    return out;
+  }
+
+  toothBox(fdi: number): THREE.Box3 | null {
+    const mesh = this.proxyMesh(fdi);
+    if (!mesh) return null;
+    mesh.updateWorldMatrix(true, false);
+    mesh.geometry.computeBoundingBox();
+    const bb = mesh.geometry.boundingBox;
+    if (!bb) return null;
+    return new THREE.Box3().copy(bb).applyMatrix4(mesh.matrixWorld);
+  }
+
+  focusTooth(fdi: number) {
+    const box = this.toothBox(fdi);
+    if (!box) return;
+    const c = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3()).length();
+    this.goal = { theta: this.theta, phi: this.phi, radius: Math.max(26, size * 3.4), target: c };
+  }
+
+  // ------------------------------------------------------------------ render
+
+  resize() {
+    const r = this.canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.floor(r.width)), h = Math.max(1, Math.floor(r.height));
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.renderer.setPixelRatio(dpr);
+    this.renderer.setSize(w, h, false);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+  }
+
+  private loop = () => {
+    if (this.disposed) return;
+    this.raf = requestAnimationFrame(this.loop);
+    this.frame();
+  };
+
+  /**
+   * One frame, decoupled from requestAnimationFrame so a hidden/zero-size tab can still be
+   * benchmarked deterministically (rAF does not fire there at all).
+   */
+  frame(dt = Math.min(0.05, this.clock.getDelta())) {
+    const t0 = performance.now();
+    if (this.autoRotate) this.theta += dt * 0.12;
+    if (this.goal) {
+      const k = 1 - Math.pow(0.0015, dt);
+      this.theta += (this.goal.theta - this.theta) * k;
+      this.phi += (this.goal.phi - this.phi) * k;
+      this.radius += (this.goal.radius - this.radius) * k;
+      this.target.lerp(this.goal.target, k);
+      if (Math.abs(this.goal.radius - this.radius) < 0.05 && this.target.distanceTo(this.goal.target) < 0.05) this.goal = null;
+    }
+    const pos = new THREE.Vector3(
+      this.target.x + this.radius * Math.sin(this.theta) * Math.cos(this.phi),
+      this.target.y + this.radius * Math.sin(this.phi),
+      this.target.z + this.radius * Math.cos(this.theta) * Math.cos(this.phi),
+    );
+    this.camera.position.copy(pos);
+    this.camera.lookAt(this.target);
+    this.camera.updateMatrixWorld();
+
+    const r = this.renderer.getSize(new THREE.Vector2());
+    const vp = new THREE.Vector2(r.x, r.y);
+    const view = this.camera.matrixWorldInverse;
+    if (this.splitCompare) {
+      this.layer?.update(view, vp, this.forceSort);
+      this.layerAlt?.update(view, vp, this.forceSort);
+    } else {
+      this.activeLayer()?.update(view, vp, this.forceSort);
+    }
+    this.forceSort = false;
+
+    if (this.splitCompare) {
+      // Two independent viewports, identical camera and projection, different packets.
+      const fw = Math.floor(r.x / 2);
+      this.camera.aspect = fw / r.y; this.camera.updateProjectionMatrix();
+      this.renderer.setScissorTest(true);
+      this.renderer.setViewport(0, 0, fw, r.y);
+      this.renderer.setScissor(0, 0, fw, r.y);
+      this.renderOne(this.layer);
+      this.renderer.setViewport(fw, 0, r.x - fw, r.y);
+      this.renderer.setScissor(fw, 0, r.x - fw, r.y);
+      this.renderOne(this.layerAlt);
+      this.renderer.setScissorTest(false);
+      this.renderer.setViewport(0, 0, r.x, r.y);
+      this.camera.aspect = r.x / r.y; this.camera.updateProjectionMatrix();
+    } else {
+      this.renderOne(null);
+    }
+
+    const ms = performance.now() - t0;
+    this.frameEMA = this.frameEMA * 0.9 + ms * 0.1;
+    this.fpsEMA = this.fpsEMA * 0.92 + (dt > 0 ? 1 / dt : 60) * 0.08;
+    this.maybeEmitStats();
+    return ms;
+  }
+
+  /** The HUD is a wall-clock sample, not a per-frame one; 250 ms keeps React out of the hot path. */
+  private maybeEmitStats(force = false) {
+    const now = performance.now();
+    if (!force && now - this.lastStats <= 250) return;
+    this.lastStats = now;
+    const l = this.activeLayer();
+    this.onStats?.({
+      fps: Math.round(this.fpsEMA), splats: l?.cloud.count ?? 0, visible: l?.visible ?? 0,
+      sortMs: +(l?.sortMs ?? 0).toFixed(2), frameMs: +this.frameEMA.toFixed(2),
+      bytes: this.variant === 'full' ? this.fullBytes : this.prunedBytes, gpu: this.gpu,
+    });
+  }
+
+  /**
+   * Drive frames without requestAnimationFrame. A hidden tab throttles rAF to zero, so this is
+   * the only honest way to measure sustained cost there; on a visible tab it is what the
+   * demo-video capture uses to render deterministic frames.
+   */
+  pump(n = 60) {
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) this.frame(1 / 60);
+    const wall = performance.now() - t0;
+    // A hidden tab never reaches this gate on wall clock, so the HUD would describe a state that
+    // is several interactions old. Pumped frames are deterministic: publish them.
+    this.maybeEmitStats(true);
+    return { frames: n, wallMs: +wall.toFixed(1), perFrameMs: +(wall / n).toFixed(2), stats: this.statsSnapshot() };
+  }
+  private forceSort = true;
+  private lastStats = 0;
+  fullBytes = 0; prunedBytes = 0;
+
+  private renderOne(only: SplatLayer | null) {
+    if (only) {
+      const a = this.layer!, b = this.layerAlt!;
+      a.mesh.visible = a === only; b.mesh.visible = b === only;
+      this.renderer.render(this.scene, this.camera);
+      a.mesh.visible = true; b.mesh.visible = true;
+    } else {
+      const l = this.activeLayer();
+      if (this.layer) this.layer.mesh.visible = l === this.layer;
+      if (this.layerAlt) this.layerAlt.mesh.visible = l === this.layerAlt;
+      this.renderer.render(this.scene, this.camera);
+      if (this.layer) this.layer.mesh.visible = true;
+      if (this.layerAlt) this.layerAlt.mesh.visible = true;
+    }
+  }
+
+  /**
+   * Measure true PSNR between the full and pruned packets at the current camera.
+   *
+   * Two things make this number defensible rather than decorative:
+   *  - sheen is forced to 0 for both passes. It is a view-dependent term the shader only applies
+   *    where SH1 exists (`uSheen * (hasSH1 ? 1 : 0)`), so leaving it on would bill a feature toggle
+   *    to the compression and understate fidelity for a reason that has nothing to do with bits.
+   *  - the whole-frame PSNR is reported next to the masked one and the bit-identical fraction. Most
+   *    of the frame is background where the two renders agree exactly, so the global number is
+   *    diluted by pixels that carry no information about the splats; `psnrInMask` answers "how close
+   *    are the teeth", which is the question a reviewer actually asks. Quoting either alone is
+   *    misleading, so the UI shows both.
+   */
+  async bench(size = 384): Promise<BenchResult> {
+    if (!this.layer || !this.layerAlt) {
+      const empty: BenchPair = { psnr: 0, psnrInMask: 0, mae: 0, covered: 0, identicalFraction: 0,
+        errorInTop1Percent: 0, maxDiff: 0, meanFull: [0, 0, 0], meanPruned: [0, 0, 0] };
+      return { ...empty, samples: 0, control: { ...empty }, psnrSelf: 0, identicalSelfFraction: 0 };
+    }
+    const rt = new THREE.WebGLRenderTarget(size, size, { samples: 0 });
+    const prevAspect = this.camera.aspect;
+    const prevBg = this.scene.background;
+    const prevSheen = [this.layer.u.uSheen.value, this.layerAlt.u.uSheen.value] as number[];
+    this.scene.background = new THREE.Color(0x000000);
+    this.camera.aspect = 1; this.camera.updateProjectionMatrix();
+    const shots: Uint8Array[] = [];
+    // The third pass re-renders the FULL packet. Same asset, same camera, same target: whatever
+    // error that pair shows is readback/sort nondeterminism, not compression, and it is the control
+    // that licenses quoting the first pair at all.
+    for (const l of [this.layer, this.layerAlt, this.layer]) {
+      this.layer!.mesh.visible = l === this.layer;
+      this.layerAlt!.mesh.visible = l === this.layerAlt;
+      l!.u.uViewportPx.value.set(size, size);
+      l!.u.uSheen.value = 0;
+      l!.update(this.camera.matrixWorldInverse, new THREE.Vector2(size, size), true);
+      this.renderer.setRenderTarget(rt);
+      this.renderer.render(this.scene, this.camera);
+      this.renderer.setRenderTarget(null);
+      const buf = new Uint8Array(size * size * 4);
+      this.renderer.readRenderTargetPixels(rt, 0, 0, size, size, buf);
+      shots.push(buf);
+    }
+    this.scene.background = prevBg;
+    this.camera.aspect = prevAspect; this.camera.updateProjectionMatrix();
+    this.layer.u.uSheen.value = prevSheen[0];
+    this.layerAlt.u.uSheen.value = prevSheen[1];
+    rt.dispose();
+    const pair = (A: Uint8Array, B: Uint8Array) => {
+      let se = 0, ae = 0, n = 0, seIn = 0, nIn = 0, same = 0, covered = 0, max = 0;
+      const per: number[] = [];
+      for (let i = 0; i < A.length; i += 4) {
+        let ink = 0, pse = 0;
+        for (let k = 0; k < 3; k++) {
+          const a = A[i + k], b = B[i + k];
+          const d = a - b, ad = d < 0 ? -d : d;
+          se += d * d; ae += ad; n++; pse += d * d;
+          if (ad > max) max = ad;
+          if (a > 8 || b > 8) ink = 1;
+        }
+        if (ink) { covered++; nIn += 3; seIn += pse; }
+        per.push(pse);
+        if (A[i] === B[i] && A[i + 1] === B[i + 1] && A[i + 2] === B[i + 2]) same++;
+      }
+      // Concentration: how much of the total squared error lives in the worst 1% of pixels. ~1 means
+      // a handful of silhouette/edge pixels disagree (a geometry-coverage story); ~0.05 means the
+      // whole surface disagrees (a colour/alpha story). Different diagnoses, different fixes.
+      per.sort((x, y) => y - x);
+      const total = se || 1;
+      const top = per.slice(0, Math.max(1, Math.round(per.length / 100))).reduce((s, x) => s + x, 0);
+      const mean = (X: Uint8Array) => { let r = 0, g = 0, bl = 0; for (let i = 0; i < X.length; i += 4) { r += X[i]; g += X[i + 1]; bl += X[i + 2]; } const px = X.length / 4; return [r, g, bl].map((v) => +(v / px).toFixed(1)) as [number, number, number]; };
+      // 999 is the "bit-identical" sentinel: PSNR is undefined at MSE 0 and JSON cannot carry Infinity.
+      const db = (sse: number, sn: number) => (sse === 0 ? 999 : +(10 * Math.log10(1 / (sse / Math.max(1, sn) / 65025))).toFixed(2));
+      return {
+        psnr: db(se, n),
+        psnrInMask: db(seIn, nIn),
+        mae: +(ae / Math.max(1, n) / 255).toFixed(4),
+        covered: +(covered / (A.length / 4)).toFixed(4),
+        identicalFraction: +(same / (A.length / 4)).toFixed(4),
+        errorInTop1Percent: +(top / total).toFixed(3),
+        maxDiff: max,
+        meanFull: mean(A), meanPruned: mean(B),
+      };
+    };
+    const head = pair(shots[0], shots[1]);
+    const control = pair(shots[0], shots[2]);
+    this.forceSort = true;
+    return { ...head, samples: shots[0].length / 4 * 3, control,
+      psnrSelf: control.psnr, identicalSelfFraction: control.identicalFraction };
+  }
+
+  /** Shader bisection harness (see uDebug in shaders.ts). 0 = production path. */
+  setDebug(n: number) {
+    for (const l of [this.layer, this.layerAlt]) if (l) l.u.uDebug.value = n;
+    this.forceSort = true;
+  }
+
+  /** Diagnostic harness for automated verification: separates "render-target + readback works",
+   * "splat pass rasterises", and "the blend state is what hides it" into three comparable shots.
+   */
+  selfTest() {
+    const w = 96, h = 96;
+    const rt = new THREE.WebGLRenderTarget(w, h);
+    const b = new Uint8Array(w * h * 4);
+    const gl = this.renderer.getContext();
+    // The offscreen pass is square; the live camera is not. On an automation window the canvas is
+    // 428x1, so camera.aspect is 428 and a 96x96 target then frames nothing -- selfTest reported
+    // "lit: 0" for a perfectly healthy renderer. Own the aspect (and the scissor) for the duration
+    // of the test and restore both, exactly like renderProbe does.
+    const prevAspect = this.camera.aspect;
+    const prevScissor = this.renderer.getScissorTest();
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setScissorTest(false);
+    const shot = (name: string) => {
+      this.renderer.setRenderTarget(rt);
+      this.renderer.setClearColor(0x000000, 1);
+      const e0 = gl.getError();
+      this.renderer.render(this.scene, this.camera);
+      const calls = this.renderer.info.render.calls;
+      const e1 = gl.getError();
+      this.renderer.setRenderTarget(null);
+      this.renderer.readRenderTargetPixels(rt, 0, 0, w, h, b);
+      const e2 = gl.getError();
+      let lit = 0;
+      for (let i = 0; i < w * h; i++) if (b[i * 4] + b[i * 4 + 1] + b[i * 4 + 2] > 40) lit++;
+      const c = ((h >> 1) * w + (w >> 1)) * 4;
+      return { name, calls, lit, e0, e1, e2, mid: [b[c], b[c + 1], b[c + 2], b[c + 3]] };
+    };
+    const splat = this.layer;
+    const res: Record<string, unknown> = {};
+    if (!splat) return { error: 'no layer loaded' };
+    const prevVis = splat.mesh.visible;
+    const box = new THREE.Mesh(new THREE.BoxGeometry(70, 70, 70), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+    splat.mesh.visible = false;
+    this.scene.add(box);
+    res.box = shot('box');
+    this.scene.remove(box);
+    box.geometry.dispose();
+    (box.material as THREE.Material).dispose();
+    splat.mesh.visible = true;
+    res.splat = shot('splat');
+    const m = splat.material;
+    const prevBlend = m.blending;
+    m.blending = THREE.NormalBlending;
+    m.needsUpdate = true;
+    res.splatNormalBlend = shot('splat-normal');
+    m.blending = prevBlend;
+    m.needsUpdate = true;
+    splat.mesh.visible = prevVis;
+    rt.dispose();
+    this.camera.aspect = prevAspect;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setScissorTest(prevScissor);
+    res.state = {
+      transparent: m.transparent, depthTest: m.depthTest, depthWrite: m.depthWrite, side: m.side,
+      blending: prevBlend, glslVersion: m.glslVersion, drawRange: m && splat.geometry.drawRange.count,
+      indexType: (splat.geometry.index as THREE.BufferAttribute).array?.constructor.name,
+      attrs: Object.keys(splat.geometry.attributes),
+    };
+    return res;
+  }
+
+  /** Same payload as the onStats callback, on demand. */
+  statsSnapshot(): Stats {
+    const l = this.activeLayer();
+    return {
+      fps: Math.round(this.fpsEMA), splats: l?.cloud.count ?? 0, visible: l?.visible ?? 0,
+      sortMs: +(l?.sortMs ?? 0).toFixed(2), frameMs: +this.frameEMA.toFixed(2),
+      bytes: this.variant === 'full' ? this.fullBytes : this.prunedBytes, gpu: this.gpu,
+    };
+  }
+
+  /** Drawing-buffer size in device pixels. */
+  canvasSize(): [number, number] {
+    const s = this.renderer.getSize(new THREE.Vector2());
+    return [Math.round(s.x), Math.round(s.y)];
+  }
+
+  snapshot() {
+    return this.canvas.toDataURL('image/png');
+  }
+
+  /**
+   * Offscreen render + raw pixel statistics. Returns numbers computed from the actual RGBA
+   * buffer, so a broken encode path cannot hide a black frame.
+   */
+  renderProbe(size = 640): ProbeResult {
+    const active = this.activeLayer();
+    if (!active) return { error: 'no layer' };
+    const w = size, h = Math.round(size * 0.62);
+    const rt = new THREE.WebGLRenderTarget(w, h, { samples: 0 });
+    const prevAspect = this.camera.aspect;
+    const prevVis: [boolean, boolean] = [this.layer?.mesh.visible ?? false, this.layerAlt?.mesh.visible ?? false];
+    const prevClear = this.renderer.getClearColor(new THREE.Color());
+    const prevAlpha = this.renderer.getClearAlpha();
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    if (this.layer) this.layer.mesh.visible = this.layer === active;
+    if (this.layerAlt) this.layerAlt.mesh.visible = this.layerAlt === active;
+    // Split comparison has to be honoured offscreen too, otherwise a captured "split" frame is
+    // really a single-packet frame and the compression slide would be illustrating nothing.
+    const split = this.splitCompare && !!this.layer && !!this.layerAlt;
+    const half = Math.floor(w / 2);
+    const vp = split ? new THREE.Vector2(half, h) : new THREE.Vector2(w, h);
+    let sorted: boolean;
+    if (split) {
+      for (const l of [this.layer!, this.layerAlt!]) (l.u.uViewportPx.value as THREE.Vector2).set(half, h);
+      this.layer!.update(this.camera.matrixWorldInverse, vp, true);
+      this.layerAlt!.update(this.camera.matrixWorldInverse, vp, true);
+      sorted = true;
+    } else {
+      (active.u.uViewportPx.value as THREE.Vector2).set(w, h);
+      sorted = active.update(this.camera.matrixWorldInverse, vp, true);
+    }
+    this.renderer.setRenderTarget(rt);
+    this.renderer.setClearColor(0x070b12, 1);
+    if (split) {
+      this.camera.aspect = half / h;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setScissorTest(true);
+      this.renderer.setViewport(0, 0, half, h);
+      this.renderer.setScissor(0, 0, half, h);
+      this.renderOne(this.layer);
+      this.renderer.setViewport(half, 0, w - half, h);
+      this.renderer.setScissor(half, 0, w - half, h);
+      this.renderOne(this.layerAlt);
+      this.renderer.setScissorTest(false);
+      this.renderer.setViewport(0, 0, w, h);
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
+    const info = { calls: this.renderer.info.render.calls, tris: this.renderer.info.render.triangles };
+    const gl = this.renderer.getContext();
+    this.renderer.setRenderTarget(null);
+    const buf = new Uint8Array(w * h * 4);
+    this.renderer.readRenderTargetPixels(rt, 0, 0, w, h, buf);
+    const glError = gl.getError();
+    rt.dispose();
+    this.renderer.setClearColor(prevClear, prevAlpha);
+    if (this.layer) this.layer.mesh.visible = prevVis[0];
+    if (this.layerAlt) this.layerAlt.mesh.visible = prevVis[1];
+    this.camera.aspect = prevAspect;
+    this.camera.updateProjectionMatrix();
+    this.forceSort = true;
+
+    let painted = 0, peak = 0, sr = 0, sg = 0, sb = 0;
+    for (let i = 0; i < w * h; i++) {
+      const r = buf[i * 4], g = buf[i * 4 + 1], b = buf[i * 4 + 2];
+      const l = (r + g + b) / 3;
+      sr += r; sg += g; sb += b;
+      if (l > peak) peak = l;
+      if (l > 34) painted++;
+    }
+    // GL origin is bottom-left, so sample the lower half too: a flipped-camera bug shows up as
+    // content living in only one band.
+    let lower = 0;
+    for (let i = Math.floor(w * h / 2); i < w * h; i++) if ((buf[i * 4] + buf[i * 4 + 1] + buf[i * 4 + 2]) / 3 > 34) lower++;
+
+    return {
+      w, h, sorted, drawn: { ...info }, glError,
+      paintedFraction: +(painted / (w * h)).toFixed(4),
+      paintedLowerHalf: lower,
+      mean: [+(sr / (w * h)).toFixed(1), +(sg / (w * h)).toFixed(1), +(sb / (w * h)).toFixed(1)],
+      peak: +peak.toFixed(1),
+      buf,
+    };
+  }
+
+  /**
+   * GPU cost of the splat pass at a fixed resolution, measured offscreen. The headline (gpuMs /
+   * netGpuMs) is a render serialised by a 1x1 readback with the readback's own latency subtracted,
+   * because the cheap instrument lies here: a per-frame gl.finish() returned 0.0-0.1 ms for 88,918
+   * splats at 1440p -- identical to the submit-only control -- so finish() reports when commands
+   * were forwarded, not when the GPU finished. The hardware timer lives in perfTimerProbe(), which
+   * must be async. syncConfirmed is false when the surviving figure is indistinguishable from
+   * submission cost, in which case fpsAtThisSize stays null.
+   *
+   * Why this exists: on an automation window the canvas is 428x1, so the HUD's wall-clock frame
+   * delta measures ~400 pixels of fill and says nothing about throughput. This measures the thing
+   * the 60 FPS claim is actually about -- N splats rasterised into W x H, GPU-complete, per frame --
+   * and reports the CPU sort separately, because those are two different deployment budgets.
+   */
+  perfProbe(w = 1280, h = 720, iters = 25) {
+    const active = this.activeLayer();
+    if (!active) return { error: 'no layer' };
+    const gl = this.renderer.getContext();
+    const rt = new THREE.WebGLRenderTarget(w, h, { samples: 0 });
+    const prevAspect = this.camera.aspect;
+    const prevVis: [boolean, boolean] = [this.layer?.mesh.visible ?? false, this.layerAlt?.mesh.visible ?? false];
+    const prevClear = this.renderer.getClearColor(new THREE.Color());
+    const prevAlpha = this.renderer.getClearAlpha();
+    const prevScissor = this.renderer.getScissorTest();
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setScissorTest(false);
+    if (this.layer) this.layer.mesh.visible = this.layer === active;
+    if (this.layerAlt) this.layerAlt.mesh.visible = this.layerAlt === active;
+    (active.u.uViewportPx.value as THREE.Vector2).set(w, h);
+    const vp = new THREE.Vector2(w, h);
+    const tSort = performance.now();
+    active.update(this.camera.matrixWorldInverse, vp, true);
+    const sortMs = +(performance.now() - tSort).toFixed(2);
+
+    this.renderer.setRenderTarget(rt);
+    this.renderer.setClearColor(0x070b12, 1);
+    const one = () => this.renderer.render(this.scene, this.camera);
+
+    // Three independent instruments, because the cheap one lies. On Chromium/ANGLE a per-frame
+    // gl.finish() came back in 0.0-0.1 ms for 88,918 splats at 1440p -- indistinguishable from the
+    // submit-only control -- i.e. finish() returns once the commands are forwarded, not once the
+    // GPU is done. So: (1) a real GL timer query where the browser exposes one, (2) a serialised
+    // 1x1 readback, which cannot be answered before the pixel exists and yet costs nothing to
+    // transfer, and (3) the finish() loop plus the submit/drain controls that expose (3) as bogus.
+    // The hardware timer, when the browser has it, is read by perfTimerProbe() -- NOT here. An
+    // earlier draft of this function polled QUERY_RESULT_AVAILABLE in a busy loop and burned 2 s
+    // per call returning nothing: Chromium delivers the result on its own task queue, so a
+    // synchronous spin on the main thread starves the very ack it is waiting for. The extension
+    // being present is therefore not enough; the read has to be async.
+    const timerSupported = !!gl.getExtension('EXT_disjoint_timer_query_webgl2');
+    const tiny = new Uint8Array(4);
+    const serial: number[] = [];
+    for (let i = 0; i < iters; i++) {
+      const t0 = performance.now();
+      one();
+      this.renderer.readRenderTargetPixels(rt, 0, 0, 1, 1, tiny);
+      serial.push(+(performance.now() - t0).toFixed(3));
+    }
+    // Control -- the same 1x1 readbacks with no render in front of them. A readback is only a
+    // measurement instrument if its round-trip latency is known separately; on this driver the
+    // floor of the serial loop is ~3 ms of IPC for a frame that costs a fraction of that, and
+    // reporting the raw figure as "GPU time" would be 3x dishonest in the safe direction.
+    const syncOnly: number[] = [];
+    for (let i = 0; i < iters; i++) {
+      const t0 = performance.now();
+      this.renderer.readRenderTargetPixels(rt, 0, 0, 1, 1, tiny);
+      syncOnly.push(+(performance.now() - t0).toFixed(3));
+    }
+    const gpu: number[] = [];
+    for (let i = 0; i < iters; i++) {
+      const t0 = performance.now();
+      one();
+      gl.finish();
+      gpu.push(+(performance.now() - t0).toFixed(3));
+    }
+    // Control -- identical batch with no sync at all: pure CPU submission cost. If the finish() loop
+    // matches it, that loop measured queueing rather than rasterisation, and the honest reading is
+    // "GPU cost unmeasured", not "60 FPS with 10x headroom".
+    const tSub = performance.now();
+    for (let i = 0; i < iters; i++) one();
+    const submitMs = +((performance.now() - tSub) / iters).toFixed(3);
+    const tDrain = performance.now();
+    gl.finish();
+    const drainMs = +(performance.now() - tDrain).toFixed(3);
+    const drawn = { calls: this.renderer.info.render.calls, tris: this.renderer.info.render.triangles };
+    const glError = gl.getError();
+    this.renderer.setRenderTarget(null);
+    // One full readback of the SAME configuration that was timed, so paintedFraction cannot
+    // describe a frame the timings did not measure. Timed separately: this transfer is huge.
+    const tRb = performance.now();
+    const buf = new Uint8Array(w * h * 4);
+    this.renderer.readRenderTargetPixels(rt, 0, 0, w, h, buf);
+    const readbackFullMs = +(performance.now() - tRb).toFixed(3);
+    let painted = 0;
+    for (let i = 0; i < w * h; i++) if ((buf[i * 4] + buf[i * 4 + 1] + buf[i * 4 + 2]) / 3 > 34) painted++;
+
+    const stat = (arr: number[]) => {
+      if (!arr.length) return null;
+      const s = [...arr].sort((a, b) => a - b);
+      const g = (p: number) => +s[Math.min(s.length - 1, Math.floor(p * (s.length - 1)))].toFixed(3);
+      return { n: s.length, min: g(0), p50: g(0.5), p95: g(0.95), max: g(1) };
+    };
+    const finishMs = stat(gpu);
+    const serialMs = stat(serial);
+    const syncOnlyMs = stat(syncOnly);
+    // The headline is the serialised readback: it cannot be satisfied by a queue. Its own latency
+    // floor is then removed, so the figure that reaches a brief is rasterisation, not IPC.
+    const gpuMs = serialMs;
+    const method = 'serialised 1x1 readback, sync latency subtracted';
+    const netMs = gpuMs && syncOnlyMs ? +(Math.max(0, gpuMs.p50 - syncOnlyMs.p50)).toFixed(3) : null;
+    const syncConfirmed = !!gpuMs && gpuMs.p50 > Math.max(0.2, submitMs * 2);
+    // A net figure under 0.2 ms is inside the resolution of this method (and can mean the
+    // no-render control skipped a sync the render case paid for). Refuse to turn that into an
+    // FPS headline; hand the reader the instrument that can answer it instead.
+    const publishable = syncConfirmed && netMs !== null && netMs >= 0.2;
+
+    rt.dispose();
+    this.renderer.setClearColor(prevClear, prevAlpha);
+    this.renderer.setScissorTest(prevScissor);
+    if (this.layer) this.layer.mesh.visible = prevVis[0];
+    if (this.layerAlt) this.layerAlt.mesh.visible = prevVis[1];
+    this.camera.aspect = prevAspect;
+    this.camera.updateProjectionMatrix();
+    this.forceSort = true;
+    return {
+      w, h, iters, splats: active.cloud.count, visible: active.visible,
+      variant: this.variant, sortMs,
+      gpuMs, method, timerSupported, serialMs, syncOnlyMs, finishMs,
+      submitMs, drainMs, readbackFullMs, syncConfirmed, netGpuMs: netMs,
+      fpsAtThisSize: publishable && netMs !== null ? +(1000 / netMs).toFixed(1) : null,
+      fpsBasis: publishable ? 'netGpuMs = serialMs.p50 - syncOnlyMs.p50'
+        : syncConfirmed ? 'below the readback floor -- use perfTimerProbe' : 'sync not confirmed',
+      drawn, paintedFraction: +(painted / (w * h)).toFixed(4), glError,
+      gpu: this.gpu,
+    };
+  }
+
+  /**
+   * Hardware timing of the same pass with EXT_disjoint_timer_query_webgl2, which is the only figure
+   * here that is unambiguously time-spent-on-the-GPU (no submission, no IPC). It has to be async:
+   * the result arrives on the browser's task queue, so the synchronous spin in the first draft
+   * returned nothing after 2 s even with the extension present. Yields go through MessageChannel
+   * rather than requestAnimationFrame because this window is hidden and rAF does not fire.
+   */
+  async perfTimerProbe(w = 1280, h = 720, iters = 20) {
+    const active = this.activeLayer();
+    if (!active) return { error: 'no layer' };
+    const gl = this.renderer.getContext();
+    const ext = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+    if (!ext) return { error: 'no EXT_disjoint_timer_query_webgl2' };
+    const gl2 = gl as WebGL2RenderingContext;
+    const yieldTask = () => new Promise<void>((res) => {
+      const ch = new MessageChannel();
+      ch.port1.onmessage = () => res();
+      ch.port2.postMessage(0);
+    });
+
+    const rt = new THREE.WebGLRenderTarget(w, h, { samples: 0 });
+    const prevAspect = this.camera.aspect;
+    const prevVis: [boolean, boolean] = [this.layer?.mesh.visible ?? false, this.layerAlt?.mesh.visible ?? false];
+    const prevClear = this.renderer.getClearColor(new THREE.Color());
+    const prevAlpha = this.renderer.getClearAlpha();
+    const prevScissor = this.renderer.getScissorTest();
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setScissorTest(false);
+    if (this.layer) this.layer.mesh.visible = this.layer === active;
+    if (this.layerAlt) this.layerAlt.mesh.visible = this.layerAlt === active;
+    (active.u.uViewportPx.value as THREE.Vector2).set(w, h);
+    const vp = new THREE.Vector2(w, h);
+    const tSort = performance.now();
+    active.update(this.camera.matrixWorldInverse, vp, true);
+    const sortMs = +(performance.now() - tSort).toFixed(2);
+
+    this.renderer.setRenderTarget(rt);
+    this.renderer.setClearColor(0x070b12, 1);
+    const qs: WebGLQuery[] = [];
+    for (let i = 0; i < iters; i++) {
+      const q = gl2.createQuery();
+      if (!q) break;
+      gl2.beginQuery(ext.TIME_ELAPSED_EXT, q);
+      this.renderer.render(this.scene, this.camera);
+      gl2.endQuery(ext.TIME_ELAPSED_EXT);
+      qs.push(q);
+      await yieldTask();
+    }
+    const samples: number[] = [];
+    let disjoint = 0, unavailable = 0;
+    for (const q of qs) {
+      let got = false;
+      for (let spin = 0; spin < 60; spin++) {
+        if (gl2.getQueryParameter(q, gl2.QUERY_RESULT_AVAILABLE)) { got = true; break; }
+        await yieldTask();
+      }
+      if (!got) { unavailable++; gl2.deleteQuery(q); continue; }
+      if (gl2.getQueryParameter(q, gl2.QUERY_RESULT) === null || gl.getParameter(ext.DISJOINT_EXT)) disjoint++;
+      samples.push(+(Number(gl2.getQueryParameter(q, gl2.QUERY_RESULT)) / 1e6).toFixed(3));
+      gl2.deleteQuery(q);
+    }
+    const drawn = { calls: this.renderer.info.render.calls, tris: this.renderer.info.render.triangles };
+    const glError = gl.getError();
+    this.renderer.setRenderTarget(null);
+    rt.dispose();
+    this.renderer.setClearColor(prevClear, prevAlpha);
+    this.renderer.setScissorTest(prevScissor);
+    if (this.layer) this.layer.mesh.visible = prevVis[0];
+    if (this.layerAlt) this.layerAlt.mesh.visible = prevVis[1];
+    this.camera.aspect = prevAspect;
+    this.camera.updateProjectionMatrix();
+    this.forceSort = true;
+
+    const sorted = [...samples].sort((a, b) => a - b);
+    const g = (p: number) => +sorted[Math.min(sorted.length - 1, Math.floor(p * (sorted.length - 1)))].toFixed(3);
+    return {
+      w, h, iters, asked: iters, got: samples.length, unavailable, disjoint,
+      splats: active.cloud.count, visible: active.visible, variant: this.variant, sortMs,
+      gpuMs: sorted.length ? { n: sorted.length, min: g(0), p50: g(0.5), p95: g(0.95), max: g(1) } : null,
+      fpsAtThisSize: sorted.length ? +(1000 / Math.max(0.05, g(0.5))).toFixed(1) : null,
+      method: 'EXT_disjoint_timer_query_webgl2', drawn, glError, gpu: this.gpu,
+    };
+  }
+
+  /** Offscreen PNG of the current view. Works with a zero-size or hidden canvas, which is what
+   *  makes automated visual verification (and the demo-video capture) possible at all. */
+  renderToDataURL(size = 760): string | null {
+    const probe = this.renderProbe(size);
+    if (!probe.buf || !probe.w || !probe.h) return null;
+    const { buf, w, h } = probe;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d')!;
+    const img = ctx.createImageData(w, h);
+    // The render target holds LINEAR values; the on-screen pass does the sRGB encode in the
+    // output pass, so a captured PNG has to do it too or every shot reads as near-black.
+    const enc = (v: number) => {
+      const x = v / 255;
+      return Math.round(255 * (x <= 0.0031308 ? x * 12.92 : 1.055 * Math.pow(x, 1 / 2.4) - 0.055));
+    };
+    for (let y = 0; y < h; y++) {
+      const src = (h - 1 - y) * w * 4, dst = y * w * 4;   // GL origin is bottom-left
+      for (let x = 0; x < w; x++) {
+        const s = src + x * 4, t = dst + x * 4;
+        img.data[t] = enc(buf[s]); img.data[t + 1] = enc(buf[s + 1]); img.data[t + 2] = enc(buf[s + 2]);
+        img.data[t + 3] = buf[s + 3];
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return c.toDataURL('image/png');
+  }
+
+  dispose() {
+    this.disposed = true;
+    cancelAnimationFrame(this.raf);
+    this.disposeLayers();
+    this.renderer.dispose();
+  }
+}

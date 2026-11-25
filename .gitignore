@@ -1,0 +1,26 @@
+# build output and dependencies
+node_modules/
+dist/
+*.tsbuildinfo
+
+# generated at runtime by the probes and the asset generator
+output/
+pipeline/__pycache__/
+*.pyc
+
+# scratch inside the evidence tree: re-runs of the reproducibility experiments and one-off renders.
+# The registered artefacts next to them (tools/out/cbct_route, tools/out/*.json) stay in the repo:
+# MEASUREMENTS.md cites them by sha256 and `npm run test:claims` re-hashes them.
+tools/out/repro/
+tools/out/stale/
+tools/out/demo/
+tools/out/demo-check/
+tools/out/brief-selftest/
+tools/out/mutate-claims/
+tools/out/method-doc.selftest.md
+tools/out/serve-*.log
+
+# editor / OS noise
+.DS_Store
+Thumbs.db
+.qoder/

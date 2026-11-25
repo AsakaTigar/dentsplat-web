@@ -1,0 +1,103 @@
+{
+  "bundle": [
+    "index-DUqMfPP2.js"
+  ],
+  "dspk": [
+    "sceneA_full.dspk=1258792",
+    "sceneA_pruned.dspk=435115",
+    "sceneB_full.dspk=622422",
+    "sceneB_pruned.dspk=259765",
+    "sceneA_full.dspk=1258792",
+    "sceneA_pruned.dspk=435115"
+  ],
+  "job": [
+    "A",
+    "bench"
+  ],
+  "kind": "bench",
+  "res": {
+    "after": "21.82 dB · 掩膜内 17.6 dB · MAE 0.024 · 62% 像素逐位相同 · 同资产重渲对照 逐位一致 · 误差 top1% 占 39%",
+    "agrees": true,
+    "audit": {
+      "coverage gap": "0.314 mm mean · p95 0.691 mm",
+      "full": "88,918 splats · 2.46 MB · SH1",
+      "live psnr": "21.82 dB · 掩膜内 17.6 dB · MAE 0.024 · 62% 像素逐位相同 · 同资产重渲对照 逐位一致 · 误差 top1% 占 39%",
+      "pruned": "30,232 splats · 0.58 MB · SH0",
+      "ratio": "4.24× smaller"
+    },
+    "before": "—",
+    "busyAfter": false,
+    "caseId": "A",
+    "direct": {
+      "control": {
+        "covered": 0.3574,
+        "errorInTop1Percent": 0,
+        "identicalFraction": 1,
+        "mae": 0,
+        "maxDiff": 0,
+        "meanFull": [
+          63,
+          50,
+          45.7
+        ],
+        "meanPruned": [
+          63,
+          50,
+          45.7
+        ],
+        "psnr": 999,
+        "psnrInMask": 999
+      },
+      "covered": 0.3782,
+      "errorInTop1Percent": 0.393,
+      "identicalFraction": 0.6233,
+      "identicalSelfFraction": 1,
+      "mae": 0.024,
+      "maxDiff": 194,
+      "meanFull": [
+        63,
+        50,
+        45.7
+      ],
+      "meanPruned": [
+        60.5,
+        49,
+        44.4
+      ],
+      "psnr": 21.82,
+      "psnrInMask": 17.6,
+      "psnrSelf": 999,
+      "samples": 442368
+    },
+    "dtLabels": [
+      "dataset",
+      "licence",
+      "splats",
+      "proxy",
+      "FDI",
+      "quadrant",
+      "centroid",
+      "finding",
+      "grade",
+      "full",
+      "pruned",
+      "ratio",
+      "coverage gap",
+      "live PSNR"
+    ],
+    "settleFrames": 4,
+    "settled": "PSNR changed after clicking bench",
+    "stats": {
+      "bytes": 609126,
+      "fps": 60,
+      "frameMs": 0.12,
+      "gpu": "NVIDIA GeForce RTX 5070 Ti",
+      "sortMs": 0.7,
+      "splats": 30232,
+      "visible": 30232
+    }
+  },
+  "sha": "19adc1c5f63953cacae9867ae856d88f5819984250e8662b60a5ae39eb0e33c3",
+  "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Qoder/0.5",
+  "wallMs": 195
+}
