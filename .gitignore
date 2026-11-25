@@ -17,6 +17,7 @@ tools/out/demo/
 tools/out/demo-check/
 tools/out/brief-selftest/
 tools/out/mutate-claims/
+tools/out/ghp/
 tools/out/method-doc.selftest.md
 tools/out/serve-*.log
 

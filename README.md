@@ -44,7 +44,9 @@ npm run check        # 容器往返、标签同步、GPU 名解析、探针自�
 npm run test:pipeline # 离线链路 46 项断言（CPU，无 GPU）
 ```
 
-部署由 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) 完成：push 到 `main` 即构建并发布到 GitHub Pages。`vite.config.ts` 的 `base: './'` 与应用里的 `import.meta.env.BASE_URL` 前缀，是为了让产物在 `/<repo>/` 子路径下也能正确取到资产。
+部署由 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) 完成：push 到 `main` 后，工作流用 `npm ci && npm run build` 构建，再把 `dist/` 强制推送到 `gh-pages` 分支，Pages 从该分支发布。`vite.config.ts` 的 `base: './'` 与应用里的 `import.meta.env.BASE_URL` 前缀，是为了让产物在 `/<repo>/` 子路径下也能正确取到资产。
+
+预部署检查不依赖线上：`node tools/serve-subpath.mjs --port 5288 --prefix dentsplat-web` 按 Pages 的语义伺服 `dist/`（子路径之外 404、缺文件 404，而不是回落到 `index.html`），随后用浏览器探针确认 `paintedFraction > 0`、`glError = 0`。
 
 ## 仓库结构
 

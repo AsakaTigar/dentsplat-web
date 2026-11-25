@@ -1,14 +1,16 @@
-name: Deploy DentSplat to GitHub Pages
+name: Build and publish to GitHub Pages
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+# Why a gh-pages branch and not actions/deploy-pages: this repository's Pages site is served from the
+# `gh-pages` branch, and creating or switching that site through the API needs the `pages` + `administration`
+# permissions, which a workflow token does not have. Publishing the built `dist/` to the branch keeps the
+# whole loop automatic with the token that is available, and Pages rebuilds on every push to it.
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -23,28 +25,28 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      # `npm ci` honours package-lock.json exactly; the app is a pure Vite build with no postinstall
-      # step, so nothing here needs the GPU, a browser, or the Python pipeline.
+      # Pure Vite build: no GPU, no browser, no Python. `base: './'` is what makes the artefact work
+      # under /<repo>/, and the app's asset fetches go through import.meta.env.BASE_URL for the same reason.
       - run: npm ci
       - run: npm run build
-      # A brand-new repository has Pages switched off, and `deploy-pages` fails outright in that state.
-      # `enablement: true` turns it on with the workflow token, so the first push is self-sufficient --
-      # no manual Settings -> Pages click, and no admin-scoped PAT needed for it.
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      # `base: './'` in vite.config.ts is what makes the artefact work under /<repo>/; the app's asset
-      # fetches go through import.meta.env.BASE_URL for the same reason.
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publish dist to the gh-pages branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd dist
+          touch .nojekyll
+          git init -q -b gh-pages
+          git add -A
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "Publish ${GITHUB_SHA}"
+          # The token goes in a header, not the remote URL, so a failed push cannot print it.
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)" \
+              push -f "https://github.com/${GITHUB_REPOSITORY}.git" gh-pages
+      - name: Record what was published
+        run: |
+          echo "commit  : ${GITHUB_SHA}"
+          echo "files   : $(git -C dist ls-files | wc -l)"
+          echo "bytes   : $(du -sb dist | cut -f1)"
+          echo "js sha  : $(sha256sum dist/assets/*.js | cut -c1-32)"
