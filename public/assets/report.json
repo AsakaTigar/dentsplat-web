@@ -498,22 +498,23 @@
       "sh_degree": 1,
       "bytes_per_splat": 29,
       "mb": 0.31,
-      "sha256": "4d6873c8b96ea545dfb4f4b59ceb4fcc2021284d4d8fb584ba4ef12550b75986",
+      "sha256": "394d69a03b43e68b8113eda0ebecef3189b18952444692bdd3dd57c620ecf273",
       "layer_counts": {
-        "1": 4000,
-        "3": 800,
-        "4": 6000,
-        "7": 300
+        "1": 7200,
+        "3": 650,
+        "4": 3000,
+        "7": 250
       },
       "method": "layer-stratified clinical budget",
       "layer_retention": {
-        "1": 0.06153846153846154,
-        "3": 0.02666666666666667,
-        "4": 0.75,
-        "7": 0.0375
+        "1": 0.11076923076923077,
+        "3": 0.021666666666666667,
+        "4": 0.375,
+        "7": 0.03125
       },
       "tangential_scale": "sqrt(layer parent count / layer kept count)",
-      "normal_scale": "unchanged"
+      "normal_scale": "unchanged",
+      "pareto_note": "teeth 7,200 > uniform 6,500; nerve 3,000 > uniform 800; bone+sinus 900 vs uniform 3,800"
     }
   }
 }

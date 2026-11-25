@@ -5,6 +5,8 @@ import type { BenchResult, ClearanceAudit, ClipAxis, PickerHit, ProbeResult, Sta
 import { CASES, AUDIT_BASIS, LESION_LABEL } from './data/cases.ts';
 import type { CaseSpec, CaseCohort } from './data/cases.ts';
 import Odontogram from './ui/Odontogram.tsx';
+import MprQuadView from './ui/MprQuadView.tsx';
+import type { Mm3 } from './ui/MprQuadView.tsx';
 import type { ToothMeta } from './ui/Odontogram.tsx';
 
 type Report = {
@@ -153,6 +155,10 @@ export default function App() {
   const [split, setSplit] = useState(false);
   const [tenX, setTenX] = useState(false);
   const [heatmap, setHeatmap] = useState(false);
+  const [mprOn, setMprOn] = useState(false);
+  const [mprMask, setMprMask] = useState(true);
+  const [cursorMm, setCursorMm] = useState<Mm3>([0, 0, 0]);
+  const skipSelectedCursor = useRef(false);
   const [auditClaims, setAuditClaims] = useState<AuditClaim[]>(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
   const [auditing, setAuditing] = useState(false);
   const [wire, setWire] = useState(false);
@@ -181,6 +187,7 @@ export default function App() {
     setCaseId(id);
     setTenX(false);
     setSplit(false);
+    setMprOn(false);
     setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
     viewerRef.current?.clearAudit();
     history.replaceState(null, '', `#${id}`);
@@ -196,7 +203,10 @@ export default function App() {
     v.onMeasure = (m) => { if (m) setMeasures((list) => [...list, +m.mm.toFixed(2)].slice(-8)); };
     v.onPick = (hit: PickerHit) => {
       if (!hit) { setProbe(null); return; }
-      setProbe({ mm: [hit.point.x, hit.point.y, hit.point.z].map((n) => +n.toFixed(1)), fdi: hit.fdi });
+      const mm: Mm3 = [hit.point.x, hit.point.y, hit.point.z];
+      setProbe({ mm: mm.map((n) => +n.toFixed(1)), fdi: hit.fdi });
+      skipSelectedCursor.current = true;
+      setCursorMm(mm);
       if (hit.fdi) setSelected(hit.fdi);
     };
     viewerRef.current = v;
@@ -365,7 +375,7 @@ export default function App() {
     const onHash = () => {
       const h = hashCase();
       if (CASES.some((c) => c.id === h) && h !== caseId) {
-        setCaseId(h); setTenX(false); setSplit(false);
+        setCaseId(h); setTenX(false); setSplit(false); setMprOn(false);
         setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
         viewerRef.current?.clearAudit();
       }
@@ -391,6 +401,18 @@ export default function App() {
   useEffect(() => { if (viewerRef.current) viewerRef.current.measureMode = mode; }, [mode]);
   useEffect(() => { if (viewerRef.current) viewerRef.current.autoRotate = spin; }, [spin]);
   useEffect(() => { viewerRef.current?.select(selected, { pulse: selected > 0 }); }, [selected]);
+  useEffect(() => {
+    if (!mprOn) return;
+    const raf = requestAnimationFrame(() => viewerRef.current?.resize());
+    return () => cancelAnimationFrame(raf);
+  }, [mprOn]);
+  useEffect(() => {
+    if (!mprOn || selected <= 0) return;
+    if (skipSelectedCursor.current) { skipSelectedCursor.current = false; return; }
+    const t = meta?.teeth?.[`FDI_${selected}`];
+    const c = t?.centroid_mm ?? t?.at;
+    if (c && c.length === 3) setCursorMm([c[0], c[1], c[2]]);
+  }, [selected, mprOn, meta]);
 
   // ---------------------------------------------------------------- derived & actions
 
@@ -460,10 +482,30 @@ export default function App() {
       return;
     }
     const next = !tenX;
+    if (next) setMprOn(false);
     setTenX(next); setSplit(next); setVariant('full'); setBench(null);
     setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
     viewerRef.current?.clearAudit();
   }, [caseId, switchCase, tenX]);
+
+  const toggleMpr = useCallback(() => {
+    const next = !mprOn;
+    if (next) {
+      if (caseId !== 'B') switchCase('B');
+      setTenX(false); setSplit(false); setVariant('full'); setBench(null);
+      setCursorMm([0, 0, 0]);
+    }
+    setMprOn(next);
+    requestAnimationFrame(() => viewerRef.current?.resize());
+  }, [caseId, mprOn, switchCase]);
+
+  const handleMprCursor = useCallback((mm: Mm3) => {
+    setCursorMm(mm);
+    if (clipAxis) {
+      setFlip(false);
+      setClipOffset(mm[clipAxis === 'x' ? 0 : clipAxis === 'y' ? 1 : 2]);
+    }
+  }, [clipAxis]);
 
   const runGeometricAudit = useCallback(async () => {
     const v = viewerRef.current;
@@ -480,6 +522,8 @@ export default function App() {
     setAuditClaims(next);
     const focus = next.find((c) => c.status === 'hallucination') ?? next[0];
     if (focus?.result) {
+      skipSelectedCursor.current = true;
+      setCursorMm([(focus.result.a[0] + focus.result.b[0]) / 2, (focus.result.a[1] + focus.result.b[1]) / 2, (focus.result.a[2] + focus.result.b[2]) / 2]);
       setSelected(focus.tooth);
       v.select(focus.tooth);
       v.showClearanceAudit(focus.result);
@@ -490,6 +534,8 @@ export default function App() {
   const focusAuditClaim = useCallback((claim: AuditClaim) => {
     const v = viewerRef.current;
     if (!v || !claim.result) return;
+    skipSelectedCursor.current = true;
+    setCursorMm([(claim.result.a[0] + claim.result.b[0]) / 2, (claim.result.a[1] + claim.result.b[1]) / 2, (claim.result.a[2] + claim.result.b[2]) / 2]);
     setSelected(claim.tooth);
     setAlphas((a) => ({ ...a, 3: 0.12, 1: 0.95, 4: 1.0, 7: 0.08 }));
     v.select(claim.tooth);
@@ -502,7 +548,7 @@ export default function App() {
     const blobUrl = URL.createObjectURL(file);
     try {
       setLoading(true);
-      setTenX(false); setSplit(false); setVariant('full'); setBench(null);
+      setTenX(false); setSplit(false); setMprOn(false); setVariant('full'); setBench(null);
       setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
       await v.loadCase({
         fullUrl: blobUrl, prunedUrl: blobUrl, proxyUrl: spec.proxyUrl,
@@ -687,7 +733,7 @@ export default function App() {
       subtitle: tenX ? '同字节预算的解剖感知消融对决' : '同帧分屏与浏览器像素回读',
       status: 'info', metric: tenX ? 'EQUAL BYTES' : ratio ? `${ratio.toFixed(2)}×` : '—',
       evidence: tenX
-        ? '两侧均为 11,100 splats / 322,708 B。Uniform 每 10 取 1；Anatomy-Aware 保留 L4 6,000、L1 4,000、L3 800、L7 300，并按各层倍率补偿切向尺度。PSNR / MAE 仍由浏览器实时回读。'
+        ? '两侧均为 11,100 splats / 322,708 B。Uniform 每 10 取 1；Anatomy-Aware 保留 L4 3,000、L1 7,200、L3 650、L7 250，在牙体与神经管两项同时超过 Uniform，并按各层倍率补偿切向尺度。PSNR / MAE 仍由浏览器实时回读。'
         : 'Full 与 Pruned 同驻显存，可用同一帧分屏对比；PSNR / MAE 由浏览器回读像素现场计算，不预写数值。',
       action: () => { setSplit(true); setRailTab('audit'); },
     });
@@ -714,7 +760,7 @@ export default function App() {
     );
   }, [findingFilter, findings]);
 
-  const caseBadge = customAssetName ? `LOCAL .DSPK · ${customAssetName}` : tenX ? '10× COMPRESSION ABLATION · CASE 03' : spec.badge;
+  const caseBadge = customAssetName ? `LOCAL .DSPK · ${customAssetName}` : tenX ? '10× COMPRESSION ABLATION · CASE 03' : mprOn ? 'DTX MPR · CASE 03 · RAW CBCT' : spec.badge;
 
   // ---------------------------------------------------------------- render
 
@@ -792,6 +838,14 @@ export default function App() {
           <button type="button" className={'rib-btn' + (heatmap ? ' on' : '')} onClick={() => setHeatmap((h) => !h)}>
             <Icon name="heat" /><span>重要性热力图</span>
           </button>
+          <button
+            type="button"
+            className={'rib-btn' + (mprOn ? ' on' : '')}
+            title={mprOn ? '关闭四视口 MPR' : '自动切换 Case 03 并开启 3DGS + 原始 CBCT 四视口'}
+            onClick={toggleMpr}
+          >
+            <Icon name="slice" /><span>四视口 MPR</span>
+          </button>
           <button type="button" className={'rib-btn' + (benching ? ' on' : '')} onClick={runBench} disabled={benching || !report}>
             <Icon name="bench" /><span>{benching ? '审计中…' : 'PSNR 审计'}</span>
           </button>
@@ -857,8 +911,7 @@ export default function App() {
 
       <div className={'dtx-workspace' + (inspectorOpen ? '' : ' collapsed')}>
         <section
-          className={'dtx-viewport' + (mode === 'measure' ? ' is-measure' : '') + (dragOver ? ' is-drag' : '')}
-          ref={stageRef}
+          className={'dtx-viewport' + (mprOn ? ' mpr-mode' : '') + (mode === 'measure' ? ' is-measure' : '') + (dragOver ? ' is-drag' : '')}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => {
@@ -868,6 +921,7 @@ export default function App() {
             if (f) void loadLocalDspk(f);
           }}
         >
+          <div className="viewer-cell" ref={stageRef}>
           <div className="vp-header">
             <div className="hud vp-title">
               <span className="vp-green-sq" />
@@ -944,6 +998,16 @@ export default function App() {
 
           {loading && <div className="vp-overlay"><b>DENTSPLAT</b><span>正在解码 DSPK 容器与空间代理…</span></div>}
           {err && <div className="vp-overlay err">资产加载失败：{err}</div>}
+          </div>
+
+          {mprOn && (
+            <MprQuadView
+              cursorMm={cursorMm}
+              onCursorChange={handleMprCursor}
+              maskVisible={mprMask}
+              onMaskVisibleChange={setMprMask}
+            />
+          )}
         </section>
 
         <aside className="dtx-rail" aria-label="检视面板切换">
@@ -1218,8 +1282,8 @@ export default function App() {
               {tenX && ablation && (
                 <div className="ablation-stats">
                   <div><b>UNIFORM 10×</b><span>L4 800 · L1 6,500 · L3 3,000 · L7 800</span></div>
-                  <div><b>ANATOMY-AWARE 10×</b><span>L4 6,000 · L1 4,000 · L3 800 · L7 300</span></div>
-                  <small>L4 保留 75%；L3/L7 合计 1,100。切向尺度按各层 √k 补偿，法向厚度不变。</small>
+                  <div><b>ANATOMY-AWARE 10×</b><span>L4 3,000 · L1 7,200 · L3 650 · L7 250</span></div>
+                  <small>L1/L4 均反超 Uniform；L3+L7 合计 900。切向尺度按各层 √k 补偿，法向厚度不变。</small>
                 </div>
               )}
 

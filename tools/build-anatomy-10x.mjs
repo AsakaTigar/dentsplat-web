@@ -2,8 +2,8 @@
  * Build the two equal-size 10x DentVoxel ablation packets.
  *
  * Uniform: every tenth record, tangential scale * sqrt(10).
- * Anatomy-aware: stratify by anatomical layer, retaining nerve 6000 / teeth 4000 /
- * alveolar bone 800 / maxillary sinus 300, with each layer's tangential scale compensated
+ * Anatomy-aware: stratify by anatomical layer, retaining nerve 3000 / teeth 7200 /
+ * alveolar bone 650 / maxillary sinus 250, with each layer's tangential scale compensated
  * by sqrt(parent_count / kept_count). Both outputs keep the source bbox, SH1, metadata
  * length and stride, so they occupy exactly the same byte budget.
  *
@@ -42,10 +42,10 @@ const even = (a, n) => Array.from({ length: n }, (_, k) => a[Math.floor(k * a.le
 
 const uniform = Array.from({ length: count / 10 }, (_, k) => k * 10);
 const anatomy = [
-  ...even(byLayer.get(4), 6000),
-  ...even(byLayer.get(1), 4000),
-  ...even(byLayer.get(3), 800),
-  ...even(byLayer.get(7), 300),
+  ...even(byLayer.get(4), 3000),
+  ...even(byLayer.get(1), 7200),
+  ...even(byLayer.get(3), 650),
+  ...even(byLayer.get(7), 250),
 ];
 
 const writePacket = (outPath, name, keep, method) => {
@@ -59,7 +59,7 @@ const writePacket = (outPath, name, keep, method) => {
     const i = keep[k], o = base + i * stride, layer = layerOf(i);
     layerCounts[layer] = (layerCounts[layer] ?? 0) + 1;
     // Use the requested final layer budget, not the running count, for exact sqrt(k) compensation.
-    const wanted = method === 'uniform' ? null : { 4: 6000, 1: 4000, 3: 800, 7: 300 }[layer];
+    const wanted = method === 'uniform' ? null : { 4: 3000, 1: 7200, 3: 650, 7: 250 }[layer];
     const decimation = method === 'uniform' ? 10 : hist[layer] / wanted;
     for (let a = 0; a < 3; a++) {
       const t = src.readUInt8(o + 10 + a) / 255;
@@ -77,7 +77,7 @@ const writePacket = (outPath, name, keep, method) => {
       method, factor: 10, kept: n, layer_counts: layerCounts,
       layer_retention: method === 'uniform'
         ? Object.fromEntries(Object.entries(hist).map(([l, v]) => [l, v / 10]))
-        : { 4: 6000, 1: 4000, 3: 800, 7: 300 },
+        : { 4: 3000, 1: 7200, 3: 650, 7: 250 },
       tangential_scale: 'sqrt(layer_parent_count / layer_kept_count)', normal_scale: 'unchanged',
     },
   };
