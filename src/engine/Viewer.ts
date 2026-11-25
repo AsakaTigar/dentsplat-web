@@ -70,6 +70,15 @@ function disposeMaterial(m: THREE.Material | THREE.Material[] | undefined | null
   else m.dispose();
 }
 
+/** Release geometry/material GPU resources of a proxy/wire graph before dropping its group. */
+function disposeObject(root: THREE.Object3D) {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    mesh.geometry?.dispose?.();
+    disposeMaterial((o as THREE.Mesh).material);
+  });
+}
+
 const FDI_RE = /^FDI_(\d{1,2})(?:\b|_)/;
 
 /**
@@ -91,10 +100,15 @@ function fdiNameOf(obj: THREE.Object3D): string {
 export class DentSplatViewer {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
+  /** Every case-owned object lives here, so a switch can clear the whole case in one place. */
+  readonly caseGroup = new THREE.Group();
   readonly camera: THREE.PerspectiveCamera;
   layer: SplatLayer | null = null;
   layerAlt: SplatLayer | null = null;
   proxy: THREE.Group | null = null;
+  /** Monotonic token: a late fetch/parse from an older case must never commit. */
+  private loadSeq = 0;
+  private loadAbort: AbortController | null = null;
   variant: 'full' | 'pruned' = 'full';
   splitCompare = false;
   measureMode: 'off' | 'measure' | 'pick' = 'pick';
@@ -153,7 +167,7 @@ export class DentSplatViewer {
       const name = metal ? metal[1] : (named.length ? named : parts).sort((a, b) => b.length - a.length)[0];
       this.gpu = (name || raw).trim().slice(0, 40);
     }
-    this.scene.add(this.measureGroup, this.gizmo);
+    this.scene.add(this.caseGroup, this.measureGroup, this.gizmo);
     this.attachInput();
     this.resize();
     this.loop();
@@ -162,63 +176,94 @@ export class DentSplatViewer {
   // ------------------------------------------------------------------ assets
 
   async loadCase(asset: CaseAsset) {
-    this.disposeLayers();
-    this.fullBytes = asset.fullBytes;
-    this.prunedBytes = asset.prunedBytes;
-    const [fullBuf, prunedBuf] = await Promise.all([
-      fetch(asset.fullUrl).then((r) => r.arrayBuffer()),
-      fetch(asset.prunedUrl).then((r) => r.arrayBuffer()),
-    ]);
-    const full = decodeSplatCloud(fullBuf);
-    const pruned = decodeSplatCloud(prunedBuf);
-    this.layer = new SplatLayer(full, { opacityScale: 1 });
-    this.layerAlt = new SplatLayer(pruned, { opacityScale: 1 });
-    this.layerAlphas = { ...this.layerAlphas, ...(asset.defaultLayerAlpha ?? {}) };
-    for (const l of [this.layer, this.layerAlt]) {
-      if (!l) continue;
-      l.setLayerAlphas(this.layerAlphas);
-      this.scene.add(l.mesh);
+    // Any earlier request is obsolete the moment a new case is selected. Abort its fetches and make
+    // every post-await step check the token: a 3.2 MB CBCT download may return after a 0.8 MB IOS
+    // case has already been committed, and it must never overwrite that newer scene.
+    const seq = ++this.loadSeq;
+    this.loadAbort?.abort();
+    const ac = new AbortController();
+    this.loadAbort = ac;
+    const getBuffer = (url: string) => fetch(url, { signal: ac.signal }).then((r) => {
+      if (!r.ok) throw new Error(`fetch ${url}: HTTP ${r.status}`);
+      return r.arrayBuffer();
+    });
+    try {
+      const [fullBuf, prunedBuf, proxyBuf] = await Promise.all([
+        getBuffer(asset.fullUrl), getBuffer(asset.prunedUrl), getBuffer(asset.proxyUrl),
+      ]);
+      if (seq !== this.loadSeq || this.disposed) return;
+
+      const full = decodeSplatCloud(fullBuf);
+      const pruned = decodeSplatCloud(prunedBuf);
+      if (seq !== this.loadSeq || this.disposed) return;
+
+      const loader = new GLTFLoader();
+      const gltf = await loader.parseAsync(proxyBuf, '');
+      if (seq !== this.loadSeq || this.disposed) {
+        disposeObject(gltf.scene);
+        return;
+      }
+
+      // Commit only after every download/decode/parse has finished and this is still the newest load.
+      this.disposeLayers();
+      this.fullBytes = asset.fullBytes;
+      this.prunedBytes = asset.prunedBytes;
+      this.layer = new SplatLayer(full, { opacityScale: 1 });
+      this.layerAlt = new SplatLayer(pruned, { opacityScale: 1 });
+      this.layerAlphas = { ...(asset.defaultLayerAlpha ?? {}) };
+      for (const l of [this.layer, this.layerAlt]) {
+        if (!l) continue;
+        l.setLayerAlphas(this.layerAlphas);
+        this.caseGroup.add(l.mesh);
+      }
+
+      // Keep the exported graph intact (Blender wraps meshes in nodes carrying the Y-up
+      // conversion); hide every mesh and resolve the FDI id by walking ancestors.
+      const root = gltf.scene;
+      root.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh) return;
+        m.visible = false;
+        m.frustumCulled = false;
+        m.userData.name = fdiNameOf(m);
+        m.geometry.computeBoundingSphere();
+        m.geometry.computeBoundingBox();
+      });
+      root.updateMatrixWorld(true);
+      // Freeze each proxy mesh's world matrix: the jaw transform below is applied as
+      // local = parentWorld^-1 * W * world0, so it must always start from the same rest pose instead of
+      // accumulating a little rounding on every slider step.
+      root.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh) return;
+        m.userData.world0 = m.matrixWorld.clone();
+        m.matrixAutoUpdate = false;
+      });
+      this.proxy = root;
+      this.caseGroup.add(root);
+      this.forceSort = true;
+      this.applyUniforms();
+      this.applyJawToProxy();
+    } finally {
+      if (this.loadAbort === ac) this.loadAbort = null;
     }
-    const loader = new GLTFLoader();
-    // Keep the exported graph intact (Blender wraps meshes in nodes carrying the Y-up
-    // conversion); hide every mesh and resolve the FDI id by walking ancestors.
-    const gltf = await loader.loadAsync(asset.proxyUrl);
-    const root = gltf.scene;
-    root.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (!m.isMesh) return;
-      m.visible = false;
-      m.frustumCulled = false;
-      m.userData.name = fdiNameOf(m);
-      m.geometry.computeBoundingSphere();
-      m.geometry.computeBoundingBox();
-    });
-    root.updateMatrixWorld(true);
-    // Freeze each proxy mesh's world matrix: the jaw transform below is applied as
-    // local = parentWorld^-1 * W * world0, so it must always start from the same rest pose instead of
-    // accumulating a little rounding on every slider step.
-    root.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (!m.isMesh) return;
-      m.userData.world0 = m.matrixWorld.clone();
-      m.matrixAutoUpdate = false;
-    });
-    this.proxy = root;
-    this.scene.add(root);
-    this.forceSort = true;
-    this.applyUniforms();
-    this.applyJawToProxy();
   }
 
   private disposeLayers() {
-    for (const l of [this.layer, this.layerAlt]) {
-      if (!l) continue;
-      this.scene.remove(l.mesh);
-      l.dispose();
-    }
+    const splatMeshes = new Set<THREE.Object3D>();
+    if (this.layer) splatMeshes.add(this.layer.mesh);
+    if (this.layerAlt) splatMeshes.add(this.layerAlt.mesh);
+    for (const l of [this.layer, this.layerAlt]) l?.dispose();
     this.clearWire();
     this.showWire = false;
-    if (this.proxy) this.scene.remove(this.proxy);
+
+    // Everything case-owned is under caseGroup. SplatLayer.dispose() has already released the two
+    // splat meshes; dispose the proxy/wire geometry and drop every remaining child in one sweep.
+    for (const child of [...this.caseGroup.children]) {
+      if (splatMeshes.has(child)) continue;
+      disposeObject(child);
+    }
+    this.caseGroup.clear();
     this.layer = null; this.layerAlt = null; this.proxy = null;
     this.clearMeasure();
   }
@@ -564,20 +609,14 @@ export class DentSplatViewer {
       root.add(ls);
     });
     this.wireRoot = root;
-    this.scene.add(root);
+    this.caseGroup.add(root);
   }
 
   private clearWire() {
     const root = this.wireRoot;
     if (!root) return;
-    root.traverse((o) => {
-      const l = o as THREE.LineSegments;
-      l.geometry?.dispose?.();
-      const mat = l.material as THREE.Material | THREE.Material[] | undefined;
-      if (Array.isArray(mat)) mat.forEach((x) => x.dispose());
-      else mat?.dispose?.();
-    });
-    this.scene.remove(root);
+    disposeObject(root);
+    root.removeFromParent();
     this.wireRoot = null;
   }
 
@@ -1275,6 +1314,9 @@ export class DentSplatViewer {
 
   dispose() {
     this.disposed = true;
+    this.loadSeq++;
+    this.loadAbort?.abort();
+    this.loadAbort = null;
     cancelAnimationFrame(this.raf);
     this.disposeLayers();
     this.renderer.dispose();

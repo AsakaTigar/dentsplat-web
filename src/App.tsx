@@ -283,6 +283,9 @@ export default function App() {
         v.flyTo(want ?? spec.presets[0]);
         setLoading(false);
       } catch (e) {
+        // A newer case selection aborts the previous DSPK/proxy fetches; that is expected, not an
+        // asset failure, so do not paint the red error overlay for it.
+        if ((e as { name?: string })?.name === 'AbortError') return;
         if (!dead) { setErr(String(e instanceof Error ? e.message : e)); setLoading(false); }
       }
     })();
