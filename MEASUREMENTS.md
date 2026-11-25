@@ -7,10 +7,18 @@ obtained* rather than guessed.
 > **2026-11-25, Scene A asset swap.** The shipped Scene A packets are now built from a real intra-oral
 > scan (Poseidon3D case 000125, Kubik & Španěl, Zenodo 15608906, CC BY 4.0) by
 > `tools/poseidon_to_assets.mjs`: 59,808 / 10,168 splats, 1,196,970 / 204,174 B (5.86×), whole-frame /
-> in-mask PSNR 24.44 / 20.39 dB, coverage 0.178 / 0.362 / 1.138 mm. That gap is measured pruned→full
+> in-mask PSNR 24.46 / 20.41 dB, coverage 0.178 / 0.362 / 1.138 mm. That gap is measured pruned→full
 > because the two packets are independent surface samplings rather than a subset. Colours are
 > procedural — the STL carries no texture — so what is real here is geometry and tooth semantics.
-> Rows below marked "synthetic (retired)" describe the previous asset and are kept only as that record. Assets are still the synthetic preview (see §9), so these figures
+> Rows below marked "synthetic (retired)" describe the previous asset and are kept only as that record.
+
+> **2026-11-25, renderer fixes.** Four bugs in the shader/sort path were fixed — quaternion decode
+> missing the [0,1]->[-1,1] remap, depth sort reading a column instead of a row of the view matrix, a
+> Jacobian whose diagonal columns disagreed in sign with its shear column, and the splat scale using
+> CSS pixels instead of the drawing-buffer size. Every PSNR number above was re-measured afterwards
+> (bench-A-poseidon.json, bench-B-final.json); Scene B's content fraction rose to 87.9% because the
+> corrected rotations make its anisotropic bone splats face the camera. The opaque-column entry comes
+> from a capture taken before the fixes and is labelled as such. Assets are still the synthetic preview (see §9), so these figures
 describe the **renderer and the codec contract**, not a trained 3DGS on real scans.
 
 ## 1. Provenance
@@ -138,8 +146,8 @@ variant painted something (`>8/255`), which is the stricter figure.
 | capture | whole-frame PSNR | in-mask PSNR | MAE (0–1) | bit-identical pixels | content pixels | control |
 | --- | --- | --- | --- | --- | --- | --- |
 | synthetic A full-vs-pruned (`bench-A-final.json`, retired) | 21.82 dB | 17.60 dB | 0.0240 | 62.3% | 37.8% | 999 dB / 100% |
-| **A (Poseidon3D, shipped)** `bench-A-poseidon.json` | **24.44 dB** | **20.39 dB** | 0.0136 | 61.3% | 39.3% | 999 dB / 100% |
-| B full-vs-pruned (`bench-B-final.json`) | 25.10 dB | 22.03 dB | 0.0160 | 49.9% | 49.2% | 999 dB / 100% |
+| **A (Poseidon3D, shipped)** `bench-A-poseidon.json` | **24.46 dB** | **20.41 dB** | 0.0133 | 61.4% | 39.3% | 999 dB / 100% |
+| B full-vs-pruned (`bench-B-final.json`) | 24.28 dB | 23.72 dB | 0.0238 | 11.7% | 87.9% | 999 dB / 100% |
 
 **The control is what makes the number mean something.** Rendering the *same* packet twice through the
 same target returned `psnrSelf = 999` (the bit-identical sentinel) and `identicalSelfFraction = 1.0`,
@@ -187,7 +195,7 @@ same `uLayerAlpha` uniform the sliders drive, re-measures, and restores (`restor
 | case | all layers | opaque only |
 | --- | --- | --- |
 | A (synthetic, retired) | 21.82 / 17.60 dB, 37.8% content | 21.82 / 17.59 dB, 37.8% content |
-| B | 25.10 / 22.03 dB, 49.2% content | 23.43 / 19.18 dB, 37.6% content |
+| B (pre-fix renderer for the opaque column) | 24.28 / 23.72 dB, 87.9% content | 23.43 / 19.18 dB, 37.6% content |
 
 The intent was to separate "codec loss" from "synthetic translucent stacking". It does not, and the
 honest conclusion is that it *cannot*: changing the layer map changes which pixels are in the mask, so

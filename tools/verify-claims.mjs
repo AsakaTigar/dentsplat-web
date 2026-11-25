@@ -65,9 +65,9 @@ eq('synthetic A (retired) content pixels', bA.covered, 0.3782);
 eq('synthetic A (retired) control bit-identical', [bA.psnrSelf, bA.identicalSelfFraction], [999, 1]);
 eq('synthetic A (retired) error concentration', bA.errorInTop1Percent, 0.393);
 eq('synthetic A (retired) mean colours', [bA.meanFull, bA.meanPruned], [[63, 50, 45.7], [60.5, 49, 44.4]]);
-eq('B whole-frame PSNR', bB.psnr, 25.1);
-eq('B in-mask PSNR', bB.psnrInMask, 22.03);
-eq('B error concentration', bB.errorInTop1Percent, 0.565);
+eq('B whole-frame PSNR', bB.psnr, 24.28);
+eq('B in-mask PSNR', bB.psnrInMask, 23.72);
+eq('B error concentration', bB.errorInTop1Percent, 0.505);
 eq('B control bit-identical', [bB.psnrSelf, bB.identicalSelfFraction], [999, 1]);
 eq('naive A whole-frame (retired comparison)', bNaive.psnr, 17.19);
 eq('naive A in-mask (retired comparison)', bNaive.psnrInMask, 12.75);
@@ -79,14 +79,14 @@ eq('gain from compensation (retired synthetic A)', +(bA.psnr - bNaive.psnr).toFi
 eq('in-mask gain (retired synthetic A)', +(bA.psnrInMask - bNaive.psnrInMask).toFixed(2), 4.85);
 
 // The numbers that describe what ships today: a real scan, procedural colours.
-eq('A (Poseidon3D) whole-frame PSNR', bAreal.psnr, 24.44);
-eq('A (Poseidon3D) in-mask PSNR', bAreal.psnrInMask, 20.39);
-eq('A (Poseidon3D) MAE', bAreal.mae, 0.0136);
-eq('A (Poseidon3D) identical pixels', bAreal.identicalFraction, 0.6125);
+eq('A (Poseidon3D) whole-frame PSNR', bAreal.psnr, 24.46);
+eq('A (Poseidon3D) in-mask PSNR', bAreal.psnrInMask, 20.41);
+eq('A (Poseidon3D) MAE', bAreal.mae, 0.0133);
+eq('A (Poseidon3D) identical pixels', bAreal.identicalFraction, 0.6143);
 eq('A (Poseidon3D) content pixels', bAreal.covered, 0.3934);
 eq('A (Poseidon3D) control bit-identical', [bAreal.psnrSelf, bAreal.identicalSelfFraction], [999, 1]);
-eq('A (Poseidon3D) error concentration', bAreal.errorInTop1Percent, 0.611);
-eq('A (Poseidon3D) mean colours', [bAreal.meanFull, bAreal.meanPruned], [[78.9, 57.1, 55.8], [81.5, 59.1, 57.8]]);
+eq('A (Poseidon3D) error concentration', bAreal.errorInTop1Percent, 0.616);
+eq('A (Poseidon3D) mean colours', [bAreal.meanFull, bAreal.meanPruned], [[78.9, 57.5, 56.1], [81.6, 59.7, 58.2]]);
 eq('UI row agrees with engine (A)', J('bench-A-final.json').res.agrees, true);
 eq('UI row agrees with engine (B)', J('bench-B-final.json').res.agrees, true);
 eq('button left idle (A)', J('bench-A-final.json').res.busyAfter, false);
@@ -301,7 +301,9 @@ capSays(`覆盖间隙 ${gB[1]} mm`);
 capSays(`${R.after.splats.toLocaleString('en-US')} splats`);
 cardSays(`${ratioA_video}× / ${ratioB}×`);
 cardSays(`${bA.psnr.toFixed(2)} / ${bA.psnrInMask.toFixed(2)} dB`);
-cardSays(`${bB.psnr.toFixed(2)} / ${bB.psnrInMask.toFixed(2)} dB`);
+// The end card belongs to the walkthrough's build (pre-fix renderer), so it is pinned rather than
+// following bench-B-final.json.
+cardSays('25.10 / 22.03 dB');
 cardSays(`+${(bA.psnr - bNaive.psnr).toFixed(2)} / +${(bA.psnrInMask - bNaive.psnrInMask).toFixed(2)} dB`);
 cardSays(`${gA_video[0]} / ${gA_video[1]} mm`);
 cardSays(`${gB[0]} / ${gB[1]} mm`);

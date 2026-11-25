@@ -204,11 +204,15 @@ export class SplatLayer {
   update(view: THREE.Matrix4, viewportPx: THREE.Vector2, force = false) {
     this.u.uViewportPx.value.copy(viewportPx);
     const e = view.elements;
-    const key = `${e[8].toFixed(3)},${e[9].toFixed(3)},${e[10].toFixed(3)},${e[14].toFixed(2)}`;
+    // Three.js Matrix4.elements is column-major: row 2 of the view matrix, i.e. the camera-space Z
+    // axis and its translation, is (e[2], e[6], e[10], e[14]). The old code read column 2 plus the
+    // row-2 translation, which only agrees with the truth when the rotation is diagonal -- i.e. in
+    // the frontal preset -- and reverses depth as soon as the view turns.
+    const key = `${e[2].toFixed(3)},${e[6].toFixed(3)},${e[10].toFixed(3)},${e[14].toFixed(2)}`;
     if (!force && key === this.lastKey) return false;
     this.lastKey = key;
     const m = this.tmpM.length === 4 ? this.tmpM : (this.tmpM = new Float32Array(4));
-    m[0] = e[8]; m[1] = e[9]; m[2] = e[10]; m[3] = e[14];
+    m[0] = e[2]; m[1] = e[6]; m[2] = e[10]; m[3] = e[14];
     const t0 = performance.now();
     const visible = this.sorter.sort(this.centers, m);
     const order = this.sorter.lastOrder;

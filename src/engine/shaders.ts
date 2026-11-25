@@ -119,7 +119,10 @@ void main() {
     }
   }
 
-  vec4 qq = normalize(aRot);
+  // aRot is uploaded as a Uint8 attribute with normalized=true, so the GPU hands us [0,1]; the
+  // container stores q*0.5+0.5. Without the 2x-1 remap every splat's basis is rotated by ~120 deg,
+  // which is invisible on isotropic point-cloud splats and catastrophic on anisotropic ones.
+  vec4 qq = normalize(aRot * 2.0 - 1.0);
   vec3 s = exp(uScaleRange.x + (aScale / 255.0) * uScaleRange.y);
   mat3 R = jawRot * quatToMat3(qq);
   mat3 M = R * mat3(s.x, 0.0, 0.0, 0.0, s.y, 0.0, 0.0, 0.0, s.z);
@@ -143,9 +146,12 @@ void main() {
   float fx = 0.5 * uViewportPx.x * projectionMatrix[0][0];
   float fy = 0.5 * uViewportPx.y * projectionMatrix[1][1];
   float z = -cam.z;
+  // u = fx * x / z + cx with z = -cam.z > 0, so du/dx = +fx/z and du/dz_cam = +fx*x/z^2. The old
+  // version negated only the diagonal columns, which leaves the shear terms in J*C*J^T with the
+  // wrong sign and tilts every off-centre splat.
   mat3 J = mat3(
-    vec3(-fx / z, 0.0, 0.0),
-    vec3(0.0, -fy / z, 0.0),
+    vec3(fx / z, 0.0, 0.0),
+    vec3(0.0, fy / z, 0.0),
     vec3(fx * cam.x / (z * z), fy * cam.y / (z * z), 0.0)
   );
   mat3 c2 = J * cv * transpose(J);

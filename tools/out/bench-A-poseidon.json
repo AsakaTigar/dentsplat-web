@@ -1,5 +1,5 @@
 {
- "bundle": "index-B-CmWBdF.js (local dist build, 2026-11-25)",
+ "bundle": "index-CGdLktx2.js (local dist build, 2026-11-25, after quat/Jacobian/sort fixes)",
  "dspk": "assets/sceneA_poseidon_full.dspk",
  "job": "bench",
  "kind": "poseidon-real-ios",
@@ -18,22 +18,22 @@
   "stats": null,
   "dtLabels": null,
   "direct": {
-   "psnr": 24.44,
-   "psnrInMask": 20.39,
-   "mae": 0.0136,
+   "psnr": 24.46,
+   "psnrInMask": 20.41,
+   "mae": 0.0133,
    "covered": 0.3934,
-   "identicalFraction": 0.6125,
-   "errorInTop1Percent": 0.611,
-   "maxDiff": 221,
+   "identicalFraction": 0.6143,
+   "errorInTop1Percent": 0.616,
+   "maxDiff": 220,
    "meanFull": [
     78.9,
-    57.1,
-    55.8
+    57.5,
+    56.1
    ],
    "meanPruned": [
-    81.5,
-    59.1,
-    57.8
+    81.6,
+    59.7,
+    58.2
    ],
    "samples": 442368,
    "psnrSelf": 999,
@@ -48,13 +48,13 @@
     "errorInTop1Percent": 0,
     "meanFull": [
      78.9,
-     57.1,
-     55.8
+     57.5,
+     56.1
     ],
     "meanPruned": [
      78.9,
-     57.1,
-     55.8
+     57.5,
+     56.1
     ]
    }
   }

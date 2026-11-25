@@ -97,7 +97,7 @@
   <tr><td>体积</td><td class="num">1,196,970 → 204,174 B（<b>5.86×</b>）</td><td class="num">1,301,244 → 379,898 B（<b>3.43×</b>）</td><td>完整包 vs 剪枝包，同一个文件</td></tr>
   <tr><td>splat 数</td><td class="num">59,808 → 10,168</td><td class="num">44,738 → 18,790</td><td>A 两包均 SH0（按面采样）；B 完整 SH1 → 剪枝 SH0</td></tr>
   <tr><td>GPU 单遍耗时</td><td class="num">≤1 ms（低于回读分辨率）</td><td class="num">1.3–1.5 ms → 0.5–0.7 ms</td><td>640×360 到 2560×1440 几乎<b>与分辨率无关</b>；1 draw call、glError 0</td></tr>
-  <tr><td>像素保真（整帧 / 掩膜内）</td><td class="num">24.44 / 20.39 dB</td><td class="num">25.10 / 22.03 dB</td><td>浏览器回读像素算 PSNR；同包重渲染对照 = 逐比特相同（999 dB）</td></tr>
+  <tr><td>像素保真（整帧 / 掩膜内）</td><td class="num">24.46 / 20.41 dB</td><td class="num">24.28 / 23.72 dB</td><td>浏览器回读像素算 PSNR；同包重渲染对照 = 逐比特相同（999 dB）</td></tr>
   <tr><td>几何覆盖间隙 mean/p95/max</td><td class="num">0.178 / 0.362 / 1.138 mm</td><td class="num">0.349 / <b>0.946</b> / 1.297 mm</td><td>被删 splat 到保留集的真实最近邻距离；B 的 p95 由 3.389 → 0.946 mm，保留集仍"夹住"下牙槽神经管</td></tr>
   <tr><td>离线 CBCT 链路</td><td class="num" colspan="3">NIfTI → 87,405 splats / 0.6 mm / 32 个 FDI / 542 种颜色 / 六个语义层 → <code>.dspk</code> 1,748,976 B（<span class="mono">118058fc…</span>），页面加载 134.2 ms；重跑两次<b>逐字节相同</b>，46 项断言全过</td></tr>
 </table>

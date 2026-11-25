@@ -149,31 +149,48 @@ def look_at_world_to_camera(
 
 
 def rotation_to_quaternion_wxyz(R: np.ndarray) -> np.ndarray:
-    """Robust 3x3 -> unit quaternion ``(w, x, y, z)`` via symmetric eigendecomposition.
+    """3x3 rotation -> unit quaternion (w, x, y, z), raising on a non-rotation.
 
-    We deliberately do NOT use ``mathutils.Matrix(...).to_quaternion()``: it needs a
-    square nested list, returns ``(w, x, y, z)`` but silently propagates tiny
-    non-orthogonality, and behaves inconsistently for det==-1 inputs across Blender
-    versions. Eigen decomposition of ``(trace*I + 3R)/2`` has the exact rotation
-    quaternion as its dominant eigenvector, is branch-free, and degrades gracefully.
+    The previous implementation diagonalised a 3x3 symmetric matrix and then unpacked four
+    numbers from a three-vector, so it could never return: the Blender pipeline died on its
+    first real run at exactly this line. This is the standard branch method (Shepperd), which
+    is stable at 180 degrees and trivially testable.
     """
     R = np.asarray(R, dtype=np.float64)
     if R.shape != (3, 3):
         raise ValueError(f"expected 3x3 rotation, got {R.shape}")
-    M = (float(np.trace(R)) * np.eye(3) + 3.0 * R) / 2.0
-    M = 0.5 * (M + M.T)
-    try:
-        vals, vecs = np.linalg.eigh(M)
-        q = vecs[:, int(np.argmax(vals))]
-    except np.linalg.LinAlgError:
-        q = np.array([1.0, 0.0, 0.0, 0.0])
-    w, x, y, z = [float(v) for v in q]
-    if w < 0.0:
-        w, x, y, z = -w, -x, -y, -z
+    tr = float(R[0, 0] + R[1, 1] + R[2, 2])
+    if tr > 0.0:
+        s = math.sqrt(tr + 1.0) * 2.0
+        w = 0.25 * s
+        x = (R[2, 1] - R[1, 2]) / s
+        y = (R[0, 2] - R[2, 0]) / s
+        z = (R[1, 0] - R[0, 1]) / s
+    elif R[0, 0] > R[1, 1] and R[0, 0] > R[2, 2]:
+        s = math.sqrt(max(1e-12, 1.0 + R[0, 0] - R[1, 1] - R[2, 2])) * 2.0
+        w = (R[2, 1] - R[1, 2]) / s
+        x = 0.25 * s
+        y = (R[0, 1] + R[1, 0]) / s
+        z = (R[0, 2] + R[2, 0]) / s
+    elif R[1, 1] > R[2, 2]:
+        s = math.sqrt(max(1e-12, 1.0 + R[1, 1] - R[0, 0] - R[2, 2])) * 2.0
+        w = (R[0, 2] - R[2, 0]) / s
+        x = (R[0, 1] + R[1, 0]) / s
+        y = 0.25 * s
+        z = (R[1, 2] + R[2, 1]) / s
+    else:
+        s = math.sqrt(max(1e-12, 1.0 + R[2, 2] - R[0, 0] - R[1, 1])) * 2.0
+        w = (R[1, 0] - R[0, 1]) / s
+        x = (R[0, 2] + R[2, 0]) / s
+        y = (R[1, 2] + R[2, 1]) / s
+        z = 0.25 * s
     n = math.sqrt(w * w + x * x + y * y + z * z)
     if n < 1e-12:
         return np.array([1.0, 0.0, 0.0, 0.0])
-    return np.array([w, x, y, z]) / n
+    q = np.array([w, x, y, z]) / n
+    if q[0] < 0.0:
+        q = -q
+    return q
 
 
 def quat_wxyz_to_matrix(q: Sequence[float]) -> np.ndarray:

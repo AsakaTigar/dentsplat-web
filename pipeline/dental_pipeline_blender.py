@@ -499,10 +499,16 @@ def apply_pose_to_blender_camera(cam_obj, cam_pos_gltf, target=np.zeros(3)):
     rendered image and the numbers written to images.txt come from one definition.
     """
     pos_b = np.linalg.inv(M_G_FROM_B) @ np.append(np.asarray(cam_pos_gltf, dtype=np.float64), 1.0)
-    tgt_b = np.linalg.inv(M_G_FROM_B) @ np.append(np.asarray(target, dtype=np.float64), 1.0)
-    cam_obj.location = pos_b[:3]
-    direction = mathutils.Vector(tgt_b[:3]) - mathutils.Vector(pos_b[:3])
-    cam_obj.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+    # Drive the camera from the SAME look-at matrix that is written to images.txt instead of
+    # to_track_quat(): the two disagreed by a 180 deg roll (verify_pose_consistency caught it at
+    # rot 2.00), because track_quat picks its roll from an up hint that is nearly degenerate for
+    # steep elevations. One source of truth: R_B_from_CBl = M_R^-1 @ R_G_from_Ccv @ S^-1.
+    # look_at_world_to_camera returns world-to-camera; the camera axes in the world are its transpose.
+    R_w2c, _ = look_at_world_to_camera(cam_pos_gltf, target)
+    R_b_from_c = np.linalg.inv(M_G_FROM_B[:3, :3]) @ R_w2c.T @ S_CBL_FROM_CCV[:3, :3]
+    M = mathutils.Matrix(R_b_from_c.tolist()).to_4x4()
+    M.translation = mathutils.Vector((float(pos_b[0]), float(pos_b[1]), float(pos_b[2])))
+    cam_obj.matrix_world = M
     return pos_b
 
 
@@ -816,7 +822,10 @@ def main():
             v = np.stack([v[:, 0], -v[:, 2], v[:, 1]], axis=1)
         loaded.append((tag, v, f, lbl))
 
-    out_dir = args.out_dir
+    # Absolute: bpy resolves a relative render filepath against the .blend location ("//"), which in
+    # --background with no blend is not the shell CWD. The first real run rendered 120 frames into
+    # nowhere and honestly reported "0 PNGs" in its own summary.
+    out_dir = os.path.abspath(args.out_dir)
     colmap_dir = os.path.join(out_dir, "colmap_dataset")
     img_dir = os.path.join(colmap_dir, "images")
     sparse_dir = os.path.join(colmap_dir, "sparse", "0")

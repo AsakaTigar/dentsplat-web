@@ -669,7 +669,9 @@ export class DentSplatViewer {
     this.camera.lookAt(this.target);
     this.camera.updateMatrixWorld();
 
-    const r = this.renderer.getSize(new THREE.Vector2());
+    // The splat quad is sized in 'pixels of the render target', so this must be the DRAWING BUFFER
+    // size, not the CSS size: on a 2x display getSize() would halve every splat and the AA term.
+    const r = this.renderer.getDrawingBufferSize(new THREE.Vector2());
     const vp = new THREE.Vector2(r.x, r.y);
     const view = this.camera.matrixWorldInverse;
     if (this.splitCompare) {
