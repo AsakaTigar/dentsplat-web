@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type * as THREE from 'three';
 import { DentSplatViewer } from './engine/Viewer.ts';
-import type { BenchResult, ClearanceAudit, ClipAxis, PickerHit, ProbeResult, Stats, ViewPreset } from './engine/Viewer.ts';
+import type { BenchResult, ClearanceAudit, ClipAxis, CompressionBenchResult, PickerHit, ProbeResult, Stats, ViewPreset } from './engine/Viewer.ts';
 import { CASES, AUDIT_BASIS, LESION_LABEL } from './data/cases.ts';
-import type { CaseSpec, CaseCohort } from './data/cases.ts';
+import type { CaseSpec, CaseCohort, LayerSpec } from './data/cases.ts';
+import { LAYER_RGB } from './engine/dspk.ts';
 import Odontogram from './ui/Odontogram.tsx';
 import MprQuadView from './ui/MprQuadView.tsx';
 import type { Mm3 } from './ui/MprQuadView.tsx';
@@ -66,6 +67,11 @@ const COHORT_TABS: { id: 'all' | CaseCohort; label: string }[] = [
   { id: 'ios', label: 'IOS 3DGS' },
   { id: 'cbct', label: 'CBCT 贴面' },
 ];
+
+const LOCAL_LAYER_NAMES: Record<number, string> = {
+  0: '牙龈 / 背景', 1: '牙体 / 釉质', 2: '牙根 / 牙本质', 3: '牙槽骨',
+  4: '下颌神经管', 5: '其他组织', 6: '牙髓', 7: '上颌窦', 8: '修复体',
+};
 
 // Deliberately simulated VLM prose. The numeric verdict is never read from this table: it is
 // recomputed from the loaded 3DGS centres at click time.
@@ -165,6 +171,7 @@ export default function App() {
   const [mode, setMode] = useState<'pick' | 'measure'>('pick');
   const [measures, setMeasures] = useState<number[]>([]);
   const [bench, setBench] = useState<BenchResult | null>(null);
+  const [compressionBench, setCompressionBench] = useState<CompressionBenchResult | null>(null);
   const [benching, setBenching] = useState(false);
   const [activePreset, setActivePreset] = useState('frontal');
   const [spin, setSpin] = useState(false);
@@ -176,6 +183,9 @@ export default function App() {
   const [activeFindingId, setActiveFindingId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [customAssetName, setCustomAssetName] = useState<string | null>(null);
+  const [localLayerIds, setLocalLayerIds] = useState<number[]>([]);
+  const [localEpoch, setLocalEpoch] = useState(0);
+  const isLocal = !!customAssetName;
 
   // 10-case cohort selector (right inspector)
   const [cohort, setCohort] = useState<'all' | CaseCohort>('all');
@@ -185,13 +195,15 @@ export default function App() {
 
   const switchCase = useCallback((id: string) => {
     setCaseId(id);
+    setCustomAssetName(null);
+    if (isLocal) setLocalEpoch((e) => e + 1);
     setTenX(false);
     setSplit(false);
     setMprOn(false);
     setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
     viewerRef.current?.clearAudit();
     history.replaceState(null, '', `#${id}`);
-  }, []);
+  }, [isLocal]);
 
   // ---------------------------------------------------------------- viewer lifecycle
 
@@ -310,7 +322,7 @@ export default function App() {
     let dead = false;
     (async () => {
       try {
-        setLoading(true); setErr(null); setBench(null); setCustomAssetName(null);
+        setLoading(true); setErr(null); setBench(null); setCompressionBench(null); setCustomAssetName(null); setLocalLayerIds([]);
         const [rep, mf] = await Promise.all([
           fetch(`${import.meta.env.BASE_URL}assets/report.json`).then((r) => r.json()),
           fetch(spec.metaUrl).then((r) => r.json()),
@@ -368,21 +380,21 @@ export default function App() {
       }
     })();
     return () => { dead = true; };
-  }, [caseId, spec, tenX]);
+  }, [caseId, spec, tenX, localEpoch]);
 
   // Back/forward + manual hash edits switch cases without a reload.
   useEffect(() => {
     const onHash = () => {
       const h = hashCase();
       if (CASES.some((c) => c.id === h) && h !== caseId) {
-        setCaseId(h); setTenX(false); setSplit(false); setMprOn(false);
+        setCaseId(h); setCustomAssetName(null); if (isLocal) setLocalEpoch((e) => e + 1); setTenX(false); setSplit(false); setMprOn(false);
         setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
         viewerRef.current?.clearAudit();
       }
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
-  }, [caseId]);
+  }, [caseId, isLocal]);
 
   // ---------------------------------------------------------------- state -> engine
 
@@ -390,11 +402,11 @@ export default function App() {
   useEffect(() => {
     viewerRef.current?.set({
       // Only a two-jaw volume gets a hinge; single-jaw scans keep jawGap at 0.
-      jawGap: spec.hasJaw ? jaw : 0,
+      jawGap: !isLocal && spec.hasJaw ? jaw : 0,
       opacity, showLesions, hiddenTeeth: hidden, isolateTooth: isolate,
       clip: { axis: clipAxis, offset: flip ? -clipOffset : clipOffset, band: clipBand, cap },
     });
-  }, [spec.hasJaw, jaw, opacity, showLesions, hidden, isolate, clipAxis, clipOffset, clipBand, cap, flip]);
+  }, [!isLocal, spec.hasJaw, jaw, opacity, showLesions, hidden, isolate, clipAxis, clipOffset, clipBand, cap, flip]);
   useEffect(() => { viewerRef.current?.setVariant(variant, split); }, [variant, split]);
   useEffect(() => { viewerRef.current?.setVisMode(heatmap ? 1 : 0); }, [heatmap, caseId, tenX]);
   useEffect(() => { viewerRef.current?.setWireframe(wire); }, [wire]);
@@ -427,6 +439,12 @@ export default function App() {
   const fdiInfo = useMemo(() => parseFdiInfo(selected, rawTooth), [selected, rawTooth]);
   const ratio = report ? (report.full.bytes / Math.max(1, report.pruned.bytes)) : 0;
   const mbText = report ? `${fmtMB(report.full.bytes)} MB` : '—';
+  const displayLayers: LayerSpec[] = isLocal
+    ? localLayerIds.map((id) => ({
+      id, key: `local-${id}`, cn: LOCAL_LAYER_NAMES[id] ?? `Layer ${id}`, en: `Layer ${id}`,
+      color: `rgb(${(LAYER_RGB[id] ?? [160, 160, 160]).join(',')})`, alpha: 1,
+    }))
+    : spec.layers;
 
   const goPreset = useCallback((p: ViewPreset) => {
     setActivePreset(p.id);
@@ -437,11 +455,11 @@ export default function App() {
   const resetView = useCallback(() => {
     setClipAxis(null); setClipOffset(0); setJaw(0); setIsolate(false); setHidden([]); setSelected(0); setActiveFindingId(null);
     const defaults: Record<number, number> = {};
-    for (const l of spec.layers) defaults[l.id] = l.alpha;
+    for (const l of displayLayers) defaults[l.id] = l.alpha;
     setAlphas(defaults);
     viewerRef.current?.clearAudit();
     goPreset(spec.presets[0]);
-  }, [goPreset, spec]);
+  }, [displayLayers, goPreset, spec.presets]);
 
   const focusCanal = useCallback(() => {
     if (spec.cohort !== 'cbct') {
@@ -469,35 +487,48 @@ export default function App() {
         v.pump(2);
         await Promise.resolve();
       }
-      setBench(await v.bench(384));
+      if (tenX && ablation && v.layer && v.layerAlt) {
+        setBench(null);
+        const views = spec.presets.filter((p) => ['frontal', 'left', 'right', 'ian'].includes(p.id));
+        setCompressionBench(await v.benchCompression(
+          spec.fullUrl,
+          [{ name: 'Uniform 10×', cloud: v.layer.cloud }, { name: 'Anatomy-Aware 10×', cloud: v.layerAlt.cloud }],
+          views.length ? views : spec.presets.slice(0, 4), 48, 4, 256,
+        ));
+      } else {
+        setCompressionBench(null);
+        setBench(await v.bench(384));
+      }
     } finally {
       setBenching(false);
     }
-  }, []);
+  }, [ablation, spec, tenX]);
 
   const toggleTenX = useCallback(() => {
+    if (isLocal) return;
     if (caseId !== 'B') {
       switchCase('B');
-      setTenX(true); setSplit(true); setVariant('full'); setBench(null);
+      setTenX(true); setSplit(true); setVariant('full'); setBench(null); setCompressionBench(null);
       return;
     }
     const next = !tenX;
     if (next) setMprOn(false);
-    setTenX(next); setSplit(next); setVariant('full'); setBench(null);
+    setTenX(next); setSplit(next); setVariant('full'); setBench(null); setCompressionBench(null);
     setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
     viewerRef.current?.clearAudit();
-  }, [caseId, switchCase, tenX]);
+  }, [caseId, isLocal, switchCase, tenX]);
 
   const toggleMpr = useCallback(() => {
+    if (isLocal) return;
     const next = !mprOn;
     if (next) {
       if (caseId !== 'B') switchCase('B');
-      setTenX(false); setSplit(false); setVariant('full'); setBench(null);
+      setTenX(false); setSplit(false); setVariant('full'); setBench(null); setCompressionBench(null);
       setCursorMm([0, 0, 0]);
     }
     setMprOn(next);
     requestAnimationFrame(() => viewerRef.current?.resize());
-  }, [caseId, mprOn, switchCase]);
+  }, [caseId, isLocal, mprOn, switchCase]);
 
   const handleMprCursor = useCallback((mm: Mm3) => {
     setCursorMm(mm);
@@ -547,20 +578,43 @@ export default function App() {
     if (!v || !file.name.toLowerCase().endsWith('.dspk')) return;
     const blobUrl = URL.createObjectURL(file);
     try {
-      setLoading(true);
-      setTenX(false); setSplit(false); setMprOn(false); setVariant('full'); setBench(null);
+      setLoading(true); setErr(null);
+      setTenX(false); setSplit(false); setMprOn(false); setVariant('full'); setBench(null); setCompressionBench(null);
       setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
+      setSelected(0); setHidden([]); setIsolate(false); setMeasures([]); setProbe(null); setActiveFindingId(null);
+      const head = new DataView(await file.arrayBuffer());
+      if (head.getUint32(0, true) !== 0x4b505344) throw new Error('不是有效的 DSPK 文件');
+      const count = head.getUint32(8, true), shDegree = (head.getUint8(5) & 1) ? 1 : 0;
+      v.caseId = 'LOCAL';
       await v.loadCase({
-        fullUrl: blobUrl, prunedUrl: blobUrl, proxyUrl: spec.proxyUrl,
+        fullUrl: blobUrl, prunedUrl: blobUrl, proxyUrl: null,
         fullBytes: file.size, prunedBytes: file.size,
       });
-      setCustomAssetName(`${file.name} (${fmtMB(file.size)} MB)`);
+      const cloud = v.layer?.cloud;
+      const localMeta = (cloud?.meta ?? {}) as unknown as MetaFile;
+      const layers: Record<number, number> = {};
+      for (let i = 0; i < (cloud?.count ?? 0); i++) layers[cloud!.misc[i * 4 + 2]] = 1;
+      setAlphas(layers);
+      setLocalLayerIds(Object.keys(layers).map(Number).sort((a, b) => a - b));
+      setReport({
+        full: { splats: count, bytes: file.size, mb: +(file.size / 1048576).toFixed(2), sh_degree: shDegree, bytes_per_splat: head.getUint8(7) },
+        pruned: { splats: count, bytes: file.size, mb: +(file.size / 1048576).toFixed(2), sh_degree: shDegree, bytes_per_splat: head.getUint8(7) },
+        bytes_ratio: 1, proxy: { bytes: 0, kb: 0, nodes: 0, triangles: 0 }, compression_fidelity_mm: {}, metrics: {},
+      });
+      setMeta({
+        unit: localMeta.unit ?? 'mm', kind: localMeta.kind ?? 'local', teeth: localMeta.teeth ?? {}, metrics: localMeta.metrics ?? {},
+        bbox_min: cloud ? [...cloud.bboxMin] : undefined, bbox_max: cloud ? [...cloud.bboxMax] : undefined,
+      });
+      setCustomAssetName(file.name);
+      history.replaceState(null, '', '#LOCAL');
       setLoading(false);
     } catch (e) {
       setErr(`本地 DSPK 加载失败: ${String(e)}`);
       setLoading(false);
+    } finally {
+      URL.revokeObjectURL(blobUrl);
     }
-  }, [spec.proxyUrl]);
+  }, []);
 
   const shoot = useCallback(() => {
     const data = viewerRef.current?.snapshot();
@@ -570,6 +624,35 @@ export default function App() {
     a.download = `dentsplat_${caseId}_${Date.now()}.png`;
     a.click();
   }, [caseId]);
+
+  const saveReview = useCallback(() => {
+    const v = viewerRef.current;
+    const record = {
+      schema: 'dentsplat-review-v1',
+      saved_at: new Date().toISOString(),
+      case: isLocal
+        ? { mode: 'local-dspk', file: customAssetName, proxy: null }
+        : { mode: 'library', id: caseId, code: spec.code, title: spec.title, dataset: spec.dataset, license: spec.license },
+      selected_fdi: selected,
+      cursor_mm: cursorMm,
+      view: { variant, split, ten_x: tenX, heatmap, jaw_mm: jaw, clip: { axis: clipAxis, offset: clipOffset, band: clipBand, cap, flip } },
+      mpr: { enabled: mprOn, mask_visible: mprMask, note: mprOn ? 'Case 0095 lightweight 8-bit preview; not diagnostic-resolution' : null },
+      measurements_mm: measures,
+      measurement_points_mm: v?.measurePts.map((p) => [+p.x.toFixed(3), +p.y.toFixed(3), +p.z.toFixed(3)]) ?? [],
+      audit: {
+        simulated_vlm: true,
+        basis: 'nearest splat-centre distance; source voxel about 0.3 mm; not a root-apex surface distance or clinical diagnosis',
+        claims: auditClaims.map((c) => ({ id: c.id, tooth: c.tooth, layer: c.layer, claimed_mm: c.claimed, status: c.status,
+          measured_mm: c.result?.distance ?? null, point_a_mm: c.result?.a ?? null, point_b_mm: c.result?.b ?? null })),
+      },
+      compression: { ablation, full_reference_bench: compressionBench },
+      stats: v?.statsSnapshot() ?? null,
+    };
+    const blob = new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = `dentsplat_review_${isLocal ? 'LOCAL' : caseId}_FDI${selected || 'all'}_${Date.now()}.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, [ablation, auditClaims, cap, caseId, clipAxis, clipBand, clipOffset, compressionBench, cursorMm, customAssetName, flip, heatmap, isLocal, jaw, measures, mprMask, mprOn, selected, spec, split, tenX, variant]);
 
   const toggleHide = useCallback((fdi: number) => {
     setHidden((h) => (h.includes(fdi) ? h.filter((x) => x !== fdi) : [...h, fdi]));
@@ -596,6 +679,14 @@ export default function App() {
   // current case; anything not measured is labelled TBD rather than filled with a placeholder.
   const findings = useMemo<EvidenceFinding[]>(() => {
     const list: EvidenceFinding[] = [];
+    if (isLocal) {
+      return [{
+        id: 'local-preview', fdi: 0, title: 'Local DSPK Preview', subtitle: '独立预览 · 无旧病例代理与元数据',
+        status: 'info', metric: report ? `${fmtInt(report.full.splats)} splats` : '—',
+        evidence: '当前只加载文件本身的高斯与内嵌语义；旧病例 proxy、牙位元数据、MPR、发现列表和测量已清空。逐牙拾取仅在文件包含 FDI 且可见时可用。',
+        action: () => setRailTab('source'),
+      }];
+    }
     if (caseId === 'B') {
       const ian = typeof report?.metrics?.ian_48_min_mm === 'number' ? report.metrics.ian_48_min_mm : null;
       list.push(
@@ -635,7 +726,7 @@ export default function App() {
           status: ian != null ? 'caution' : 'info',
           metric: ian != null ? `IAN ${ian.toFixed(2)} mm` : 'Layer L4',
           evidence: ian != null
-            ? `${spec.dataset} 的 0.3 mm 标注体素重建；该读数是贴面高斯中心之间的最近距离（非临床安全边界，也不构成诊断）。`
+            ? `${spec.dataset} 的 0.3 mm 标注体素重建；该读数是贴面高斯中心之间的最近距离，不是根尖-神经管表面距离。源体素约 0.3 mm，分割与采样不确定性未计入；两位小数不代表 0.01 mm 准确度，也不构成诊断。`
             : `${spec.dataset} 的 0.3 mm 标注体素重建；神经管与牙体分层独立编码，可在 Layers 面板调低骨透明度后直视。`,
           action: () => focusCanal(),
         },
@@ -668,6 +759,12 @@ export default function App() {
           action: () => setRailTab('source'),
         },
       );
+      if (caseId === 'C05') list.push({
+        id: 'c05-label-qa', fdi: 0, title: 'Partial FDI Transfer · Geometry QA', subtitle: '低命中来自训练表面偏差，不是坐标帧错误',
+        status: 'caution', metric: '26.7% ≤ 1 mm',
+        evidence: '参考采样中位邻距 0.187 mm；训练/参考 bbox 中心与尺度差 <0.1 mm，全 yaw 扫描最佳仅 2.5°。失配是区域性的：FDI 33 的参考点有 91.14% 落在训练点 1 mm 内，而 42/43 为 0%。这是 Brush 表面区域偏差，不是最近邻半径过小；保留 1 mm 保守迁移，未命中 splat 保持 FDI 0。',
+        action: () => setRailTab('source'),
+      });
     } else if (caseId === 'A') {
       list.push({
         id: 'sampled-baseline', fdi: 0, title: 'Untrained Surface Baseline', subtitle: '同一 000125 的 0.35 mm 采样包 · SH0',
@@ -750,7 +847,7 @@ export default function App() {
       }
     });
     return list;
-  }, [caseId, focusCanal, goPreset, meta, mbText, ratio, report, spec, switchCase, tenX]);
+  }, [caseId, focusCanal, goPreset, isLocal, meta, mbText, ratio, report, spec, switchCase, tenX]);
 
   const filteredFindings = useMemo(() => {
     const q = findingFilter.trim().toLowerCase();
@@ -830,6 +927,7 @@ export default function App() {
           <button
             type="button"
             className={'rib-btn' + (tenX ? ' on' : '')}
+            disabled={isLocal}
             title={tenX ? '退出 10× 对决并恢复完整 Case 03' : '自动切换 Case 03 并运行同预算对决'}
             onClick={toggleTenX}
           >
@@ -841,6 +939,7 @@ export default function App() {
           <button
             type="button"
             className={'rib-btn' + (mprOn ? ' on' : '')}
+            disabled={isLocal}
             title={mprOn ? '关闭四视口 MPR' : '自动切换 Case 03 并开启 3DGS + 原始 CBCT 四视口'}
             onClick={toggleMpr}
           >
@@ -862,6 +961,9 @@ export default function App() {
           </button>
           <button type="button" className="rib-btn" onClick={shoot}>
             <Icon name="camera" /><span>导出影像</span>
+          </button>
+          <button type="button" className="rib-btn" onClick={saveReview} title="保存病例、牙位、切片坐标、测量与审计结果为 JSON">
+            <Icon name="audit" /><span>保存记录</span>
           </button>
           <button type="button" className="rib-btn" onClick={() => fileInputRef.current?.click()} title="本地加载 .dspk 文件（Research Mode，零上传）">
             <Icon name="upload" /><span>载入 .DSPK</span>
@@ -906,7 +1008,7 @@ export default function App() {
           ))}
         </div>
         <div className="dtx-spacer" />
-        <div className="subtab-info">{spec.code} · {spec.title}</div>
+        <div className="subtab-info">{isLocal ? `LOCAL DSPK · ${customAssetName}` : `${spec.code} · ${spec.title}`}</div>
       </div>
 
       <div className={'dtx-workspace' + (inspectorOpen ? '' : ' collapsed')}>
@@ -1133,7 +1235,7 @@ export default function App() {
                           {r && (
                             <span className="audit-claim-result">
                               3DGS 实测 {r.distance.toFixed(2)} mm · Δ {delta!.toFixed(2)} mm<br />
-                              证据绑定句：FDI #{c.tooth} → L4 最小贴面中心距 = {r.distance.toFixed(2)} mm（几何量，不构成临床诊断）。
+                              证据绑定句：FDI #{c.tooth} → L4 最小贴面中心距 = {r.distance.toFixed(2)} mm（源体素约 0.3 mm；非根尖表面距离，不构成临床诊断）。
                             </span>
                           )}
                         </button>
@@ -1196,14 +1298,14 @@ export default function App() {
 
             <div className={'insp-pane' + (railTab === 'layers' ? ' active' : '')}>
               <div className="sec-head"><span>ANATOMICAL LAYERS (uLayerAlpha)</span></div>
-              {spec.cohort === 'cbct' && (
+              {!isLocal && spec.cohort === 'cbct' && (
                 <div className="quick-row">
                   <button type="button" className="tbar-btn" onClick={() => setAlphas((a) => ({ ...a, 3: 0.14, 1: 0.95, 4: 1, 7: 0.12 }))}>透视牙根+神经管</button>
                   <button type="button" className="tbar-btn" onClick={() => setAlphas((a) => ({ ...a, 3: 0.85, 1: 1, 4: 1, 7: 0.35 }))}>实心骨表面</button>
                   <button type="button" className="tbar-btn" onClick={() => setAlphas((a) => ({ ...a, 3: 0, 1: 0.35, 4: 1, 7: 0 }))}>仅突出神经管</button>
                 </div>
               )}
-              {spec.layers.map((l) => (
+              {displayLayers.map((l) => (
                 <div className="ctrl-item" key={l.id}>
                   <div className="ctrl-label">
                     <span><i className="color-sq" style={{ background: l.color }} />{l.cn}</span>
@@ -1249,7 +1351,7 @@ export default function App() {
                 <input type="checkbox" checked={cap} onChange={(e) => setCap(e.target.checked)} />
               </label>
 
-              {spec.hasJaw && (
+              {!isLocal && spec.hasJaw && (
                 <>
                   <div className="sec-head" style={{ marginTop: 10 }}><span>MANDIBULAR HINGE MOTION</span></div>
                   <div className="ctrl-item">
@@ -1287,9 +1389,25 @@ export default function App() {
                 </div>
               )}
 
+              {tenX && compressionBench && (
+                <div className="compression-bench">
+                  <div className="cb-head"><b>FULL-REFERENCE BENCH</b><span>{compressionBench.views.join(' / ')} · {compressionBench.size}²</span></div>
+                  {compressionBench.candidates.map((c) => (
+                    <div className="cb-row" key={c.name}>
+                      <b>{c.name}</b>
+                      <span>Overall {c.overall.psnr} dB · MAE {c.overall.mae}</span>
+                      <span>L1 {c.layers[1]?.psnr ?? '—'} dB · L4 {c.layers[4]?.psnr ?? '—'} dB</span>
+                      <span>L3 {c.layers[3]?.psnr ?? '—'} dB · L7 {c.layers[7]?.psnr ?? '—'} dB</span>
+                      <span>FDI48–L4 {c.clearance_mm?.toFixed(3) ?? '—'} mm · Δ {c.clearance_delta_mm?.toFixed(3) ?? '—'} mm</span>
+                    </div>
+                  ))}
+                  <small>Full 参考 FDI48–L4 = {compressionBench.referenceClearance?.toFixed(3) ?? '—'} mm。所有 PSNR/MAE 均为同一 Full 参考、固定视角与单层隔离渲染；clearance 仍是贴面中心几何量。</small>
+                </div>
+              )}
+
               <div className="quick-row">
                 <button type="button" className="tbar-btn primary" onClick={runBench} disabled={benching || !report}>
-                  {benching ? '回读像素中…' : '跑一次 bench(384²)'}
+                  {benching ? '回读像素中…' : tenX ? '各自对照 Full 复算' : '跑一次 bench(384²)'}
                 </button>
                 <button type="button" className={'tbar-btn' + (split ? ' on' : '')} disabled={tenX} onClick={() => setSplit((s) => !s)}>
                   同帧分屏
@@ -1310,12 +1428,14 @@ export default function App() {
             <div className={'insp-pane' + (railTab === 'source' ? ' active' : '')}>
               <div className="sec-head"><span>DATASET PROVENANCE</span></div>
               <dl className="kv-mini">
-                <dt>Dataset</dt><dd>{spec.dataset}</dd>
-                <dt>License</dt><dd>{spec.license}</dd>
+                <dt>{isLocal ? 'File' : 'Dataset'}</dt><dd>{isLocal ? customAssetName : spec.dataset}</dd>
+                <dt>License</dt><dd>{isLocal ? 'Local file · not asserted' : spec.license}</dd>
                 <dt>Proxy</dt>
-                <dd>{report?.proxy?.triangles != null && report.proxy.kb != null ? `${(report.proxy.triangles / 1000).toFixed(1)}k tri · ${report.proxy.kb.toFixed(0)} KB` : '—'}</dd>
+                <dd>{isLocal ? 'None · splat-only picking' : report?.proxy?.triangles != null && report.proxy.kb != null ? `${(report.proxy.triangles / 1000).toFixed(1)}k tri · ${report.proxy.kb.toFixed(0)} KB` : '—'}</dd>
               </dl>
-              <p className="source-note">{spec.blurb}</p>
+              <p className="source-note">{isLocal
+                ? '独立本地预览：只使用 DSPK 内嵌几何与语义，不继承原病例 proxy、牙位元数据、MPR 或报告。单牙功能按文件实际 FDI 内容开放。'
+                : spec.blurb}</p>
               <button type="button" className="tbar-btn primary" onClick={() => fileInputRef.current?.click()}>
                 选择本地 .dspk 进入 Research Mode
               </button>

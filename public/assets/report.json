@@ -354,7 +354,7 @@
         "views": 120,
         "sh_degree": 1,
         "render": "Blender Cycles orbit, 1024 px, 48 spp",
-        "labels": "nearest-neighbour transfer from the same-source 0.35 mm sampled packet: 7,440/27,901 within 1.0 mm; 2,055 splats carry a nonzero FDI (9 teeth)"
+        "labels": "conservative 1.0 mm nearest-neighbour transfer: 7,440/27,901 (26.7%); 2,055 nonzero-FDI splats across 9 teeth. Geometry QA attributes the low rate to trained-surface deviation, not frame mismatch; radius was not enlarged."
       },
       "source_note": "Poseidon3D case 000113: 120 Blender views -> Brush 15,000 steps -> SH1 DSPK. Labels are a nearest-neighbour transfer from the same-source 0.35 mm sampled packet; no clinical finding is asserted.",
       "provenance": {
@@ -365,6 +365,105 @@
           "full": "public/assets/scene_case05_full.dspk",
           "pruned": "public/assets/scene_case05_pruned.dspk",
           "proxy": "public/assets/proxy_case05.glb"
+        }
+      },
+      "label_diagnostics": {
+        "metric": "nearest reference splat-centre distance; not FDI classification accuracy",
+        "reference": "same-source 0.35 mm Poseidon3D sample",
+        "reference_count": 44963,
+        "trained_count": 27901,
+        "reference_nn_spacing_mm": {
+          "median": 0.187,
+          "p90": 0.302,
+          "p99": 0.403
+        },
+        "bbox_max_abs_delta_mm": 0.08,
+        "full_yaw_best_deg": 2.5,
+        "within_mm": {
+          "1": 26.67,
+          "2": 47.25,
+          "3": 64.85,
+          "5": 81.45,
+          "10": 98.58,
+          "0.5": 13.45,
+          "1.5": 37.65
+        },
+        "distance_percentiles_mm": {
+          "p50": 2.145,
+          "p75": 3.966,
+          "p90": 6.566,
+          "p95": 8.17,
+          "p99": 10.408,
+          "max": 12.021
+        },
+        "conclusion": "Dense reference and matching bbox rule out a global scale/translation or 90-degree frame error. The mismatch is regional: FDI 33 retains 91.14% reference coverage within 1 mm, while 42/43 retain 0%. This is trained-surface deviation, not an undersized nearest-neighbour radius. Radius remains 1.0 mm; unmatched splats keep FDI 0.",
+        "per_tooth_reference_coverage": {
+          "31": {
+            "reference_splats": 974,
+            "within_1mm_pct": 7.08,
+            "median_mm": 5.578,
+            "p90_mm": 7.785
+          },
+          "32": {
+            "reference_splats": 1078,
+            "within_1mm_pct": 12.15,
+            "median_mm": 3.354,
+            "p90_mm": 5.676
+          },
+          "33": {
+            "reference_splats": 1196,
+            "within_1mm_pct": 91.14,
+            "median_mm": 0.43,
+            "p90_mm": 0.964
+          },
+          "34": {
+            "reference_splats": 1297,
+            "within_1mm_pct": 21.97,
+            "median_mm": 2.412,
+            "p90_mm": 4.282
+          },
+          "35": {
+            "reference_splats": 1594,
+            "within_1mm_pct": 16.44,
+            "median_mm": 3.253,
+            "p90_mm": 6.198
+          },
+          "37": {
+            "reference_splats": 2715,
+            "within_1mm_pct": 36.94,
+            "median_mm": 1.335,
+            "p90_mm": 3.077
+          },
+          "41": {
+            "reference_splats": 1081,
+            "within_1mm_pct": 2.87,
+            "median_mm": 7.052,
+            "p90_mm": 9.242
+          },
+          "42": {
+            "reference_splats": 1282,
+            "within_1mm_pct": 0,
+            "median_mm": 8.224,
+            "p90_mm": 10.163
+          },
+          "43": {
+            "reference_splats": 1235,
+            "within_1mm_pct": 0,
+            "median_mm": 9.29,
+            "p90_mm": 11.323
+          },
+          "44": {
+            "reference_splats": 1307,
+            "within_1mm_pct": 7.5,
+            "median_mm": 4.055,
+            "p90_mm": 6.412
+          },
+          "45": {
+            "reference_splats": 1484,
+            "within_1mm_pct": 38.34,
+            "median_mm": 1.33,
+            "p90_mm": 2.479
+          }
         }
       }
     },

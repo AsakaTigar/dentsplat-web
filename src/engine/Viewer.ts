@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { SplatLayer } from './SplatLayer.ts';
-import { decodeSplatCloud } from './dspk.ts';
+import { FLAG, decodeSplatCloud, type SplatCloud } from './dspk.ts';
 
 export type ClipAxis = 'x' | 'y' | 'z' | null;
 
@@ -51,8 +51,23 @@ export type ClearanceAudit = {
   b: [number, number, number];
 };
 
+export type CompressionCandidateBench = {
+  name: string;
+  overall: BenchPair;
+  layers: Record<number, BenchPair>;
+  clearance_mm: number | null;
+  clearance_delta_mm: number | null;
+};
+
+export type CompressionBenchResult = {
+  size: number;
+  views: string[];
+  referenceClearance: number | null;
+  candidates: CompressionCandidateBench[];
+};
+
 export type CaseAsset = {
-  fullUrl: string; prunedUrl: string; proxyUrl: string;
+  fullUrl: string; prunedUrl: string; proxyUrl: string | null;
   fullBytes: number; prunedBytes: number;
   defaultLayerAlpha?: Record<number, number>;
 };
@@ -89,6 +104,89 @@ function disposeObject(root: THREE.Object3D) {
     mesh.geometry?.dispose?.();
     disposeMaterial((o as THREE.Mesh).material);
   });
+}
+
+type PixelStats = {
+  sse: number; ae: number; n: number; sseIn: number; nIn: number; same: number; covered: number; maxDiff: number;
+  sumA: [number, number, number]; sumB: [number, number, number]; errors: number[];
+};
+
+function comparePixelStats(A: Uint8Array, B: Uint8Array): PixelStats {
+  const s: PixelStats = { sse: 0, ae: 0, n: 0, sseIn: 0, nIn: 0, same: 0, covered: 0, maxDiff: 0,
+    sumA: [0, 0, 0], sumB: [0, 0, 0], errors: [] };
+  for (let i = 0; i < A.length; i += 4) {
+    let ink = 0, pse = 0;
+    for (let k = 0; k < 3; k++) {
+      const a = A[i + k], b = B[i + k], d = a - b, ad = Math.abs(d);
+      s.sse += d * d; s.ae += ad; s.n++; pse += d * d;
+      s.sumA[k] += a; s.sumB[k] += b;
+      if (ad > s.maxDiff) s.maxDiff = ad;
+      if (a > 8 || b > 8) ink = 1;
+    }
+    if (ink) { s.covered++; s.nIn += 3; s.sseIn += pse; }
+    s.errors.push(pse);
+    if (A[i] === B[i] && A[i + 1] === B[i + 1] && A[i + 2] === B[i + 2]) s.same++;
+  }
+  return s;
+}
+
+function addPixelStats(a: PixelStats, b: PixelStats) {
+  a.sse += b.sse; a.ae += b.ae; a.n += b.n; a.sseIn += b.sseIn; a.nIn += b.nIn;
+  a.same += b.same; a.covered += b.covered; a.maxDiff = Math.max(a.maxDiff, b.maxDiff);
+  for (let k = 0; k < 3; k++) { a.sumA[k] += b.sumA[k]; a.sumB[k] += b.sumB[k]; }
+  a.errors.push(...b.errors);
+}
+
+function finishPixelStats(s: PixelStats): BenchPair {
+  const px = s.n / 3;
+  const db = (sse: number, n: number) => sse === 0 ? 999 : +(10 * Math.log10(1 / (sse / Math.max(1, n) / 65025))).toFixed(2);
+  const errors = [...s.errors].sort((x, y) => y - x);
+  const top = errors.slice(0, Math.max(1, Math.round(errors.length / 100))).reduce((a, b) => a + b, 0);
+  const mean = (v: [number, number, number]) => v.map((x) => +(x / Math.max(1, px)).toFixed(1)) as [number, number, number];
+  return {
+    psnr: db(s.sse, s.n), psnrInMask: db(s.sseIn, s.nIn), mae: +(s.ae / Math.max(1, s.n) / 255).toFixed(4),
+    covered: +(s.covered / Math.max(1, px)).toFixed(4), identicalFraction: +(s.same / Math.max(1, px)).toFixed(4),
+    errorInTop1Percent: +(top / (s.sse || 1)).toFixed(3), maxDiff: s.maxDiff,
+    meanFull: mean(s.sumA), meanPruned: mean(s.sumB),
+  };
+}
+
+function nearestClearance(centers: Float32Array, misc: Uint8Array, count: number, fdi: number, targetLayer: number) {
+  const toothIdx: number[] = [], targetIdx: number[] = [];
+  for (let i = 0; i < count; i++) {
+    if (misc[i * 4 + 1] === fdi) toothIdx.push(i);
+    if (misc[i * 4 + 2] === targetLayer) targetIdx.push(i);
+  }
+  if (!toothIdx.length || !targetIdx.length) return null;
+  const cell = 1.0, key = (x: number, y: number, z: number) => `${x},${y},${z}`;
+  const grid = new Map<string, number[]>();
+  for (const j of targetIdx) {
+    const k = key(Math.floor(centers[j * 3] / cell), Math.floor(centers[j * 3 + 1] / cell), Math.floor(centers[j * 3 + 2] / cell));
+    const a = grid.get(k); if (a) a.push(j); else grid.set(k, [j]);
+  }
+  let best = Infinity, bestI = -1, bestJ = -1;
+  for (const i of toothIdx) {
+    const x = centers[i * 3], y = centers[i * 3 + 1], z = centers[i * 3 + 2];
+    const cx = Math.floor(x / cell), cy = Math.floor(y / cell), cz = Math.floor(z / cell);
+    for (let r = 0; r < 64; r++) {
+      if (best < Infinity && (r - 1) * cell > best) break;
+      for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) for (let dz = -r; dz <= r; dz++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) !== r) continue;
+        const a = grid.get(key(cx + dx, cy + dy, cz + dz));
+        if (!a) continue;
+        for (const j of a) {
+          const d2 = (centers[j * 3] - x) ** 2 + (centers[j * 3 + 1] - y) ** 2 + (centers[j * 3 + 2] - z) ** 2;
+          if (d2 < best) { best = d2; bestI = i; bestJ = j; }
+        }
+      }
+    }
+  }
+  if (bestI < 0 || bestJ < 0) return null;
+  return {
+    distance: Math.sqrt(best), toothIndex: bestI, targetIndex: bestJ, toothCount: toothIdx.length, targetCount: targetIdx.length,
+    a: [centers[bestI * 3], centers[bestI * 3 + 1], centers[bestI * 3 + 2]] as [number, number, number],
+    b: [centers[bestJ * 3], centers[bestJ * 3 + 1], centers[bestJ * 3 + 2]] as [number, number, number],
+  };
 }
 
 const FDI_RE = /^FDI_(\d{1,2})(?:\b|_)/;
@@ -202,7 +300,8 @@ export class DentSplatViewer {
     });
     try {
       const [fullBuf, prunedBuf, proxyBuf] = await Promise.all([
-        getBuffer(asset.fullUrl), getBuffer(asset.prunedUrl), getBuffer(asset.proxyUrl),
+        getBuffer(asset.fullUrl), getBuffer(asset.prunedUrl),
+        asset.proxyUrl ? getBuffer(asset.proxyUrl) : Promise.resolve(null),
       ]);
       if (seq !== this.loadSeq || this.disposed) return;
 
@@ -210,11 +309,15 @@ export class DentSplatViewer {
       const pruned = decodeSplatCloud(prunedBuf);
       if (seq !== this.loadSeq || this.disposed) return;
 
-      const loader = new GLTFLoader();
-      const gltf = await loader.parseAsync(proxyBuf, '');
-      if (seq !== this.loadSeq || this.disposed) {
-        disposeObject(gltf.scene);
-        return;
+      let root: THREE.Group | null = null;
+      if (proxyBuf) {
+        const loader = new GLTFLoader();
+        const gltf = await loader.parseAsync(proxyBuf, '');
+        if (seq !== this.loadSeq || this.disposed) {
+          disposeObject(gltf.scene);
+          return;
+        }
+        root = gltf.scene;
       }
 
       // Commit only after every download/decode/parse has finished and this is still the newest load.
@@ -230,30 +333,31 @@ export class DentSplatViewer {
         this.caseGroup.add(l.mesh);
       }
 
-      // Keep the exported graph intact (Blender wraps meshes in nodes carrying the Y-up
-      // conversion); hide every mesh and resolve the FDI id by walking ancestors.
-      const root = gltf.scene;
-      root.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (!m.isMesh) return;
-        m.visible = false;
-        m.frustumCulled = false;
-        m.userData.name = fdiNameOf(m);
-        m.geometry.computeBoundingSphere();
-        m.geometry.computeBoundingBox();
-      });
-      root.updateMatrixWorld(true);
-      // Freeze each proxy mesh's world matrix: the jaw transform below is applied as
-      // local = parentWorld^-1 * W * world0, so it must always start from the same rest pose instead of
-      // accumulating a little rounding on every slider step.
-      root.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (!m.isMesh) return;
-        m.userData.world0 = m.matrixWorld.clone();
-        m.matrixAutoUpdate = false;
-      });
-      this.proxy = root;
-      this.caseGroup.add(root);
+      if (root) {
+        // Keep the exported graph intact (Blender wraps meshes in nodes carrying the Y-up
+        // conversion); hide every mesh and resolve the FDI id by walking ancestors.
+        root.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (!m.isMesh) return;
+          m.visible = false;
+          m.frustumCulled = false;
+          m.userData.name = fdiNameOf(m);
+          m.geometry.computeBoundingSphere();
+          m.geometry.computeBoundingBox();
+        });
+        root.updateMatrixWorld(true);
+        // Freeze each proxy mesh's world matrix: the jaw transform below is applied as
+        // local = parentWorld^-1 * W * world0, so it must always start from the same rest pose instead of
+        // accumulating a little rounding on every slider step.
+        root.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (!m.isMesh) return;
+          m.userData.world0 = m.matrixWorld.clone();
+          m.matrixAutoUpdate = false;
+        });
+        this.proxy = root;
+        this.caseGroup.add(root);
+      }
       this.forceSort = true;
       this.applyUniforms();
       this.applyJawToProxy();
@@ -384,40 +488,70 @@ export class DentSplatViewer {
     return new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
   }
 
+  private fdiHidden(fdi: number) {
+    if (fdi <= 0) return false;
+    if (this.isolateTooth && this.selectedTooth > 0) return fdi !== this.selectedTooth;
+    return this.hiddenTeeth.includes(fdi);
+  }
+
+  private pointPassesClip(p: THREE.Vector3, planes: THREE.Vector4[]) {
+    for (const pl of planes) if (pl.x * p.x + pl.y * p.y + pl.z * p.z - pl.w < -1e-4) return false;
+    return true;
+  }
+
+  /** World-space splat centre after the same jaw kinematics used by SPLAT_VERTEX. */
+  private splatWorld(layer: SplatLayer, i: number, out: THREE.Vector3) {
+    out.set(layer.centers[i * 3], layer.centers[i * 3 + 1], layer.centers[i * 3 + 2]);
+    const flags = layer.cloud.misc[i * 4 + 3];
+    if ((flags & FLAG.lowerJaw) && this.jawGap > 0.001) {
+      const th = 2 * Math.asin(Math.min(0.8, this.jawGap / (2 * 66)));
+      const sn = Math.sin(th), cs = Math.cos(th), glide = Math.max(0, this.jawGap - 20) * 0.30;
+      const x = out.x, y = out.y + 14, z = out.z + 34;
+      out.set(x, -14 + y * cs - z * sn - glide, -34 + y * sn + z * cs - glide * 0.45);
+    } else if ((flags & FLAG.upperJaw) && this.jawGap > 0.001) {
+      out.y += Math.min(1.2, this.jawGap * 0.02);
+    }
+    return out;
+  }
+
   /** Raycast against the invisible FDI proxy: exact tooth id + exact mm surface point. */
   pick(clientX: number, clientY: number): PickerHit {
     if (!this.proxy) return null;
     this.raycaster.setFromCamera(this.ndc(clientX, clientY), this.camera);
     const hits = this.raycaster.intersectObjects(this.proxy.children, true);
+    const planes = this.clipPlanes();
     for (const h of hits) {
       const name = fdiNameOf(h.object);
       const m = /^FDI_(\d+)/.exec(name);
-      if (!m) continue;
-      return { fdi: Number(m[1]), point: h.point.clone(), meshName: name };
+      const fdi = m ? Number(m[1]) : 0;
+      if (this.fdiHidden(fdi) || !this.pointPassesClip(h.point, planes)) continue;
+      return { fdi, point: h.point.clone(), meshName: name };
     }
-    const first = hits[0];
-    if (first) return { fdi: 0, point: first.point.clone(), meshName: fdiNameOf(first.object) };
     return null;
   }
 
-  /** Fallback for measurement on non-proxy geometry: nearest splat centre on screen. */
+  /** Fallback for local/no-proxy packets: nearest visible splat centre, with depth ordering. */
   pickSplatCenter(clientX: number, clientY: number): THREE.Vector3 | null {
     const l = this.activeLayer();
     if (!l) return null;
     const r = this.canvas.getBoundingClientRect();
     const px = clientX - r.left, py = clientY - r.top;
-    const v = new THREE.Vector3();
-    let best = 14; let out: THREE.Vector3 | null = null;
+    const v = new THREE.Vector3(), world = new THREE.Vector3();
+    let bestD = 14, bestDepth = Infinity, out: THREE.Vector3 | null = null;
     const proj = new THREE.Matrix4().multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
-    const c = l.centers;
-    const n = c.length / 3;
-    for (let i = 0; i < n; i++) {
-      const b = i * 3;
-      v.set(c[b], c[b + 1], c[b + 2]).applyMatrix4(proj);
+    const planes = this.clipPlanes();
+    for (let i = 0; i < l.cloud.count; i++) {
+      const fdi = l.cloud.misc[i * 4 + 1], layer = l.cloud.misc[i * 4 + 2];
+      if (this.fdiHidden(fdi) || (this.layerAlphas[layer] ?? 1) <= 0.001) continue;
+      this.splatWorld(l, i, world);
+      if (!this.pointPassesClip(world, planes)) continue;
+      v.copy(world).applyMatrix4(proj);
       if (v.z > 1 || v.z < -1) continue;
       const sx = (v.x * 0.5 + 0.5) * r.width, sy = (-v.y * 0.5 + 0.5) * r.height;
       const d = Math.hypot(sx - px, sy - py);
-      if (d < best) { best = d; out = new THREE.Vector3(c[b], c[b + 1], c[b + 2]); }
+      if (d < 14 && (v.z < bestDepth - 0.25 || (Math.abs(v.z - bestDepth) <= 0.25 && d < bestD))) {
+        bestD = d; bestDepth = v.z; out = world.clone();
+      }
     }
     return out;
   }
@@ -460,53 +594,12 @@ export class DentSplatViewer {
     this.measurePts = [];
   }
 
-  /** Exact nearest-centre audit between one FDI tooth and one anatomical layer in the full packet. */
+  /** Nearest splat-centre clearance; this is not a root-apex surface distance. */
   auditClearance(fdi: number, targetLayer: number): ClearanceAudit | null {
     const layer = this.layer;
     if (!layer) return null;
-    const cloud = layer.cloud, centers = layer.centers;
-    const misc = cloud.misc;
-    const toothIdx: number[] = [], targetIdx: number[] = [];
-    for (let i = 0; i < cloud.count; i++) {
-      const f = misc[i * 4 + 1], l = misc[i * 4 + 2];
-      if (f === fdi) toothIdx.push(i);
-      if (l === targetLayer) targetIdx.push(i);
-    }
-    if (!toothIdx.length || !targetIdx.length) return null;
-
-    const cell = 1.0; // millimetres; the source packet's typical nearest spacing is 0.3-0.6 mm
-    const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
-    const grid = new Map<string, number[]>();
-    for (const j of targetIdx) {
-      const k = key(Math.floor(centers[j * 3] / cell), Math.floor(centers[j * 3 + 1] / cell), Math.floor(centers[j * 3 + 2] / cell));
-      const a = grid.get(k); if (a) a.push(j); else grid.set(k, [j]);
-    }
-
-    let best = Infinity, bestI = -1, bestJ = -1;
-    for (const i of toothIdx) {
-      const x = centers[i * 3], y = centers[i * 3 + 1], z = centers[i * 3 + 2];
-      const cx = Math.floor(x / cell), cy = Math.floor(y / cell), cz = Math.floor(z / cell);
-      for (let r = 0; r < 64; r++) {
-        if (best < Infinity && (r - 1) * cell > best) break;
-        for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) for (let dz = -r; dz <= r; dz++) {
-          if (Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) !== r) continue;
-          const a = grid.get(key(cx + dx, cy + dy, cz + dz));
-          if (!a) continue;
-          for (const j of a) {
-            const ddx = centers[j * 3] - x, ddy = centers[j * 3 + 1] - y, ddz = centers[j * 3 + 2] - z;
-            const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
-            if (d2 < best) { best = d2; bestI = i; bestJ = j; }
-          }
-        }
-      }
-    }
-    if (bestI < 0 || bestJ < 0) return null;
-    return {
-      fdi, targetLayer, distance: Math.sqrt(best), toothIndex: bestI, targetIndex: bestJ,
-      toothCount: toothIdx.length, targetCount: targetIdx.length,
-      a: [centers[bestI * 3], centers[bestI * 3 + 1], centers[bestI * 3 + 2]],
-      b: [centers[bestJ * 3], centers[bestJ * 3 + 1], centers[bestJ * 3 + 2]],
-    };
+    const r = nearestClearance(layer.centers, layer.cloud.misc, layer.cloud.count, fdi, targetLayer);
+    return r ? { fdi, targetLayer, ...r } : null;
   }
 
   /** Draw the audited closest pair and fly to it; never derives the verdict from this drawing. */
@@ -994,6 +1087,102 @@ export class DentSplatViewer {
     this.forceSort = true;
     return { ...head, samples: shots[0].length / 4 * 3, control,
       psnrSelf: control.psnr, identicalSelfFraction: control.identicalFraction };
+  }
+
+  /** Compare each equal-budget candidate against the same Full reference over fixed views/layers. */
+  async benchCompression(
+    referenceUrl: string,
+    candidates: { name: string; cloud: SplatCloud }[],
+    views: ViewPreset[],
+    fdi = 48,
+    targetLayer = 4,
+    size = 256,
+  ): Promise<CompressionBenchResult> {
+    const refRes = await fetch(referenceUrl);
+    if (!refRes.ok) throw new Error(`Full reference HTTP ${refRes.status}`);
+    const refLayer = new SplatLayer(decodeSplatCloud(await refRes.arrayBuffer()), { opacityScale: 1 });
+    const candLayers = candidates.map((c) => ({ name: c.name, layer: new SplatLayer(c.cloud, { opacityScale: 1 }) }));
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+    const rt = new THREE.WebGLRenderTarget(size, size, { samples: 0 });
+    const prevPos = this.camera.position.clone(), prevQuat = this.camera.quaternion.clone(), prevAspect = this.camera.aspect;
+    const prevTarget = this.renderer.getRenderTarget(), prevViewport = this.renderer.getViewport(new THREE.Vector4());
+    const prevScissor = this.renderer.getScissor(new THREE.Vector4()), prevScissorTest = this.renderer.getScissorTest();
+    const prevClear = this.renderer.getClearColor(new THREE.Color()), prevAlpha = this.renderer.getClearAlpha();
+    const overall = new Map<string, PixelStats | null>();
+    const perLayer = new Map<string, Map<number, PixelStats | null>>();
+    for (const c of candLayers) { overall.set(c.name, null); perLayer.set(c.name, new Map()); }
+    const layerIds = [1, 3, 4, 7];
+    const alphasFor = (only: number | null) => {
+      const a = Array(9).fill(0) as number[];
+      if (only == null) a.fill(1); else a[only] = 1;
+      return Object.fromEntries(a.map((v, i) => [i, v]));
+    };
+    const shot = (layer: SplatLayer, only: number | null) => {
+      layer.setLayerAlphas(alphasFor(only));
+      layer.u.uSheen.value = 0; layer.u.uJawGap.value = 0; layer.u.uClipCount.value = 0;
+      layer.u.uVisMode.value = 0; layer.u.uSelectedTooth.value = 0; layer.u.uPulseTooth.value = 0; layer.u.uPulse.value = 0;
+      layer.u.uHiddenLo.value = 0; layer.u.uHiddenHi.value = 0; layer.u.uShowLesions.value = 0;
+      layer.u.uOpacityScale.value = 1; layer.u.uDebug.value = 0;
+      layer.u.uViewportPx.value.set(size, size);
+      layer.update(this.camera.matrixWorldInverse, new THREE.Vector2(size, size), true);
+      layer.mesh.visible = true; scene.add(layer.mesh);
+      this.renderer.setRenderTarget(rt); this.renderer.setScissorTest(false); this.renderer.setViewport(0, 0, size, size);
+      this.renderer.setClearColor(0x000000, 1); this.renderer.clear();
+      this.renderer.render(scene, this.camera);
+      scene.remove(layer.mesh);
+      const buf = new Uint8Array(size * size * 4);
+      this.renderer.readRenderTargetPixels(rt, 0, 0, size, size, buf);
+      return buf;
+    };
+    try {
+      this.camera.aspect = 1; this.camera.updateProjectionMatrix();
+      for (const view of views) {
+        const theta = view.theta * Math.PI / 180, phi = view.phi * Math.PI / 180;
+        const target = new THREE.Vector3(...(view.target ?? [0, 0, 0]));
+        this.camera.position.set(
+          target.x + view.radius * Math.sin(theta) * Math.cos(phi),
+          target.y + view.radius * Math.sin(phi),
+          target.z + view.radius * Math.cos(theta) * Math.cos(phi),
+        );
+        this.camera.lookAt(target); this.camera.updateMatrixWorld();
+        for (const only of [null, ...layerIds]) {
+          const ref = shot(refLayer, only);
+          for (const c of candLayers) {
+            const stats = comparePixelStats(ref, shot(c.layer, only));
+            if (only == null) {
+              const old = overall.get(c.name); overall.set(c.name, old ? (addPixelStats(old, stats), old) : stats);
+            } else {
+              const map = perLayer.get(c.name)!;
+              const old = map.get(only); map.set(only, old ? (addPixelStats(old, stats), old) : stats);
+            }
+          }
+        }
+      }
+    } finally {
+      refLayer.dispose(); for (const c of candLayers) c.layer.dispose(); rt.dispose();
+      this.camera.position.copy(prevPos); this.camera.quaternion.copy(prevQuat); this.camera.aspect = prevAspect; this.camera.updateProjectionMatrix();
+      this.renderer.setRenderTarget(prevTarget); this.renderer.setViewport(prevViewport); this.renderer.setScissor(prevScissor);
+      this.renderer.setScissorTest(prevScissorTest); this.renderer.setClearColor(prevClear, prevAlpha);
+      this.forceSort = true;
+    }
+    const refClear = nearestClearance(refLayer.centers, refLayer.cloud.misc, refLayer.cloud.count, fdi, targetLayer);
+    return {
+      size, views: views.map((v) => v.id), referenceClearance: refClear?.distance ?? null,
+      candidates: candLayers.map((c) => {
+        const clear = nearestClearance(c.layer.centers, c.layer.cloud.misc, c.layer.cloud.count, fdi, targetLayer);
+        const layers: Record<number, BenchPair> = {};
+        for (const id of layerIds) {
+          const s = perLayer.get(c.name)!.get(id);
+          if (s) layers[id] = finishPixelStats(s);
+        }
+        return {
+          name: c.name, overall: finishPixelStats(overall.get(c.name)!),
+          layers, clearance_mm: clear?.distance ?? null,
+          clearance_delta_mm: clear && refClear ? +(clear.distance - refClear.distance).toFixed(4) : null,
+        };
+      }),
+    };
   }
 
   /** Shader bisection harness (see uDebug in shaders.ts). 0 = production path. */
