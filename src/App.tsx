@@ -197,8 +197,14 @@ export default function App() {
         setAlphas(defaults);
         setSelected(0); setProbe(null); setHidden([]); setIsolate(false); setMeasures([]);
         v.clearMeasure();
-        setActivePreset('frontal');
-        v.flyTo(spec.presets[0]);
+        // Deep link: #B,ian opens Scene B on the canal preset, so a specific view can be sent as a URL
+        // instead of "click Case B, then the fifth button". Read once per load; unknown ids fall back
+        // to the frontal preset.
+        const [hCase, hPreset] = location.hash.replace(/^#/, '').split(/[,/]/);
+        if ((hCase === 'A' || hCase === 'B') && hCase !== caseId) { setCaseId(hCase); return; }
+        const want = spec.presets.find((p) => p.id === hPreset);
+        setActivePreset(want ? want.id : 'frontal');
+        v.flyTo(want ?? spec.presets[0]);
         setLoading(false);
       } catch (e) {
         if (!dead) { setErr(String(e instanceof Error ? e.message : e)); setLoading(false); }
@@ -237,6 +243,7 @@ export default function App() {
   const goPreset = useCallback((p: ViewPreset) => {
     setActivePreset(p.id);
     viewerRef.current?.flyTo(p);
+    history.replaceState(null, '', `#${p.id}`);
   }, []);
 
   const moneyShot = useCallback(() => {

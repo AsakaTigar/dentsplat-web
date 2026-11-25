@@ -112,7 +112,7 @@ export const CASES: CaseSpec[] = [
       { id: 'right', label: '右侧位', sub: 'Right lateral', theta: -90, phi: 6, radius: 150, target: [0, -1, 12] },
       { id: 'upper', label: '上颌牙合面', sub: 'Maxillary occlusal', theta: 0, phi: 84, radius: 120, target: [0, -1, 12] },
       { id: 'lower', label: '下颌牙合面', sub: 'Mandibular occlusal', theta: 0, phi: -84, radius: 120, target: [0, -1, 12] },
-      { id: 'ian', label: '38–神经管 关系', sub: 'Wisdom-tooth / canal', theta: -50, phi: -14, radius: 72, target: [30, -9, -9] },
+      { id: 'ian', label: '38–神经管 关系', sub: 'Wisdom-tooth / canal', theta: -50, phi: -14, radius: 92, target: [30, -9, -9] },
     ],
   },
 ];
