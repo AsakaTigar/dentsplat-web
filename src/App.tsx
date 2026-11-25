@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type * as THREE from 'three';
 import { DentSplatViewer } from './engine/Viewer.ts';
-import type { BenchResult, ClipAxis, PickerHit, ProbeResult, Stats, ViewPreset } from './engine/Viewer.ts';
+import type { BenchResult, ClearanceAudit, ClipAxis, PickerHit, ProbeResult, Stats, ViewPreset } from './engine/Viewer.ts';
 import { CASES, AUDIT_BASIS, LESION_LABEL } from './data/cases.ts';
 import type { CaseSpec, CaseCohort } from './data/cases.ts';
 import Odontogram from './ui/Odontogram.tsx';
@@ -15,6 +15,26 @@ type SceneReport = {
   proxy: { bytes: number; kb: number; nodes: number; triangles: number };
   compression_fidelity_mm: Record<string, number | string>;
   metrics: Record<string, number | number[]>;
+};
+type AblationPacket = Report & {
+  file: string; sha256: string; method: string;
+  layer_counts: Record<number, number>; layer_retention: Record<number, number>;
+};
+type CompressionAblation = {
+  source_scene: string;
+  base: { file: string; bytes: number; splats: number; sha256: string };
+  uniform: AblationPacket;
+  anatomy: AblationPacket;
+};
+type AuditClaim = {
+  id: string;
+  tooth: number;
+  layer: number;
+  title: string;
+  claim: string;
+  claimed: number;
+  result?: ClearanceAudit | null;
+  status?: 'pending' | 'verified' | 'hallucination';
 };
 type MetaFile = {
   unit: string; kind: string; bbox_min?: number[]; bbox_max?: number[];
@@ -45,6 +65,23 @@ const COHORT_TABS: { id: 'all' | CaseCohort; label: string }[] = [
   { id: 'cbct', label: 'CBCT 贴面' },
 ];
 
+// Deliberately simulated VLM prose. The numeric verdict is never read from this table: it is
+// recomputed from the loaded 3DGS centres at click time.
+const AUDIT_CLAIMS: AuditClaim[] = [
+  {
+    id: 'vlm-38', tooth: 38, layer: 4, title: '左下第三磨牙 / IAN',
+    claim: 'VLM：#38 根尖至下牙槽神经管最小中心距约 0.06 mm。', claimed: 0.06,
+  },
+  {
+    id: 'vlm-48-true', tooth: 48, layer: 4, title: '右下第三磨牙 / IAN',
+    claim: 'VLM：#48 根尖至下牙槽神经管最小中心距约 0.18 mm。', claimed: 0.18,
+  },
+  {
+    id: 'vlm-48-hallucination', tooth: 48, layer: 4, title: '右下第三磨牙 / 幻觉陷阱',
+    claim: 'VLM：#48 根尖距神经管仅 1.10 mm，因此存在极高神经损伤风险。', claimed: 1.10,
+  },
+];
+
 function parseFdiInfo(fdi: number, raw?: ToothMeta) {
   if (!fdi) return null;
   const q = Math.floor(fdi / 10);
@@ -67,6 +104,8 @@ function Icon({ name }: { name: string }) {
     case 'layers': return <svg {...props}><polygon points="12 3 21 8 12 13 3 8 12 3" /><polyline points="3 12.5 12 17.5 21 12.5" /><polyline points="3 16.5 12 21.5 21 16.5" /></svg>;
     case 'wire': return <svg {...props}><circle cx="12" cy="12" r="9" /><ellipse cx="12" cy="12" rx="4" ry="9" /><line x1="3" y1="12" x2="21" y2="12" /></svg>;
     case 'split': return <svg {...props}><rect x="3" y="4" width="18" height="16" rx="2" /><line x1="12" y1="4" x2="12" y2="20" /></svg>;
+    case 'audit': return <svg {...props}><path d="M12 3l7 4v5c0 4-3 7-7 9-4-2-7-5-7-9V7z" /><path d="M9 12l2 2 4-4" /></svg>;
+    case 'heat': return <svg {...props}><path d="M12 3v10M12 17v4M3 12h10M17 12h4" /><circle cx="12" cy="12" r="3" /></svg>;
     case 'bench': return <svg {...props}><path d="M4 19h16M7 15v-4M12 15V7M17 15v-6" /></svg>;
     case 'camera': return <svg {...props}><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13.5" r="3" /></svg>;
     case 'upload': return <svg {...props}><path d="M12 16V4M7 9l5-5 5 5M4 20h16" /></svg>;
@@ -93,6 +132,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [report, setReport] = useState<SceneReport | null>(null);
+  const [ablation, setAblation] = useState<CompressionAblation | null>(null);
   const [meta, setMeta] = useState<MetaFile | null>(null);
   const [stats, setStats] = useState<Stats>({ fps: 0, splats: 0, visible: 0, sortMs: 0, frameMs: 0, bytes: 0, gpu: '—' });
 
@@ -111,6 +151,10 @@ export default function App() {
   const [alphas, setAlphas] = useState<Record<number, number>>({});
   const [variant, setVariant] = useState<'full' | 'pruned'>('full');
   const [split, setSplit] = useState(false);
+  const [tenX, setTenX] = useState(false);
+  const [heatmap, setHeatmap] = useState(false);
+  const [auditClaims, setAuditClaims] = useState<AuditClaim[]>(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
+  const [auditing, setAuditing] = useState(false);
   const [wire, setWire] = useState(false);
   const [mode, setMode] = useState<'pick' | 'measure'>('pick');
   const [measures, setMeasures] = useState<number[]>([]);
@@ -135,6 +179,10 @@ export default function App() {
 
   const switchCase = useCallback((id: string) => {
     setCaseId(id);
+    setTenX(false);
+    setSplit(false);
+    setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
+    viewerRef.current?.clearAudit();
     history.replaceState(null, '', `#${id}`);
   }, []);
 
@@ -257,20 +305,40 @@ export default function App() {
           fetch(`${import.meta.env.BASE_URL}assets/report.json`).then((r) => r.json()),
           fetch(spec.metaUrl).then((r) => r.json()),
         ]);
-        const scene: SceneReport | undefined = rep.scenes?.[spec.sceneKey];
-        if (!scene) throw new Error(`report.json has no scene "${spec.sceneKey}"`);
+        const useTenX = tenX && caseId === 'B';
+        const ablation = rep.compression_ablation as CompressionAblation | undefined;
+        let scene: SceneReport;
+        let fullUrl = spec.fullUrl, prunedUrl = spec.prunedUrl;
+        if (useTenX) {
+          if (!ablation?.uniform || !ablation?.anatomy) throw new Error('report.json has no 10x compression ablation');
+          const source = rep.scenes?.sceneB_cbct as SceneReport | undefined;
+          if (!source) throw new Error('report.json has no source scene "sceneB_cbct"');
+          const abUrl = (file: string) => `${import.meta.env.BASE_URL}assets/${file.split('/').pop()}`;
+          scene = {
+            full: ablation.uniform, pruned: ablation.anatomy, bytes_ratio: 1,
+            proxy: source.proxy, compression_fidelity_mm: {}, metrics: source.metrics ?? {},
+          };
+          fullUrl = abUrl(ablation.uniform.file);
+          prunedUrl = abUrl(ablation.anatomy.file);
+        } else {
+          scene = rep.scenes?.[spec.sceneKey];
+          if (!scene) throw new Error(`report.json has no scene "${spec.sceneKey}"`);
+        }
         v.caseId = caseId;
         const defaults: Record<number, number> = {};
         for (const l of spec.layers) defaults[l.id] = l.alpha;
         await v.loadCase({
-          fullUrl: spec.fullUrl, prunedUrl: spec.prunedUrl, proxyUrl: spec.proxyUrl,
+          fullUrl, prunedUrl, proxyUrl: spec.proxyUrl,
           fullBytes: scene.full.bytes, prunedBytes: scene.pruned.bytes, defaultLayerAlpha: defaults,
         });
         if (dead) return;
         setReport(scene);
+        setAblation(ablation ?? null);
         setAllScenes((rep.scenes ?? {}) as Record<string, SceneReport>);
         setMeta(mf as MetaFile);
         setAlphas(defaults);
+        setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
+        if (useTenX) { setSplit(true); setVariant('full'); }
         // Reset jaw / clipping on every switch: single-jaw scans have no hinge.
         setJaw(0); setClipAxis(null); setClipOffset(0);
         setSelected(0); setActiveFindingId(null); setProbe(null); setHidden([]); setIsolate(false); setMeasures([]);
@@ -290,13 +358,17 @@ export default function App() {
       }
     })();
     return () => { dead = true; };
-  }, [caseId, spec]);
+  }, [caseId, spec, tenX]);
 
   // Back/forward + manual hash edits switch cases without a reload.
   useEffect(() => {
     const onHash = () => {
       const h = hashCase();
-      if (CASES.some((c) => c.id === h) && h !== caseId) setCaseId(h);
+      if (CASES.some((c) => c.id === h) && h !== caseId) {
+        setCaseId(h); setTenX(false); setSplit(false);
+        setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
+        viewerRef.current?.clearAudit();
+      }
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
@@ -314,6 +386,7 @@ export default function App() {
     });
   }, [spec.hasJaw, jaw, opacity, showLesions, hidden, isolate, clipAxis, clipOffset, clipBand, cap, flip]);
   useEffect(() => { viewerRef.current?.setVariant(variant, split); }, [variant, split]);
+  useEffect(() => { viewerRef.current?.setVisMode(heatmap ? 1 : 0); }, [heatmap, caseId, tenX]);
   useEffect(() => { viewerRef.current?.setWireframe(wire); }, [wire]);
   useEffect(() => { if (viewerRef.current) viewerRef.current.measureMode = mode; }, [mode]);
   useEffect(() => { if (viewerRef.current) viewerRef.current.autoRotate = spin; }, [spin]);
@@ -344,6 +417,7 @@ export default function App() {
     const defaults: Record<number, number> = {};
     for (const l of spec.layers) defaults[l.id] = l.alpha;
     setAlphas(defaults);
+    viewerRef.current?.clearAudit();
     goPreset(spec.presets[0]);
   }, [goPreset, spec]);
 
@@ -379,12 +453,57 @@ export default function App() {
     }
   }, []);
 
+  const toggleTenX = useCallback(() => {
+    if (caseId !== 'B') {
+      switchCase('B');
+      setTenX(true); setSplit(true); setVariant('full'); setBench(null);
+      return;
+    }
+    const next = !tenX;
+    setTenX(next); setSplit(next); setVariant('full'); setBench(null);
+    setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
+    viewerRef.current?.clearAudit();
+  }, [caseId, switchCase, tenX]);
+
+  const runGeometricAudit = useCallback(async () => {
+    const v = viewerRef.current;
+    if (!v || caseId !== 'B' || tenX) return;
+    setAuditing(true); setRailTab('findings'); setHeatmap(false); setIsolate(false); setHidden([]); setSpin(false);
+    setClipAxis(null); setJaw(0);
+    setAlphas((a) => ({ ...a, 3: 0.12, 1: 0.95, 4: 1.0, 7: 0.08 }));
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    const next = AUDIT_CLAIMS.map((c) => {
+      const result = v.auditClearance(c.tooth, c.layer);
+      const error = result ? Math.abs(c.claimed - result.distance) : Infinity;
+      return { ...c, result, status: result && error < 0.3 ? 'verified' as const : 'hallucination' as const };
+    });
+    setAuditClaims(next);
+    const focus = next.find((c) => c.status === 'hallucination') ?? next[0];
+    if (focus?.result) {
+      setSelected(focus.tooth);
+      v.select(focus.tooth);
+      v.showClearanceAudit(focus.result);
+    }
+    setAuditing(false);
+  }, [caseId, tenX]);
+
+  const focusAuditClaim = useCallback((claim: AuditClaim) => {
+    const v = viewerRef.current;
+    if (!v || !claim.result) return;
+    setSelected(claim.tooth);
+    setAlphas((a) => ({ ...a, 3: 0.12, 1: 0.95, 4: 1.0, 7: 0.08 }));
+    v.select(claim.tooth);
+    v.showClearanceAudit(claim.result);
+  }, []);
+
   const loadLocalDspk = useCallback(async (file: File) => {
     const v = viewerRef.current;
     if (!v || !file.name.toLowerCase().endsWith('.dspk')) return;
     const blobUrl = URL.createObjectURL(file);
     try {
       setLoading(true);
+      setTenX(false); setSplit(false); setVariant('full'); setBench(null);
+      setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
       await v.loadCase({
         fullUrl: blobUrl, prunedUrl: blobUrl, proxyUrl: spec.proxyUrl,
         fullBytes: file.size, prunedBytes: file.size,
@@ -563,9 +682,13 @@ export default function App() {
       );
     }
     list.push({
-      id: 'compress-audit', fdi: 0, title: 'Full vs Pruned Fidelity Check', subtitle: '同帧分屏与浏览器像素回读',
-      status: 'info', metric: ratio ? `${ratio.toFixed(2)}×` : '—',
-      evidence: 'Full 与 Pruned 同驻显存，可用同一帧分屏对比；PSNR / MAE 由浏览器回读像素现场计算，不预写数值。',
+      id: 'compress-audit', fdi: 0,
+      title: tenX ? 'Uniform vs Anatomy-Aware 10×' : 'Full vs Pruned Fidelity Check',
+      subtitle: tenX ? '同字节预算的解剖感知消融对决' : '同帧分屏与浏览器像素回读',
+      status: 'info', metric: tenX ? 'EQUAL BYTES' : ratio ? `${ratio.toFixed(2)}×` : '—',
+      evidence: tenX
+        ? '两侧均为 11,100 splats / 322,708 B。Uniform 每 10 取 1；Anatomy-Aware 保留 L4 6,000、L1 4,000、L3 800、L7 300，并按各层倍率补偿切向尺度。PSNR / MAE 仍由浏览器实时回读。'
+        : 'Full 与 Pruned 同驻显存，可用同一帧分屏对比；PSNR / MAE 由浏览器回读像素现场计算，不预写数值。',
       action: () => { setSplit(true); setRailTab('audit'); },
     });
 
@@ -581,7 +704,7 @@ export default function App() {
       }
     });
     return list;
-  }, [caseId, focusCanal, goPreset, meta, mbText, ratio, report, spec, switchCase]);
+  }, [caseId, focusCanal, goPreset, meta, mbText, ratio, report, spec, switchCase, tenX]);
 
   const filteredFindings = useMemo(() => {
     const q = findingFilter.trim().toLowerCase();
@@ -591,7 +714,7 @@ export default function App() {
     );
   }, [findingFilter, findings]);
 
-  const caseBadge = customAssetName ? `LOCAL .DSPK · ${customAssetName}` : spec.badge;
+  const caseBadge = customAssetName ? `LOCAL .DSPK · ${customAssetName}` : tenX ? '10× COMPRESSION ABLATION · CASE 03' : spec.badge;
 
   // ---------------------------------------------------------------- render
 
@@ -649,14 +772,25 @@ export default function App() {
         <i className="rib-div" />
 
         <div className="rib-group">
-          <button type="button" className={'rib-btn' + (variant === 'full' && !split ? ' on' : '')} onClick={() => { setVariant('full'); setSplit(false); }}>
+          <button type="button" className={'rib-btn' + (variant === 'full' && !split ? ' on' : '')} disabled={tenX} onClick={() => { setVariant('full'); setSplit(false); }}>
             <Icon name="layers" /><span>Full 完整</span>
           </button>
-          <button type="button" className={'rib-btn' + (variant === 'pruned' && !split ? ' on' : '')} onClick={() => { setVariant('pruned'); setSplit(false); }}>
+          <button type="button" className={'rib-btn' + (variant === 'pruned' && !split ? ' on' : '')} disabled={tenX} onClick={() => { setVariant('pruned'); setSplit(false); }}>
             <Icon name="layers" /><span>Pruned 剪枝</span>
           </button>
-          <button type="button" className={'rib-btn' + (split ? ' on' : '')} onClick={() => setSplit((s) => !s)}>
+          <button type="button" className={'rib-btn' + (split ? ' on' : '')} disabled={tenX} onClick={() => setSplit((s) => !s)}>
             <Icon name="split" /><span>同屏对比</span>
+          </button>
+          <button
+            type="button"
+            className={'rib-btn' + (tenX ? ' on' : '')}
+            title={tenX ? '退出 10× 对决并恢复完整 Case 03' : '自动切换 Case 03 并运行同预算对决'}
+            onClick={toggleTenX}
+          >
+            <Icon name="split" /><span>10× 解剖压缩</span>
+          </button>
+          <button type="button" className={'rib-btn' + (heatmap ? ' on' : '')} onClick={() => setHeatmap((h) => !h)}>
+            <Icon name="heat" /><span>重要性热力图</span>
           </button>
           <button type="button" className={'rib-btn' + (benching ? ' on' : '')} onClick={runBench} disabled={benching || !report}>
             <Icon name="bench" /><span>{benching ? '审计中…' : 'PSNR 审计'}</span>
@@ -783,14 +917,28 @@ export default function App() {
           {split && (
             <>
               <div className="split-rule" />
-              <span className="split-tag l">FULL · {fmtInt(report?.full.splats ?? 0)} splats ({fmtMB(report?.full.bytes ?? 0)} MB)</span>
-              <span className="split-tag r">PRUNED ({ratio.toFixed(2)}×) · {fmtInt(report?.pruned.splats ?? 0)} splats ({fmtMB(report?.pruned.bytes ?? 0)} MB)</span>
+              <span className="split-tag l">
+                {tenX ? `UNIFORM 10× · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)` : `FULL · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)`}
+              </span>
+              <span className="split-tag r">
+                {tenX ? `ANATOMY-AWARE 10× · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)` : `PRUNED (${ratio.toFixed(2)}×) · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)`}
+              </span>
             </>
           )}
 
           {dragOver && (
             <div className="drop-mask">
               <div>松开鼠标，立即在本地浏览器加载 <code>.dspk</code> 高斯模型（数据不离本机）</div>
+            </div>
+          )}
+
+          {heatmap && (
+            <div className="heatmap-legend">
+              <b>CLINICAL IMPORTANCE</b>
+              <span><i style={{ background: '#ff3b30' }} />L4 神经管</span>
+              <span><i style={{ background: '#f59e0b' }} />L1 牙体</span>
+              <span><i style={{ background: '#2563eb' }} />L3 牙槽骨</span>
+              <span><i style={{ background: '#38bdf8' }} />L7 上颌窦</span>
             </div>
           )}
 
@@ -892,6 +1040,45 @@ export default function App() {
             </div>
 
             <div className={'insp-pane' + (railTab === 'findings' ? ' active' : '')}>
+              {caseId === 'B' && (
+                <div className="evidence-auditor">
+                  <div className="auditor-head">
+                    <span><Icon name="audit" />AI REPORT AUDIT</span>
+                    <b>BIBM × ToothXpert</b>
+                  </div>
+                  <p>模拟 Dental VLM 报告；点击后从当前完整 DSPK 点云现场复算 FDI→神经管最小中心距。容差 0.30 mm，不预写判定。</p>
+                  <button type="button" className="tbar-btn primary audit-run" disabled={auditing || tenX} onClick={runGeometricAudit}>
+                    {auditing ? '正在遍历三维点对…' : 'Run 3D Geometric Audit'}
+                  </button>
+                  {tenX && <div className="auditor-note">当前为 10× 对决。退出对决后，审计会使用 111,000 个完整贴面高斯。</div>}
+                  <div className="audit-claims">
+                    {auditClaims.map((c) => {
+                      const r = c.result;
+                      const delta = r ? Math.abs(c.claimed - r.distance) : null;
+                      const cls = c.status === 'verified' ? 'verified' : c.status === 'hallucination' ? 'caught' : 'pending';
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className={'audit-claim ' + cls}
+                          disabled={!r || tenX}
+                          onClick={() => focusAuditClaim(c)}
+                        >
+                          <span className="audit-claim-top"><b>{c.title}</b><em>{!r ? 'PENDING' : c.status === 'verified' ? 'VERIFIED' : 'HALLUCINATION CAUGHT'}</em></span>
+                          <span className="audit-claim-text">{c.claim}</span>
+                          {r && (
+                            <span className="audit-claim-result">
+                              3DGS 实测 {r.distance.toFixed(2)} mm · Δ {delta!.toFixed(2)} mm<br />
+                              证据绑定句：FDI #{c.tooth} → L4 最小贴面中心距 = {r.distance.toFixed(2)} mm（几何量，不构成临床诊断）。
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <input
                 type="search"
                 className="finding-search"
@@ -1012,12 +1199,12 @@ export default function App() {
             <div className={'insp-pane' + (railTab === 'audit' ? ' active' : '')}>
               <div className="sec-head"><span>COMPRESSION &amp; FIDELITY BENCHMARK</span></div>
               <dl className="kv-mini">
-                <dt>full</dt>
+                <dt>{tenX ? 'uniform' : 'full'}</dt>
                 <dd>{report ? `${fmtInt(report.full.splats)} splats · ${fmtMB(report.full.bytes)} MB · SH${report.full.sh_degree}` : '—'}</dd>
-                <dt>pruned</dt>
+                <dt>{tenX ? 'anatomy' : 'pruned'}</dt>
                 <dd>{report ? `${fmtInt(report.pruned.splats)} splats · ${fmtMB(report.pruned.bytes)} MB · SH${report.pruned.sh_degree}` : '—'}</dd>
                 <dt>ratio</dt>
-                <dd>{ratio ? `${ratio.toFixed(2)}× smaller` : '—'}</dd>
+                <dd>{tenX ? '1.00× · equal bytes' : ratio ? `${ratio.toFixed(2)}× smaller` : '—'}</dd>
                 <dt>coverage gap</dt>
                 <dd>
                   {report && report.compression_fidelity_mm.coverage_gap_mean != null
@@ -1028,11 +1215,19 @@ export default function App() {
                 <dd>{bench ? `${bench.psnr} dB · 掩膜内 ${bench.psnrInMask} dB · MAE ${bench.mae}` : '—'}</dd>
               </dl>
 
+              {tenX && ablation && (
+                <div className="ablation-stats">
+                  <div><b>UNIFORM 10×</b><span>L4 800 · L1 6,500 · L3 3,000 · L7 800</span></div>
+                  <div><b>ANATOMY-AWARE 10×</b><span>L4 6,000 · L1 4,000 · L3 800 · L7 300</span></div>
+                  <small>L4 保留 75%；L3/L7 合计 1,100。切向尺度按各层 √k 补偿，法向厚度不变。</small>
+                </div>
+              )}
+
               <div className="quick-row">
                 <button type="button" className="tbar-btn primary" onClick={runBench} disabled={benching || !report}>
                   {benching ? '回读像素中…' : '跑一次 bench(384²)'}
                 </button>
-                <button type="button" className={'tbar-btn' + (split ? ' on' : '')} onClick={() => setSplit((s) => !s)}>
+                <button type="button" className={'tbar-btn' + (split ? ' on' : '')} disabled={tenX} onClick={() => setSplit((s) => !s)}>
                   同帧分屏
                 </button>
               </div>

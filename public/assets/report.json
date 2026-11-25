@@ -456,5 +456,64 @@
         }
       }
     }
+  },
+  "compression_ablation": {
+    "source_scene": "sceneB_cbct",
+    "generated_by": "tools/build-anatomy-10x.mjs",
+    "budget_rule": "equal count, stride, metadata length and bbox; both 11,100 splats / 322,708 bytes",
+    "base": {
+      "file": "public/assets/sceneB_dentvoxel_full.dspk",
+      "bytes": 3219808,
+      "splats": 111000,
+      "sha256": "85ce0f43dec13de2acae580162544da9d1105e6963a65773867362bca0b0f395"
+    },
+    "uniform": {
+      "file": "public/assets/sceneB_10x_uniform.dspk",
+      "bytes": 322708,
+      "splats": 11100,
+      "sh_degree": 1,
+      "bytes_per_splat": 29,
+      "mb": 0.31,
+      "sha256": "2e8daadbb3cd2690d6d94c901cf00a3cded969561a4e1ae770181c0f4f0ea9f0",
+      "layer_counts": {
+        "1": 6500,
+        "3": 3000,
+        "4": 800,
+        "7": 800
+      },
+      "method": "every 10th record",
+      "layer_retention": {
+        "1": 0.1,
+        "3": 0.1,
+        "4": 0.1,
+        "7": 0.1
+      },
+      "tangential_scale": "sqrt(10)",
+      "normal_scale": "unchanged"
+    },
+    "anatomy": {
+      "file": "public/assets/sceneB_10x_anatomy.dspk",
+      "bytes": 322708,
+      "splats": 11100,
+      "sh_degree": 1,
+      "bytes_per_splat": 29,
+      "mb": 0.31,
+      "sha256": "4d6873c8b96ea545dfb4f4b59ceb4fcc2021284d4d8fb584ba4ef12550b75986",
+      "layer_counts": {
+        "1": 4000,
+        "3": 800,
+        "4": 6000,
+        "7": 300
+      },
+      "method": "layer-stratified clinical budget",
+      "layer_retention": {
+        "1": 0.06153846153846154,
+        "3": 0.02666666666666667,
+        "4": 0.75,
+        "7": 0.0375
+      },
+      "tangential_scale": "sqrt(layer parent count / layer kept count)",
+      "normal_scale": "unchanged"
+    }
   }
 }

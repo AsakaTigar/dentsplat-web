@@ -39,6 +39,18 @@ export type Stats = {
   bytes: number; gpu: string;
 };
 
+export type ClearanceAudit = {
+  fdi: number;
+  targetLayer: number;
+  distance: number;
+  toothIndex: number;
+  targetIndex: number;
+  toothCount: number;
+  targetCount: number;
+  a: [number, number, number];
+  b: [number, number, number];
+};
+
 export type CaseAsset = {
   fullUrl: string; prunedUrl: string; proxyUrl: string;
   fullBytes: number; prunedBytes: number;
@@ -133,6 +145,7 @@ export class DentSplatViewer {
   /** Public for the automated end-to-end check; the tap sequence that fills it is user-driven. */
   measurePts: THREE.Vector3[] = [];
   private measureGroup = new THREE.Group();
+  private auditGroup = new THREE.Group();
   private gizmo = new THREE.Group();
   private wireRoot: THREE.Group | null = null;
   private disposed = false;
@@ -167,7 +180,7 @@ export class DentSplatViewer {
       const name = metal ? metal[1] : (named.length ? named : parts).sort((a, b) => b.length - a.length)[0];
       this.gpu = (name || raw).trim().slice(0, 40);
     }
-    this.scene.add(this.caseGroup, this.measureGroup, this.gizmo);
+    this.scene.add(this.caseGroup, this.measureGroup, this.auditGroup, this.gizmo);
     this.attachInput();
     this.resize();
     this.loop();
@@ -265,6 +278,7 @@ export class DentSplatViewer {
     }
     this.caseGroup.clear();
     this.layer = null; this.layerAlt = null; this.proxy = null;
+    this.clearAudit();
     this.clearMeasure();
   }
 
@@ -446,6 +460,98 @@ export class DentSplatViewer {
     this.measurePts = [];
   }
 
+  /** Exact nearest-centre audit between one FDI tooth and one anatomical layer in the full packet. */
+  auditClearance(fdi: number, targetLayer: number): ClearanceAudit | null {
+    const layer = this.layer;
+    if (!layer) return null;
+    const cloud = layer.cloud, centers = layer.centers;
+    const misc = cloud.misc;
+    const toothIdx: number[] = [], targetIdx: number[] = [];
+    for (let i = 0; i < cloud.count; i++) {
+      const f = misc[i * 4 + 1], l = misc[i * 4 + 2];
+      if (f === fdi) toothIdx.push(i);
+      if (l === targetLayer) targetIdx.push(i);
+    }
+    if (!toothIdx.length || !targetIdx.length) return null;
+
+    const cell = 1.0; // millimetres; the source packet's typical nearest spacing is 0.3-0.6 mm
+    const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
+    const grid = new Map<string, number[]>();
+    for (const j of targetIdx) {
+      const k = key(Math.floor(centers[j * 3] / cell), Math.floor(centers[j * 3 + 1] / cell), Math.floor(centers[j * 3 + 2] / cell));
+      const a = grid.get(k); if (a) a.push(j); else grid.set(k, [j]);
+    }
+
+    let best = Infinity, bestI = -1, bestJ = -1;
+    for (const i of toothIdx) {
+      const x = centers[i * 3], y = centers[i * 3 + 1], z = centers[i * 3 + 2];
+      const cx = Math.floor(x / cell), cy = Math.floor(y / cell), cz = Math.floor(z / cell);
+      for (let r = 0; r < 64; r++) {
+        if (best < Infinity && (r - 1) * cell > best) break;
+        for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) for (let dz = -r; dz <= r; dz++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) !== r) continue;
+          const a = grid.get(key(cx + dx, cy + dy, cz + dz));
+          if (!a) continue;
+          for (const j of a) {
+            const ddx = centers[j * 3] - x, ddy = centers[j * 3 + 1] - y, ddz = centers[j * 3 + 2] - z;
+            const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
+            if (d2 < best) { best = d2; bestI = i; bestJ = j; }
+          }
+        }
+      }
+    }
+    if (bestI < 0 || bestJ < 0) return null;
+    return {
+      fdi, targetLayer, distance: Math.sqrt(best), toothIndex: bestI, targetIndex: bestJ,
+      toothCount: toothIdx.length, targetCount: targetIdx.length,
+      a: [centers[bestI * 3], centers[bestI * 3 + 1], centers[bestI * 3 + 2]],
+      b: [centers[bestJ * 3], centers[bestJ * 3 + 1], centers[bestJ * 3 + 2]],
+    };
+  }
+
+  /** Draw the audited closest pair and fly to it; never derives the verdict from this drawing. */
+  showClearanceAudit(audit: ClearanceAudit) {
+    this.clearAudit();
+    const a = new THREE.Vector3(...audit.a), b = new THREE.Vector3(...audit.b);
+    const mid = a.clone().lerp(b, 0.5), dir = b.clone().sub(a);
+    const len = dir.length();
+    if (len > 1e-5) {
+      const cyl = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.28, 0.28, len, 10, 1, true),
+        new THREE.MeshBasicMaterial({ color: 0x22d3ee, depthTest: false, transparent: true, opacity: 0.95 }),
+      );
+      cyl.position.copy(mid);
+      cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+      cyl.renderOrder = 950;
+      this.auditGroup.add(cyl);
+    }
+    for (const [p, color] of [[a, 0xf97316], [b, 0x22d3ee]] as const) {
+      const dot = new THREE.Mesh(
+        new THREE.SphereGeometry(1.15, 12, 8),
+        new THREE.MeshBasicMaterial({ color, depthTest: false }),
+      );
+      dot.position.copy(p);
+      dot.renderOrder = 960;
+      this.auditGroup.add(dot);
+    }
+    const label = this.makeLabel(`${audit.distance.toFixed(2)} mm`);
+    label.position.copy(mid).add(new THREE.Vector3(0, 3.2, 0));
+    label.renderOrder = 1000;
+    this.auditGroup.add(label);
+    this.autoRotate = false;
+    this.goal = { theta: -0.9, phi: -0.18, radius: 46, target: mid };
+  }
+
+  clearAudit() {
+    for (const o of [...this.auditGroup.children]) {
+      this.auditGroup.remove(o);
+      const anyO = o as THREE.Mesh & THREE.Sprite;
+      anyO.geometry?.dispose?.();
+      (anyO.material as THREE.SpriteMaterial | undefined)?.map?.dispose?.();
+      disposeMaterial(anyO.material);
+    }
+  }
+
   // ------------------------------------------------------------------ state
 
   activeLayer(): SplatLayer | null { return this.variant === 'full' ? this.layer : this.layerAlt; }
@@ -461,6 +567,7 @@ export class DentSplatViewer {
       l.u.uOutline.value = this.outline;
       l.u.uShowLesions.value = this.showLesions ? 1 : 0;
       l.u.uOpacityScale.value = this.opacity;
+      l.u.uVisMode.value = this.visMode;
       l.setClipPlanes(this.clipPlanes(), this.clip.band, this.clip.cap);
     }
     this.updateGizmo();
@@ -468,6 +575,7 @@ export class DentSplatViewer {
 
   jawGap = 0; sheen = 1; outline = 0.9; showLesions = true; opacity = 1; isolateTooth = false;
   hiddenTeeth: number[] = [];
+  visMode: 0 | 1 = 0;
   /** Per-anatomical-layer transparency (the four CBCT sliders live here). */
   layerAlphas: Record<number, number> = {};
 
@@ -586,6 +694,11 @@ export class DentSplatViewer {
   setVariant(v: 'full' | 'pruned', split = this.splitCompare) {
     this.variant = v;
     this.splitCompare = split;
+  }
+
+  setVisMode(v: 0 | 1) {
+    this.visMode = v;
+    for (const l of [this.layer, this.layerAlt]) if (l) l.u.uVisMode.value = v;
   }
 
   setWireframe(on: boolean) {

@@ -149,6 +149,7 @@ export class SplatLayer {
         uLesionColor: { value: new THREE.Color(0xf97316) },
         uOpacityScale: { value: opts.opacityScale ?? 1 },
         uDebug: { value: 0 },
+        uVisMode: { value: 0 },
         uOutline: { value: 0.9 },
         uShowLesions: { value: 1 },
       },

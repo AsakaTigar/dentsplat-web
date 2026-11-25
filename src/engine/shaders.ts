@@ -45,6 +45,7 @@ uniform int uCapEnable;
 uniform float uLayerAlpha[9];
 uniform vec3 uCapTint;
 uniform int uDebug;
+uniform int uVisMode;       // 0 normal anatomy, 1 clinical-importance heat map
 
 out vec2 vQuadCoord;
 out vec3 vColor;
@@ -217,6 +218,16 @@ void main() {
       : layerId == 2 || layerId == 3 ? vec3(0.78, 0.66, 0.50)
       : uCapTint;
     col = mix(col, cut, clamp(capW * 1.4, 0.0, 1.0));
+  }
+  if (uVisMode == 1) {
+    // Research-only clinical importance map. It visualises the allocation rule used by the
+    // anatomy-aware 10x packet: nerve first, then teeth/root tips, then low-priority cortex/sinus.
+    vec3 heat = layerId == 4 ? vec3(1.00, 0.10, 0.04)
+      : layerId == 1 || layerId == 2 ? vec3(1.00, 0.62, 0.06)
+      : layerId == 3 ? vec3(0.05, 0.16, 0.48)
+      : layerId == 7 ? vec3(0.04, 0.58, 0.88)
+      : vec3(0.22, 0.82, 0.55);
+    col = mix(col, heat, 0.88);
   }
   vColor = max(col, vec3(0.0)) * uExposure;
   vAlpha = (aMisc.x / 255.0) * uLayerAlpha[min(layerId, 8)];

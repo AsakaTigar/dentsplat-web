@@ -399,3 +399,49 @@ input[type=range] { width: 100%; accent-color: var(--clinical); height: 15px; cu
 .cr-tag.cbct { background: rgba(250, 204, 21, 0.14); color: #fde047; }
 .cr-tag.base { background: rgba(148, 163, 184, 0.14); color: #cbd5e1; }
 .case-empty { padding: 8px; font-size: 11px; color: var(--muted); text-align: center; }
+
+/* Research heat map and live evidence audit */
+.heatmap-legend {
+  position: absolute; top: 52px; right: 12px; z-index: 4;
+  display: grid; gap: 4px; padding: 8px 10px; border-radius: 5px;
+  background: rgba(9, 13, 20, 0.86); border: 1px solid var(--border-hi);
+  font: 10px/1.2 ui-monospace, Menlo, Consolas, monospace; color: #dbeafe;
+  pointer-events: none;
+}
+.heatmap-legend b { color: #f8fafc; letter-spacing: .05em; }
+.heatmap-legend span { display: flex; align-items: center; gap: 6px; }
+.heatmap-legend i { width: 8px; height: 8px; border-radius: 2px; }
+
+.evidence-auditor {
+  display: grid; gap: 7px; padding: 9px; margin-bottom: 9px; border-radius: 5px;
+  background: linear-gradient(135deg, rgba(14, 116, 144, .13), rgba(15, 23, 42, .35));
+  border: 1px solid rgba(56, 189, 248, .34);
+}
+.auditor-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.auditor-head span { display: inline-flex; align-items: center; gap: 6px; color: #e0f2fe; font-weight: 650; font-size: 11.5px; }
+.auditor-head b { color: #67e8f9; font: 600 9.5px/1 ui-monospace, Menlo, Consolas, monospace; }
+.evidence-auditor p { margin: 0; color: #a5b4c5; font-size: 10.5px; line-height: 1.45; }
+.audit-run { width: 100%; justify-content: center; }
+.auditor-note { padding: 6px 7px; border-radius: 4px; background: rgba(250, 204, 21, .08); color: #fde68a; font-size: 10.5px; }
+.audit-claims { display: grid; gap: 5px; }
+.audit-claim {
+  display: grid; gap: 3px; width: 100%; padding: 7px 8px; border-radius: 4px; text-align: left;
+  background: #11151c; border: 1px solid var(--border); cursor: pointer;
+}
+.audit-claim:disabled { cursor: default; }
+.audit-claim-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.audit-claim-top b { color: #dbeafe; font-size: 10.5px; font-weight: 600; }
+.audit-claim-top em {
+  font: 700 8.5px/1 ui-monospace, Menlo, Consolas, monospace; font-style: normal;
+  padding: 3px 5px; border-radius: 3px; background: #26303d; color: #cbd5e1;
+}
+.audit-claim.verified .audit-claim-top em { background: rgba(34, 197, 94, .16); color: #86efac; }
+.audit-claim.caught { border-color: rgba(248, 113, 113, .48); }
+.audit-claim.caught .audit-claim-top em { background: rgba(239, 68, 68, .18); color: #fca5a5; }
+.audit-claim-text { color: #cbd5e1; font-size: 10.5px; line-height: 1.4; }
+.audit-claim-result { color: #9fb3c8; font-size: 9.5px; line-height: 1.45; font-family: ui-monospace, Menlo, Consolas, monospace; }
+
+.ablation-stats { display: grid; gap: 5px; margin: 7px 0; padding: 8px; border-radius: 4px; background: #11151c; border: 1px solid var(--border); }
+.ablation-stats div { display: grid; gap: 2px; }
+.ablation-stats b { color: #e2e8f0; font-size: 10.5px; }
+.ablation-stats span, .ablation-stats small { color: #94a3b8; font: 9.5px/1.35 ui-monospace, Menlo, Consolas, monospace; }
