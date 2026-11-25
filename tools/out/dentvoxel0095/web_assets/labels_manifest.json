@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "n_splats": 122771,
+  "ply": "cbct_layers.ply",
+  "ply_sha256": "6bfff55fe2a745527220e6b0f52e98ed5ad1da3639f07cba049f3ddce907fd49",
+  "ply_bytes": 2210192,
+  "ply_attributes": [
+    "x",
+    "y",
+    "z",
+    "red",
+    "green",
+    "blue",
+    "alpha",
+    "fdi",
+    "layer"
+  ],
+  "kind": "point_cloud",
+  "coordinate_system": "glTF_Y_up",
+  "unit": "mm",
+  "fdi_labels_bin": {
+    "file": "fdi_labels.bin",
+    "dtype": "uint8",
+    "bytes": 122771,
+    "row_order": "identical to cbct_layers.ply vertex rows"
+  },
+  "layer_labels_bin": {
+    "file": "layer_labels.bin",
+    "dtype": "uint8",
+    "bytes": 122771,
+    "row_order": "identical to cbct_layers.ply vertex rows"
+  },
+  "fdi_cardinality": 33,
+  "fdi_counts": {
+    "0": 97015,
+    "11": 791,
+    "12": 649,
+    "13": 949,
+    "14": 688,
+    "15": 635,
+    "16": 1203,
+    "17": 1058,
+    "18": 898,
+    "21": 818,
+    "22": 645,
+    "23": 781,
+    "24": 743,
+    "25": 601,
+    "26": 1206,
+    "27": 1027,
+    "28": 906,
+    "31": 434,
+    "32": 512,
+    "33": 823,
+    "34": 648,
+    "35": 582,
+    "36": 1143,
+    "37": 1020,
+    "38": 965,
+    "41": 409,
+    "42": 544,
+    "43": 836,
+    "44": 662,
+    "45": 572,
+    "46": 1060,
+    "47": 1052,
+    "48": 896
+  },
+  "layer_cardinality": 4,
+  "layer_counts": {
+    "teeth": 25756,
+    "alveolar": 82572,
+    "nerve": 1870,
+    "sinus": 12573
+  },
+  "layer_encoding": {
+    "gingiva": 0,
+    "enamel": 1,
+    "root": 2,
+    "alveolar": 3,
+    "nerve": 4,
+    "other": 5,
+    "pulp": 6,
+    "sinus": 7,
+    "restoration": 8
+  },
+  "layer_encoding_cbct": {
+    "0": "gingiva",
+    "1": "teeth",
+    "2": "root",
+    "3": "alveolar",
+    "4": "nerve",
+    "5": "other",
+    "6": "pulp",
+    "7": "sinus",
+    "8": "restoration"
+  },
+  "schema": "tf3",
+  "per_layer": {
+    "alveolar": {
+      "voxels": 2779956,
+      "candidate_voxels": 2779956,
+      "points": 82572,
+      "hu_window": [
+        150.0,
+        1850.0
+      ],
+      "fdi_labeled_points": 0,
+      "fdi_ids": []
+    },
+    "teeth": {
+      "voxels": 763523,
+      "candidate_voxels": 763523,
+      "points": 25756,
+      "hu_window": [
+        1200.0,
+        3400.0
+      ],
+      "fdi_labeled_points": 25756,
+      "fdi_ids": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48
+      ]
+    },
+    "nerve": {
+      "voxels": 24912,
+      "candidate_voxels": 24912,
+      "points": 1870,
+      "hu_window": [
+        -450.0,
+        60.0
+      ],
+      "fdi_labeled_points": 0,
+      "fdi_ids": []
+    },
+    "sinus": {
+      "voxels": 953648,
+      "candidate_voxels": 953648,
+      "points": 12573,
+      "hu_window": [
+        -1000.0,
+        -400.0
+      ],
+      "fdi_labeled_points": 0,
+      "fdi_ids": []
+    }
+  },
+  "spacing_mm": 0.8,
+  "surface_only": true,
+  "seed": 1337,
+  "arch": "both",
+  "sources": {
+    "labels": "C:\\Users\\AoduoLi\\Documents\\Qoder\\2026-11-25\\eb260dfb\\dentsplat\\tools\\out\\data\\labels_tf3_0095.nii.gz",
+    "image": "C:\\Users\\AoduoLi\\Documents\\Qoder\\2026-11-25\\eb260dfb\\dentsplat\\tools\\out\\data\\img0095.nii.gz"
+  },
+  "label_id_reference": "https://ditto.ing.unimore.it/toothfairy3/"
+}

@@ -1,0 +1,62 @@
+{
+ "bundle": "local dist build 2026-11-25 (post DentVoxel swap)",
+ "dspk": "assets/sceneB_dentvoxel_full.dspk",
+ "job": "bench",
+ "kind": "dentvoxel-0095-real-cbct",
+ "sha": "c4f24d6fff66ef0e8c8a0c3c833a6cd90580610aca189f82bfc7812fce0db733",
+ "ua": "Qoder 0.5.18 / Chrome 150 / Electron 43.8.4, Windows 10.0.26300",
+ "wallMs": null,
+ "res": {
+  "caseId": "B",
+  "agrees": true,
+  "busyAfter": false,
+  "settleFrames": null,
+  "settled": true,
+  "before": null,
+  "after": null,
+  "audit": null,
+  "stats": null,
+  "dtLabels": null,
+  "direct": {
+   "psnr": 24.25,
+   "psnrInMask": 24.12,
+   "mae": 0.0381,
+   "covered": 0.9712,
+   "identicalFraction": 0.03,
+   "errorInTop1Percent": 0.327,
+   "maxDiff": 197,
+   "meanFull": [
+    144,
+    139.3,
+    127.5
+   ],
+   "meanPruned": [
+    146.8,
+    142.1,
+    130.1
+   ],
+   "samples": 442368,
+   "psnrSelf": 999,
+   "identicalSelfFraction": 1,
+   "control": {
+    "psnr": 999,
+    "psnrInMask": 999,
+    "mae": 0,
+    "maxDiff": 0,
+    "covered": 0.9661,
+    "identicalFraction": 1,
+    "errorInTop1Percent": 0,
+    "meanFull": [
+     144,
+     139.3,
+     127.5
+    ],
+    "meanPruned": [
+     144,
+     139.3,
+     127.5
+    ]
+   }
+  }
+ }
+}

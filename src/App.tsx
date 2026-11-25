@@ -315,7 +315,7 @@ export default function App() {
             because the STL carries no texture; Scene B is still synthetic. One badge that says which,
             rather than a single label that is wrong for one of the two. */}
         <span className={'badge' + (report ? '' : ' mode')}>
-          {caseId === 'A' ? 'REAL SCAN · CC BY 4.0' : 'SYNTHETIC PREVIEW'}
+          {caseId === 'A' ? 'REAL SCAN · CC BY 4.0' : 'REAL CBCT · CC BY 4.0'}
         </span>
       </header>
 

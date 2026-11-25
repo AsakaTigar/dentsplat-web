@@ -54,12 +54,11 @@ const IOS_LAYERS: LayerSpec[] = [
 ];
 
 const CBCT_LAYERS: LayerSpec[] = [
-  { id: 3, key: 'alveolar', cn: '牙槽骨', en: 'Alveolar bone', color: '#cec4b0', alpha: 0.55, note: '皮质骨 + 松质骨壳' },
+  // 0.35 rather than the old 0.55: 82k bone splats at 0.8 mm stack into fog long before they read as bone.
+  { id: 3, key: 'alveolar', cn: '牙槽骨（上颌 + 下颌）', en: 'Alveolar bone', color: '#cec4b0', alpha: 0.35, note: 'DentVoxel 的 maxilla / mandible 两块' },
   { id: 1, key: 'teeth', cn: '牙体 · 牙根', en: 'Teeth + roots', color: '#eee8d8', alpha: 1 },
-  { id: 6, key: 'pulp', cn: '髓腔 · 根管', en: 'Pulp · canals', color: '#e2565f', alpha: 1, note: '暖红高亮' },
-  { id: 4, key: 'nerve', cn: '下牙槽神经管', en: 'IAN canal', color: '#facc3c', alpha: 1, note: '荧光黄，智齿关系判定层' },
+  { id: 4, key: 'nerve', cn: '下颌神经管', en: 'Mandibular canal', color: '#facc3c', alpha: 1, note: '左右两条，智齿关系判定层' },
   { id: 7, key: 'sinus', cn: '上颌窦', en: 'Maxillary sinus', color: '#78a0d2', alpha: 0.35 },
-  { id: 8, key: 'restoration', cn: '修复体 / 种植体', en: 'Restoration · implant', color: '#bac4ce', alpha: 0.9 },
 ];
 
 export const CASES: CaseSpec[] = [
@@ -86,25 +85,34 @@ export const CASES: CaseSpec[] = [
   {
     id: 'B',
     nav: 'Case B',
-    title: 'CBCT 阻生智齿与神经管 · 合成体数据',
+    title: 'CBCT 阻生智齿与神经管 · DentVoxel 病例',
     modality: 'CBCT 锥形束 CT',
-    dataset: 'ToothFairy3 六层语义口径（合成体数据，非患者）',
-    datasetUrl: 'https://ditto.ing.unimore.it/toothfairy3/',
-    license: 'CC BY-NC-SA 4.0 · academic non-commercial',
+    dataset: 'DentVoxel v4 case 0095（figshare 31239889, CC BY 4.0）',
+    datasetUrl: 'https://figshare.com/articles/dataset/DentVoxel_a_fully_annotated_dental_CBCT_dataset_with_38_instance_anatomical_structures/31239889',
+    license: 'CC BY 4.0 · 允许署名改编与公开分发',
     blurb:
-      '按 ToothFairy3 的六层语义约定生成（牙体/牙槽骨/神经管/牙髓/修复体/上颌窦）。离线链路已在合成体' +
-      '数据上完整跑通：NIfTI → 六层 PLY + 标签 → .dspk，46 项断言、重跑逐字节相同。真实病例体数据、' +
-      'nnU-Net 推理与 0.3 mm 原始分辨率尚未接入。',
-    moneyShot: '拉动透明度滑块查看 48 牙与下牙槽神经管的几何关系——合成模型上的最近距离为 2.35 mm，' +
-      '仅作几何演示，不是临床测量。',
-    fullUrl: asset('sceneB_full.dspk'),
-    prunedUrl: asset('sceneB_pruned.dspk'),
-    proxyUrl: asset('proxy_B.glb'),
-    metaUrl: asset('meta_B.json'),
+      '真实患者 CBCT（440×440×344，0.3 mm 各向同性）。DentVoxel 的 39 类标注里，牙位直接就是 FDI 编号，' +
+      '左右下颌神经管与上颌窦各有独立标签；本库把它映射到渲染端的四个可调层（牙槽骨 / 牙体牙根 / 神经管 / 上颌窦）。' +
+      'DentVoxel 不含牙髓与修复体标签，所以这两层在这例里是空的。',
+    moneyShot: '拉动透明度滑块查看 38/48 与下颌神经管的真实几何关系——这一例是 100 例里两者最近的一例，' +
+      '距离由点云直接量出，不是临床结论。',
+    fullUrl: asset('sceneB_dentvoxel_full.dspk'),
+    prunedUrl: asset('sceneB_dentvoxel_pruned.dspk'),
+    proxyUrl: asset('proxy_B_dentvoxel.glb'),
+    metaUrl: asset('meta_B_dentvoxel.json'),
     layers: CBCT_LAYERS,
     presets: [
-      ...STANDARD_VIEWS,
-      { id: 'ian', label: '48–IAN 关系', sub: 'Wisdom-tooth / canal', theta: -58, phi: -16, radius: 54, target: [-19.5, -6.5, -12] },
+      // The DentVoxel FOV is a whole-head 13x10 cm volume (~125 mm wide), so the same radii that frame
+      // the 64 mm IOS arch leave the skull cropped; and the IAN preset targets the real right canal,
+      // next to FDI 38 (centroid [37.5, -8.4, -8.3] from tooth_meta_cbct.json), not the old fixture.
+      // Target the dentition, not the head's centroid: the FOV owns the whole mid-face, so a target of
+      // (0,0,0) frames the sinuses and leaves the teeth at the bottom edge.
+      { id: 'frontal', label: '正中咬合位', sub: 'Frontal / IC', theta: 0, phi: 9, radius: 150, target: [0, -1, 12] },
+      { id: 'left', label: '左侧位', sub: 'Left lateral', theta: 90, phi: 6, radius: 150, target: [0, -1, 12] },
+      { id: 'right', label: '右侧位', sub: 'Right lateral', theta: -90, phi: 6, radius: 150, target: [0, -1, 12] },
+      { id: 'upper', label: '上颌牙合面', sub: 'Maxillary occlusal', theta: 0, phi: 84, radius: 120, target: [0, -1, 12] },
+      { id: 'lower', label: '下颌牙合面', sub: 'Mandibular occlusal', theta: 0, phi: -84, radius: 120, target: [0, -1, 12] },
+      { id: 'ian', label: '38–神经管 关系', sub: 'Wisdom-tooth / canal', theta: -50, phi: -14, radius: 72, target: [30, -9, -9] },
     ],
   },
 ];

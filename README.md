@@ -98,5 +98,7 @@ MEASUREMENTS.md    每个数字的仪器、口径与反例
 - **Research Mode（不入库、不上线）**：Teeth3DS+ 的真实网格在 <https://osf.io/xctdy/>（单例样本 <https://osf.io/download/vr38s/>），
   协议 CC BY-NC-ND 4.0——可以本地跑通转换与论文实验，**不得**把衍生的 .dspk/.ply 提交到公开仓库或放到 Pages。
   `tools/obj_labels_to_assets.mjs` 就是为这条路准备的，输出固定写在 `tools/out/research/`（已 gitignore）。
-- **Scene B**：ToothFairy3 / ODIN2025 语义口径（MICCAI 2025，CC BY-NC-SA 4.0）；数据集需在 ditto.ing.unimore.it 登录后下载，仓库不含患者数据。
+- **Scene B（在售资产）**：DentVoxel v4 case 0095（<https://figshare.com/articles/dataset/DentVoxel_a_fully_annotated_dental_CBCT_dataset_with_38_instance_anatomical_structures/31239889>，CC BY 4.0）。
+  真实患者 CBCT，440×440×344 / 0.3 mm，39 类标注（牙位即 FDI，左右下颌神经管与上颌窦独立）；`pipeline/dentvoxel_to_tf3.py` 把它映射到渲染端的四层，`tools/ziprange.mjs` 只从 8.8 GB 的发布包里取这一例。
+- ToothFairy3 / ODIN2025 语义口径（CC BY-NC-SA 4.0）仍是手册里的对照，需要 ditto 账号；仓库不含任何患者原始数据。
 - 本仓库不包含上述数据集的原始文件；产物为合成资产。仅用于学术研究与演示。

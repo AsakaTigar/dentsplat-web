@@ -24,7 +24,12 @@ function readXyz(path) {
   if (headEnd < 0) throw new Error(`${path}: no end_header`);
   const head = buf.subarray(0, headEnd).toString('latin1');
   const n = Number(/element vertex (\d+)/.exec(head)?.[1]);
-  const stride = 3 * 4 + 4;
+  // The stride comes from the header, not from an assumption: the CBCT route writes 18 B per vertex
+  // (xyz + rgba + fdi + layer) while the IOS route writes 16 (xyz + rgba). A hard-coded 16 silently
+  // read the CBCT cloud as garbage.
+  const SIZE = { float: 4, float32: 4, uchar: 1, uint8: 1, int: 4, double: 8 };
+  const stride = [...head.matchAll(/property (\w+) (\w+)/g)].reduce((sum, m) => sum + (SIZE[m[1]] ?? 0), 0);
+  if (!stride) throw new Error(`${path}: no properties parsed from the header`);
   let o = headEnd + 'end_header'.length;
   while (buf[o] === 0x0a || buf[o] === 0x0d) o++;
   const out = new Float32Array(n * 3);

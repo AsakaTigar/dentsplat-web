@@ -41,33 +41,33 @@
     },
     "sceneB_cbct": {
       "full": {
-        "splats": 44738,
-        "bytes": 1301244,
-        "mb": 1.24,
-        "sh_degree": 1,
-        "bytes_per_splat": 29
-      },
-      "pruned": {
-        "splats": 18790,
-        "bytes": 379898,
-        "mb": 0.36,
+        "splats": 122771,
+        "bytes": 2456298,
+        "mb": 2.34,
         "sh_degree": 0,
         "bytes_per_splat": 20
       },
-      "bytes_ratio": 3.43,
+      "pruned": {
+        "splats": 40924,
+        "bytes": 819284,
+        "mb": 0.78,
+        "sh_degree": 0,
+        "bytes_per_splat": 20
+      },
+      "bytes_ratio": 3,
       "compression_fidelity_mm": {
-        "coverage_gap_mean": 0.349,
-        "coverage_gap_p95": 0.946,
-        "coverage_gap_max": 1.297,
+        "coverage_gap_mean": 0.701,
+        "coverage_gap_p95": 1.342,
+        "coverage_gap_max": 2.782,
         "kept_subset_of_original": true,
-        "sampled_pairs": 2632,
-        "note": "mean nearest-neighbour distance from removed splats to the retained set; PSNR is measured live in-browser (bench mode), not estimated"
+        "sampled_pairs": 81847,
+        "note": "every third splat retained, so this is a true subset: removed -> retained nearest distance. PSNR is measured live in-browser (bench mode)"
       },
       "proxy": {
-        "bytes": 224660,
-        "kb": 219.4,
-        "nodes": 33,
-        "triangles": 11512
+        "bytes": 321296,
+        "kb": 313.8,
+        "nodes": 32,
+        "triangles": 16894
       },
       "metrics": {
         "ian_48_min_mm": 2.35,
@@ -81,7 +81,8 @@
           -7.6,
           -11.1
         ]
-      }
+      },
+      "source_note": "DentVoxel v4 case 0095 (figshare 31239889, CC BY 4.0); ids remapped to the TF3 space by pipeline/dentvoxel_to_tf3.py"
     }
   }
 }

@@ -55,7 +55,8 @@ eq('hidden canvas context recorded', [A.canvas.screen, A.canvas.hidden, A.canvas
 // intra-oral scan that ships now. Every number below names which asset it belongs to.
 const bA = J('bench-A-final.json').res.direct;            // synthetic, retired 2026-11-25
 const bAreal = J('bench-A-poseidon.json').res.direct;     // Poseidon3D real scan, shipped
-const bB = J('bench-B-final.json').res.direct;
+const bB = J('bench-B-dentvoxel.json').res.direct;        // real DentVoxel case, shipped
+const bBold = J('bench-B-final.json').res.direct;        // synthetic B, retired with the walkthrough
 const bNaive = J('bench-A-full.json').res.direct;
 eq('synthetic A (retired) whole-frame PSNR', bA.psnr, 21.82);
 eq('synthetic A (retired) in-mask PSNR', bA.psnrInMask, 17.6);
@@ -65,10 +66,11 @@ eq('synthetic A (retired) content pixels', bA.covered, 0.3782);
 eq('synthetic A (retired) control bit-identical', [bA.psnrSelf, bA.identicalSelfFraction], [999, 1]);
 eq('synthetic A (retired) error concentration', bA.errorInTop1Percent, 0.393);
 eq('synthetic A (retired) mean colours', [bA.meanFull, bA.meanPruned], [[63, 50, 45.7], [60.5, 49, 44.4]]);
-eq('B whole-frame PSNR', bB.psnr, 24.28);
-eq('B in-mask PSNR', bB.psnrInMask, 23.72);
-eq('B error concentration', bB.errorInTop1Percent, 0.505);
-eq('B control bit-identical', [bB.psnrSelf, bB.identicalSelfFraction], [999, 1]);
+eq('B (DentVoxel) whole-frame PSNR', bB.psnr, 24.25);
+eq('B (DentVoxel) in-mask PSNR', bB.psnrInMask, 24.12);
+eq('B (DentVoxel) error concentration', bB.errorInTop1Percent, 0.327);
+eq('B (DentVoxel) control bit-identical', [bB.psnrSelf, bB.identicalSelfFraction], [999, 1]);
+eq('synthetic B (retired) whole-frame PSNR', bBold.psnr, 24.28);
 eq('naive A whole-frame (retired comparison)', bNaive.psnr, 17.19);
 eq('naive A in-mask (retired comparison)', bNaive.psnrInMask, 12.75);
 const naiveDeficitPct = Math.round((1 - bNaive.meanPruned[0] / bNaive.meanFull[0]) * 100);
@@ -110,9 +112,9 @@ const rep = JSON.parse(readFileSync('public/assets/report.json', 'utf8')).scenes
 // Scene A now ships the Poseidon3D scan: gap is pruned->full because the two packets are independent
 // surface samplings, not a subset relationship.
 eq('A gap now', Object.values(rep.sceneA_ios.compression_fidelity_mm).slice(0, 3), [0.178, 0.362, 1.138]);
-eq('B gap now', Object.values(rep.sceneB_cbct.compression_fidelity_mm).slice(0, 3), [0.349, 0.946, 1.297]);
-eq('ratios match the shipped packets', [rep.sceneA_ios.bytes_ratio, rep.sceneB_cbct.bytes_ratio], [5.86, 3.43]);
-eq('splat counts match the shipped packets', [rep.sceneA_ios.pruned.splats, rep.sceneB_cbct.pruned.splats], [10168, 18790]);
+eq('B gap now', Object.values(rep.sceneB_cbct.compression_fidelity_mm).slice(0, 3), [0.701, 1.342, 2.782]);
+eq('ratios match the shipped packets', [rep.sceneA_ios.bytes_ratio, rep.sceneB_cbct.bytes_ratio], [5.86, 3]);
+eq('splat counts match the shipped packets', [rep.sceneA_ios.pruned.splats, rep.sceneB_cbct.pruned.splats], [10168, 40924]);
 const naiveRep = JSON.parse(readFileSync('tools/out/assets-naive/report.json', 'utf8')).scenes;
 eq('A gap naive', Object.values(naiveRep.sceneA_ios.compression_fidelity_mm).slice(0, 3), [0.469, 1.359, 6.556]);
 eq('B gap naive', Object.values(naiveRep.sceneB_cbct.compression_fidelity_mm).slice(0, 3), [0.541, 3.389, 6.813]);
@@ -234,8 +236,8 @@ const A_full = rep.sceneA_ios.full, A_p = rep.sceneA_ios.pruned;
 const B_full = rep.sceneB_cbct.full, B_p = rep.sceneB_cbct.pruned;
 // (A and B higher up are the *perf captures*; the ratios live in report.json -- do not conflate them.)
 const ratioA = rep.sceneA_ios.bytes_ratio, ratioB = rep.sceneB_cbct.bytes_ratio;
-briefSays(`${A_full.bytes.toLocaleString('en-US')} → ${A_p.bytes.toLocaleString('en-US')} B（${ratioA}×）`);
-briefSays(`${B_full.bytes.toLocaleString('en-US')} → ${B_p.bytes.toLocaleString('en-US')} B（${ratioB}×）`);
+briefSays(`${A_full.bytes.toLocaleString('en-US')} → ${A_p.bytes.toLocaleString('en-US')} B（${ratioA.toFixed(2)}×）`);
+briefSays(`${B_full.bytes.toLocaleString('en-US')} → ${B_p.bytes.toLocaleString('en-US')} B（${ratioB.toFixed(2)}×）`);
 briefSays(`${A_full.splats.toLocaleString('en-US')} → ${A_p.splats.toLocaleString('en-US')}`);
 briefSays(`${B_full.splats.toLocaleString('en-US')} → ${B_p.splats.toLocaleString('en-US')}`);
 briefSays(`${bAreal.psnr.toFixed(2)} / ${bAreal.psnrInMask.toFixed(2)} dB`);
@@ -296,17 +298,18 @@ capSays('2.58 MB');
 // The walkthrough was cut before the asset swap, so its numbers are pinned to the synthetic build
 // explicitly instead of following report.json.
 const ratioA_video = 4.24, gA_video = [0.314, 0.691, 4.796];
+const ratioB_video = 3.43, gB_video = [0.349, 0.946, 1.297];
 capSays(`${ratioA_video}× 体积 · 整帧 ${bA.psnr.toFixed(2)} dB / 掩膜内 ${bA.psnrInMask.toFixed(2)} dB`);
-capSays(`覆盖间隙 ${gB[1]} mm`);
+capSays(`覆盖间隙 ${gB_video[1]} mm`);
 capSays(`${R.after.splats.toLocaleString('en-US')} splats`);
-cardSays(`${ratioA_video}× / ${ratioB}×`);
+cardSays(`${ratioA_video}× / ${ratioB_video}×`);
 cardSays(`${bA.psnr.toFixed(2)} / ${bA.psnrInMask.toFixed(2)} dB`);
 // The end card belongs to the walkthrough's build (pre-fix renderer), so it is pinned rather than
 // following bench-B-final.json.
 cardSays('25.10 / 22.03 dB');
 cardSays(`+${(bA.psnr - bNaive.psnr).toFixed(2)} / +${(bA.psnrInMask - bNaive.psnrInMask).toFixed(2)} dB`);
 cardSays(`${gA_video[0]} / ${gA_video[1]} mm`);
-cardSays(`${gB[0]} / ${gB[1]} mm`);
+cardSays(`${gB_video[0]} / ${gB_video[1]} mm`);
 const nets = [A, Ap, B, Bp].flatMap((p) => p.perf.map((r) => r.netGpuMs));
 cardSays(`${Math.min(...nets).toFixed(1)}–${Math.max(...nets).toFixed(1)} ms`);
 cardSays(`${naiveDeficitPct}% → ${compDeficitPct}%`);

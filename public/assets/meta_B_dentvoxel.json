@@ -1,0 +1,436 @@
+{
+  "name": "dentvoxel0095",
+  "kind": "cbct",
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "source": {
+    "ply": "tools/out/dentvoxel0095/web_assets/cbct_layers.ply",
+    "ply_sha256": "6bfff55fe2a745527220e6b0f52e98ed",
+    "ply_vertices": 122771,
+    "format": "format binary_little_endian 1.0",
+    "labels_manifest": "tools/out/dentvoxel0095/web_assets/labels_manifest.json",
+    "order": "as-written",
+    "spacing_mm": 0.8,
+    "appearance": {
+      "color": "red/green/blue bytes",
+      "alpha": "alpha byte (linear)",
+      "scale": "synthesised 0.480 mm from lattice pitch 0.8 x 0.6",
+      "rotation": "identity (no rot_ bands in the PLY)",
+      "sh1": "none (SH degree 0)"
+    }
+  },
+  "provenance": "segmentation-sampled point cloud + side-car semantics via tools/ply2dspk.ts (splat size derived from the sampling pitch, see source.appearance)",
+  "teeth": {
+    "FDI_11": {
+      "fdi": 11,
+      "arch": "upper",
+      "at": [
+        -5.19,
+        4.6,
+        40.86
+      ],
+      "splats": 791
+    },
+    "FDI_12": {
+      "fdi": 12,
+      "arch": "upper",
+      "at": [
+        -11.31,
+        5.2,
+        36.64
+      ],
+      "splats": 649
+    },
+    "FDI_13": {
+      "fdi": 13,
+      "arch": "upper",
+      "at": [
+        -16.28,
+        8.45,
+        30.53
+      ],
+      "splats": 949
+    },
+    "FDI_14": {
+      "fdi": 14,
+      "arch": "upper",
+      "at": [
+        -18.32,
+        7.02,
+        23.91
+      ],
+      "splats": 688
+    },
+    "FDI_15": {
+      "fdi": 15,
+      "arch": "upper",
+      "at": [
+        -19.6,
+        7.68,
+        16.94
+      ],
+      "splats": 635
+    },
+    "FDI_16": {
+      "fdi": 16,
+      "arch": "upper",
+      "at": [
+        -21.36,
+        9.11,
+        8.71
+      ],
+      "splats": 1203
+    },
+    "FDI_17": {
+      "fdi": 17,
+      "arch": "upper",
+      "at": [
+        -26.06,
+        9.54,
+        2.08
+      ],
+      "splats": 1058
+    },
+    "FDI_18": {
+      "fdi": 18,
+      "arch": "upper",
+      "at": [
+        -28.39,
+        16.97,
+        -3.84
+      ],
+      "splats": 898
+    },
+    "FDI_21": {
+      "fdi": 21,
+      "arch": "upper",
+      "at": [
+        2.78,
+        5.26,
+        41.11
+      ],
+      "splats": 818
+    },
+    "FDI_22": {
+      "fdi": 22,
+      "arch": "upper",
+      "at": [
+        8.93,
+        6.49,
+        38
+      ],
+      "splats": 645
+    },
+    "FDI_23": {
+      "fdi": 23,
+      "arch": "upper",
+      "at": [
+        15.12,
+        8.75,
+        33.85
+      ],
+      "splats": 781
+    },
+    "FDI_24": {
+      "fdi": 24,
+      "arch": "upper",
+      "at": [
+        18.46,
+        8.44,
+        27.73
+      ],
+      "splats": 743
+    },
+    "FDI_25": {
+      "fdi": 25,
+      "arch": "upper",
+      "at": [
+        18.93,
+        10.02,
+        21.05
+      ],
+      "splats": 601
+    },
+    "FDI_26": {
+      "fdi": 26,
+      "arch": "upper",
+      "at": [
+        24.92,
+        10.99,
+        15.7
+      ],
+      "splats": 1206
+    },
+    "FDI_27": {
+      "fdi": 27,
+      "arch": "upper",
+      "at": [
+        28.26,
+        11.45,
+        7.3
+      ],
+      "splats": 1027
+    },
+    "FDI_28": {
+      "fdi": 28,
+      "arch": "upper",
+      "at": [
+        30.01,
+        14.57,
+        -0.97
+      ],
+      "splats": 906
+    },
+    "FDI_31": {
+      "fdi": 31,
+      "arch": "lower",
+      "at": [
+        1.29,
+        -14.93,
+        28.07
+      ],
+      "splats": 434
+    },
+    "FDI_32": {
+      "fdi": 32,
+      "arch": "lower",
+      "at": [
+        5.38,
+        -14.9,
+        26.25
+      ],
+      "splats": 512
+    },
+    "FDI_33": {
+      "fdi": 33,
+      "arch": "lower",
+      "at": [
+        11.74,
+        -17.16,
+        23.12
+      ],
+      "splats": 823
+    },
+    "FDI_34": {
+      "fdi": 34,
+      "arch": "lower",
+      "at": [
+        14.32,
+        -13.92,
+        18.49
+      ],
+      "splats": 648
+    },
+    "FDI_35": {
+      "fdi": 35,
+      "arch": "lower",
+      "at": [
+        18.94,
+        -12.88,
+        12.67
+      ],
+      "splats": 582
+    },
+    "FDI_36": {
+      "fdi": 36,
+      "arch": "lower",
+      "at": [
+        21.93,
+        -9.8,
+        5.47
+      ],
+      "splats": 1143
+    },
+    "FDI_37": {
+      "fdi": 37,
+      "arch": "lower",
+      "at": [
+        26.52,
+        -8.06,
+        -3.72
+      ],
+      "splats": 1020
+    },
+    "FDI_38": {
+      "fdi": 38,
+      "arch": "lower",
+      "at": [
+        37.52,
+        -8.38,
+        -8.28
+      ],
+      "splats": 965
+    },
+    "FDI_41": {
+      "fdi": 41,
+      "arch": "lower",
+      "at": [
+        -2.77,
+        -14.54,
+        26.89
+      ],
+      "splats": 409
+    },
+    "FDI_42": {
+      "fdi": 42,
+      "arch": "lower",
+      "at": [
+        -6.4,
+        -16.68,
+        24.9
+      ],
+      "splats": 544
+    },
+    "FDI_43": {
+      "fdi": 43,
+      "arch": "lower",
+      "at": [
+        -10.58,
+        -18.84,
+        18.6
+      ],
+      "splats": 836
+    },
+    "FDI_44": {
+      "fdi": 44,
+      "arch": "lower",
+      "at": [
+        -15.66,
+        -17.32,
+        13.98
+      ],
+      "splats": 662
+    },
+    "FDI_45": {
+      "fdi": 45,
+      "arch": "lower",
+      "at": [
+        -16.87,
+        -15.3,
+        6.34
+      ],
+      "splats": 572
+    },
+    "FDI_46": {
+      "fdi": 46,
+      "arch": "lower",
+      "at": [
+        -18.86,
+        -12.1,
+        -0.69
+      ],
+      "splats": 1060
+    },
+    "FDI_47": {
+      "fdi": 47,
+      "arch": "lower",
+      "at": [
+        -22.28,
+        -11.15,
+        -10.61
+      ],
+      "splats": 1052
+    },
+    "FDI_48": {
+      "fdi": 48,
+      "arch": "lower",
+      "at": [
+        -29.92,
+        -6.79,
+        -18.97
+      ],
+      "splats": 896
+    }
+  },
+  "conversion": {
+    "out": "public/assets/sceneB_dentvoxel_full.dspk",
+    "converted_at": "2026-11-25T05:53:18.103Z",
+    "bytes": 2456298,
+    "splats": 122771,
+    "dropped": 0,
+    "sh_degree": 0,
+    "bytes_per_splat": 20.01,
+    "bbox_mm": [
+      [
+        -63.2,
+        -47.6,
+        -47.75
+      ],
+      [
+        63.2,
+        47.6,
+        47.75
+      ]
+    ],
+    "encoded": {
+      "scale_mm": [
+        0.48,
+        0.48
+      ],
+      "alpha_byte": [
+        255,
+        255
+      ],
+      "distinct_colors": 1059,
+      "distinct_rotations": 1,
+      "input_kind": "point_cloud"
+    },
+    "appearance": {
+      "color": "red/green/blue bytes",
+      "alpha": "alpha byte (linear)",
+      "scale": "synthesised 0.480 mm from lattice pitch 0.8 x 0.6",
+      "rotation": "identity (no rot_ bands in the PLY)",
+      "sh1": "none (SH degree 0)"
+    },
+    "fdi_histogram": {
+      "0": 97015,
+      "11": 791,
+      "12": 649,
+      "13": 949,
+      "14": 688,
+      "15": 635,
+      "16": 1203,
+      "17": 1058,
+      "18": 898,
+      "21": 818,
+      "22": 645,
+      "23": 781,
+      "24": 743,
+      "25": 601,
+      "26": 1206,
+      "27": 1027,
+      "28": 906,
+      "31": 434,
+      "32": 512,
+      "33": 823,
+      "34": 648,
+      "35": 582,
+      "36": 1143,
+      "37": 1020,
+      "38": 965,
+      "41": 409,
+      "42": 544,
+      "43": 836,
+      "44": 662,
+      "45": 572,
+      "46": 1060,
+      "47": 1052,
+      "48": 896
+    },
+    "layer_histogram": {
+      "1": 25756,
+      "3": 82572,
+      "4": 1870,
+      "7": 12573
+    },
+    "alignment": {
+      "ply_vertices": 122771,
+      "fdi_rows": 122771,
+      "layer_rows": 122771,
+      "manifest_count": null,
+      "manifest_order": null,
+      "ply_sha256": "6bfff55fe2a745527220e6b0f52e98ed",
+      "manifest_ply_sha256": null
+    }
+  }
+}

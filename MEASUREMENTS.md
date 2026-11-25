@@ -18,8 +18,9 @@ obtained* rather than guessed.
 > CSS pixels instead of the drawing-buffer size. Every PSNR number above was re-measured afterwards
 > (bench-A-poseidon.json, bench-B-final.json); Scene B's content fraction rose to 87.9% because the
 > corrected rotations make its anisotropic bone splats face the camera. The opaque-column entry comes
-> from a capture taken before the fixes and is labelled as such. Assets are still the synthetic preview (see §9), so these figures
-describe the **renderer and the codec contract**, not a trained 3DGS on real scans.
+> from a capture taken before the fixes and is labelled as such. Both shipped scenes now come from real public datasets — Poseidon3D intra-oral scan (CC BY 4.0) and
+DentVoxel patient CBCT case 0095 (CC BY 4.0) — with procedurally coloured appearance. These figures
+therefore quantify the **renderer and the codec on real geometry**, and still not a *trained* 3DGS (§9).
 
 ## 1. Provenance
 
@@ -348,15 +349,14 @@ The IAN clips carry their own disclaimer in the burned-in caption — `交互可
 
 ## 9. What this does not prove
 
-1. **The assets are synthetic.** The shipped packets' geometry follows published Teeth3DS+ /
-   ToothFairy3 arch and canal statistics; colour and lesion placement are procedural. The UI says so and
-   carries a SYNTHETIC PREVIEW badge. Therefore §4 quantifies the codec and renderer contract, not the
-   fidelity of a trained 3DGS on a real scan. §7 changes one part of this from promise to demonstration:
-   the side-car labels do survive the whole chain, so for Scene B the swap is `toothfairy2_to_layers.py`
-   → PLY + FDI/layer bins → `tools/ply2dspk.ts`, and `run_case.sh` orchestrates it. What is still
-   unexecuted is the *front* of that chain — Blender rendering and `postprocess_dental_gs.py` against a
-   trained `.ply` — and the volume the 46 checks ran on is `make_tf3_fixture.py`'s analytic arcade, not a
-   patient. After real packets land, §4 and §5 must be re-run.
+1. **Real data, procedural appearance, no training.** Scene A ships a real Poseidon3D intra-oral scan and
+   Scene B a real DentVoxel patient CBCT (case 0095, 440×440×344 at 0.3 mm), both CC BY 4.0. What is still
+   synthetic is the *appearance*: the STL has no texture and the CBCT colours come from HU windows, so §4
+   quantifies the codec and renderer on real geometry, not the fidelity of a trained 3DGS. The synthetic
+   packets those sections originally measured are retired and labelled as such. The front of the training
+   chain — Blender rendering and `postprocess_dental_gs.py` against a trained `.ply` — has now run once on
+   the Poseidon3D mesh (120 views, §7.1b in `pipeline/NOTES.md`), but **gsplat training itself has still
+   never completed**, and DentVoxel has no pulp/restoration labels, so those two layers are empty in B.
 2. **Absolute frame times exclude compositing and swap.** `netGpuMs` is GPU work per render pass against
    an offscreen target; the page cost of presenting to the screen is not in it. The 16.6 ms budget claim
    in the Brief should be read as "GPU pass + CPU sort leaves ≥5× headroom", not "measured 300 fps".

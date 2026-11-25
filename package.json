@@ -24,7 +24,7 @@
     "method:doc": "node tools/build-method-doc.mjs",
     "method:doc:verify": "node tools/build-method-doc.mjs --verify",
     "method:doc:selftest": "node tools/build-method-doc.mjs --selftest",
-    "pycheck": "node tools/pycheck.mjs pipeline/dental_lib.py pipeline/dental_pipeline_blender.py pipeline/postprocess_dental_gs.py pipeline/toothfairy2_to_layers.py pipeline/cbct_proxy.py pipeline/test_camera_math.py",
+    "pycheck": "node tools/pycheck.mjs pipeline/dental_lib.py pipeline/dental_pipeline_blender.py pipeline/postprocess_dental_gs.py pipeline/toothfairy2_to_layers.py pipeline/cbct_proxy.py pipeline/test_camera_math.py pipeline/dentvoxel_to_tf3.py",
     "check": "npm run test:dspk && npm run test:labels && npm run test:gpu && npm run test:glb && npm run selftest:page && npm run selftest:nifti && npm run test:claims && npm run test:claims:mut && npm run pycheck && npm run method:doc:verify && tsc --noEmit",
     "dev": "vite",
     "build": "vite build",
