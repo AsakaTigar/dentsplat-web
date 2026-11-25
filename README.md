@@ -48,6 +48,31 @@ npm run test:pipeline # 离线链路 46 项断言（CPU，无 GPU）
 
 预部署检查不依赖线上：`node tools/serve-subpath.mjs --port 5288 --prefix dentsplat-web` 按 Pages 的语义伺服 `dist/`（子路径之外 404、缺文件 404，而不是回落到 `index.html`），随后用浏览器探针确认 `paintedFraction > 0`、`glError = 0`。
 
+## 接入一例真实 CBCT（数据需自行取得）
+
+ToothFairy3 / ToothFairy2 的体数据在 ditto.ing.unimore.it 上需要账号，本仓库不含任何患者数据。拿到一例（`<case>.nii.gz` + `<case>_0000.nii.gz`，nnU-Net 布局）后：
+
+```bash
+# 1) 六层点云 + 逐点 FDI/层标签
+python pipeline/toothfairy2_to_layers.py --case_dir raw/<case> --out_dir output/<case>/web_assets \
+  --schema tf3 --spacing_mm 0.8 --surface_only 1
+
+# 2) 不可见代理：每个 FDI 一颗凸包，与 splat 同帧（少了它，点击与毫米测距没有参照）
+python pipeline/cbct_proxy.py --labels_nii raw/<case>/<case>.nii.gz \
+  --frame_json output/<case>/frame_cbct.json \
+  --meta_json output/<case>/web_assets/tooth_meta_cbct.json \
+  --out output/<case>/web_assets/proxy_B.glb
+
+# 3) 容器 + 结构校验
+node tools/ply2dspk.ts --in output/<case>/web_assets/cbct_layers.ply \
+  --fdi output/<case>/web_assets/fdi_labels.bin --layer output/<case>/web_assets/layer_labels.bin \
+  --manifest output/<case>/web_assets/labels_manifest.json \
+  --out public/assets/sceneB_from_nifti.dspk --meta-out public/assets/meta_B.json --kind cbct --name sceneB
+node tools/check-glb.mjs output/<case>/web_assets/proxy_B.glb --min-teeth 26
+```
+
+**换资产必须重测。** `report.json` 里的 PSNR、覆盖间隙和体积比是在**当前合成资产**上测出来的；替换成真实病例后，这些数字与页面上的模型不再对应，必须重跑浏览器探针的 `bench()` 并更新 `MEASUREMENTS.md` 与简报，或者在重测前把该场景的指标卡明确标成"未测"。把旧数字留在新资产旁边，比没有数字更糟。
+
 ## 仓库结构
 
 ```

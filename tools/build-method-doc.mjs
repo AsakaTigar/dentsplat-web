@@ -83,6 +83,7 @@ const GROUPS = [
       ['tools/png-probe.mjs', RAN, 'PNG 解码 + 覆盖率/均值色统计（不依赖第三方库）'],
       ['tools/vendor-toothfairy3-labels.mjs', RAN, '把公开标签表固化进仓库（可追溯的版本）'],
       ['tools/ffmpeg-drawtext-probe.mjs', RAN, '八种 fontfile 写法对照真二进制；两种必须失败'],
+      ['tools/check-glb.mjs', RAN, '代理 GLB 的结构校验：块边界、accessor 越界、索引越界、FDI 命名（抓出过 Qhull 索引未重映射）'],
       ['tools/serve-subpath.mjs', RAN, '按 GitHub Pages 的子路径与 404 语义伺服 dist（预部署检查用它，不用 preview）'],
       ['tools/verify3.mjs.js', RAN, '交付前的端到端 UI 驱动：真实指针事件 + 证据 PNG + JSON 报告'],
       ['tools/build-method-doc.mjs', RAN, '本文件的生成器与校验器（自包含）'],
@@ -94,6 +95,7 @@ const GROUPS = [
     files: [
       ['pipeline/run_case.sh', NEVER, 'Scene A 编排（网格→训练→转换）；本机未端到端执行'],
       ['pipeline/toothfairy2_to_layers.py', RAN, 'CBCT 分割 → 六层 PLY + 标签 + manifest（Scene B 的核心）'],
+      ['pipeline/cbct_proxy.py', RAN, '每个 FDI 一颗凸包，生成与 splat 同帧的不可见代理；补上 CBCT 路线缺失的拾取/测距参照'],
       ['pipeline/dental_lib.py', RAN, '共享工具：FDI、层码、PLY 读写、量化'],
       ['pipeline/postprocess_dental_gs.py', COMPILED, '训练产物后处理（从未见过真实训练的 .ply）'],
       ['pipeline/dental_pipeline_blender.py', COMPILED, 'Blender 渲染脚本（本机无 Blender）'],
