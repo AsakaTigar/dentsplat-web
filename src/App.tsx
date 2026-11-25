@@ -22,7 +22,7 @@ export default function App() {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<DentSplatViewer | null>(null);
 
-  const [caseId, setCaseId] = useState<'A' | 'B'>('A');
+  const [caseId, setCaseId] = useState<'A' | 'A2' | 'B'>('A');
   const spec = useMemo(() => CASES.find((c) => c.id === caseId) as CaseSpec, [caseId]);
 
   const [loading, setLoading] = useState(true);
@@ -184,7 +184,8 @@ export default function App() {
           fetch(`${import.meta.env.BASE_URL}assets/report.json`).then((r) => r.json()),
           fetch(spec.metaUrl).then((r) => r.json()),
         ]);
-        const scene: SceneReport = caseId === 'A' ? rep.scenes.sceneA_ios : rep.scenes.sceneB_cbct;
+        const scene: SceneReport = caseId === 'B' ? rep.scenes.sceneB_cbct
+          : caseId === 'A2' ? rep.scenes.sceneA_trained : rep.scenes.sceneA_ios;
         v.caseId = caseId;
         const defaults: Record<number, number> = {};
         for (const l of spec.layers) defaults[l.id] = l.alpha;
@@ -201,7 +202,7 @@ export default function App() {
         // instead of "click Case B, then the fifth button". Read once per load; unknown ids fall back
         // to the frontal preset.
         const [hCase, hPreset] = location.hash.replace(/^#/, '').split(/[,/]/);
-        if ((hCase === 'A' || hCase === 'B') && hCase !== caseId) { setCaseId(hCase); return; }
+        if ((hCase === 'A' || hCase === 'A2' || hCase === 'B') && hCase !== caseId) { setCaseId(hCase); return; }
         const want = spec.presets.find((p) => p.id === hPreset);
         setActivePreset(want ? want.id : 'frontal');
         v.flyTo(want ?? spec.presets[0]);
@@ -322,7 +323,7 @@ export default function App() {
             because the STL carries no texture; Scene B is still synthetic. One badge that says which,
             rather than a single label that is wrong for one of the two. */}
         <span className={'badge' + (report ? '' : ' mode')}>
-          {caseId === 'A' ? 'REAL SCAN · CC BY 4.0' : 'REAL CBCT · CC BY 4.0'}
+          {caseId === 'B' ? 'REAL CBCT · CC BY 4.0' : caseId === 'A2' ? 'TRAINED 3DGS · CC BY 4.0' : 'REAL SCAN · CC BY 4.0'}
         </span>
       </header>
 

@@ -412,3 +412,32 @@ odontogram uses minmax(0,1fr) cells with 12 px glyphs so FDI 28/38 are fully vis
 
 What this still is not: a trained appearance model. The colours are baked, not optimised against
 photographs, and the report/README keep the "procedural appearance" wording.
+
+## 11. Scene A trained 3DGS (Brush, local RTX 5070 Ti, 2026-11-25)
+
+The 120 Blender renders that were already on disk (`tools/out/case125/colmap_dataset`, 1024^2,
+programmatic enamel/gingiva, no real texture exists) were trained with **Brush v0.3.0**
+(`brush-app-x86_64-pc-windows-msvc.zip`, sha256 b68e3e9c…, 158,791,348 B) on the local RTX 5070 Ti:
+
+    brush_app.exe <colmap_dataset> --total-steps 15000 --sh-degree 1 \
+        --eval-split-every 10 --eval-every 2000 --export-every 15000 --export-name caseA_{iter}.ply
+
+It finished in ~3 minutes (GPU 77 %, 4.8 GiB), exporting **28,691 anisotropic Gaussians** as a standard
+3DGS PLY (92 B/vertex, SH1). Three separate frames had to be reconciled before the model was usable:
+
+1. **Frame.** The export is in COLMAP's handedness; the principal axes of the trained cloud match the
+   sampled packet rotated -90 deg about Y (`x' = -z, y' = y, z' = x`, det +1).
+   `tools/ply-frame-fix.mjs` applies R and `q' = q_R q` (q_R = (s,0,-s,0)) and zeroes f_rest, because
+   a reflection/rotation of the l=1 band cannot be approximated by leaving it untouched.
+2. **Labels.** Training does not learn FDI. `tools/label-transfer.mjs` gives every trained centroid the
+   label of the nearest sampled splat within 1.0 mm: **99.5 % transferred**, 7,592 splats carry a tooth
+   id, the rest are gingiva/soft tissue (layer 0). Splats without a neighbour stay unlabelled.
+3. **Budget.** 28,691 x 29 B = 832,829 B (SH1); a 3x decimation (`tools/dspk-decimate.mjs`) gives
+   9,564 splats / 278,146 B (2.99x). The decimation gap and a browser PSNR for this packet are **TBD**
+   - do not quote numbers for them yet.
+
+Ships as **Case A · Trained** (`#A2`), next to the sampled Case A, with the same proxy and presets. What
+this proves: the training chain (Blender -> COLMAP -> Brush -> PLY -> DSPK) runs end-to-end on this
+machine and produces an anisotropic, SH1 model that renders through the existing viewer. What it does
+not prove: fidelity to the patient — the supervision is 120 renders of the same real scan, not
+photographs, and the model has no more geometry than those views contain.

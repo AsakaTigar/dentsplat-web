@@ -1,0 +1,22 @@
+{
+  "generator": "tools/label-transfer.mjs",
+  "order": "writer order of the trained PLY, no permutation",
+  "ply": {
+    "file": "tools/out/case125/brush_run/caseA_15000_viewer.ply",
+    "sha256": "769fb83c049690f4e65623126dbb5fcf9c3e3396cae9426fe9ab4cbcd8980305",
+    "count": 28691
+  },
+  "files": {
+    "fdi_labels.bin": {
+      "sha256": "53498ae4464786fd031ecb14fe73ea22c06787778e182a1b7c65f234f9823416",
+      "count": 28691
+    },
+    "layer_labels.bin": {
+      "sha256": "2e780b6522083c6bd852aa3c54c2a60bcb19c9b6bf86d932b488f4ca1a23b279",
+      "count": 28691
+    }
+  },
+  "transferred": 28541,
+  "max_mm": 1,
+  "reference": "tools/out/case125/sceneA_sampled_full.dspk"
+}

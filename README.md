@@ -107,3 +107,9 @@ MEASUREMENTS.md    每个数字的仪器、口径与反例
   抽稀采样、四元数对齐法线、s3 = 0.2 s1、SH1 + 曲率 AO。blob 审计的前后对照在
   `tools/out/blob_audit_before.json` 与 `tools/out/blob_audit_after.json`
   （0% 各向同性 / 100% 贴面盘 / 欠覆盖 12.1%，改前为 100% 圆球 / 欠覆盖 49%）。
+
+- **Case A · Trained** (`#A2`): the same Poseidon3D scan trained as a real 3DGS on the local RTX 5070 Ti
+  with Brush v0.3.0 (15,000 steps, 120 Blender renders, SH1, 28,691 Gaussians). The export is rotated
+  -90 deg about Y into the viewer frame (`tools/ply-frame-fix.mjs`), FDI is transferred from the sampled
+  packet (99.5 % within 1.0 mm, `tools/label-transfer.mjs`). The pruned variant is a 3x decimation; its
+  PSNR/gap are TBD.

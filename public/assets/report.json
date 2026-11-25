@@ -84,6 +84,46 @@
       },
       "representation": "oriented surfel Gaussians (marching cubes surface, Poisson-thinned sampling, quats aligned to vertex normals, s3 = 0.2 s1, SH1, baked three-point light + curvature AO)",
       "source_note": "DentVoxel v4 case 0095 (figshare 31239889, CC BY 4.0); ids remapped to the TF3 space by pipeline/dentvoxel_to_tf3.py"
+    },
+    "sceneA_trained": {
+      "full": {
+        "splats": 28691,
+        "bytes": 832829,
+        "mb": 0.79,
+        "sh_degree": 1,
+        "bytes_per_splat": 29
+      },
+      "pruned": {
+        "splats": 9564,
+        "bytes": 278146,
+        "mb": 0.27,
+        "sh_degree": 1,
+        "bytes_per_splat": 29
+      },
+      "bytes_ratio": 2.99,
+      "compression_fidelity_mm": {
+        "coverage_gap_mean": null,
+        "coverage_gap_p95": null,
+        "coverage_gap_max": null,
+        "kept_subset_of_original": true,
+        "sampled_pairs": 0,
+        "note": "TBD: decimation gap not yet measured for the trained packet"
+      },
+      "proxy": {
+        "bytes": 244080,
+        "kb": 238.4,
+        "nodes": 14,
+        "triangles": 13134
+      },
+      "metrics": {},
+      "training": {
+        "tool": "Brush v0.3.0 (WGPU)",
+        "steps": 15000,
+        "views": 120,
+        "sh_degree_pl_y": 1,
+        "labels": "transferred from the sampled packet, 99.5% within 1.0 mm"
+      },
+      "source_note": "Poseidon3D case 000125 geometry via 120 Blender renders; appearance optimised by Brush (no real texture exists)"
     }
   }
 }

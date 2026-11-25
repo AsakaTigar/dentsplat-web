@@ -99,7 +99,7 @@ export class DentSplatViewer {
   splitCompare = false;
   measureMode: 'off' | 'measure' | 'pick' = 'pick';
   /** Which case is loaded; set by App on every case switch, read by the HUD and the checks. */
-  caseId: 'A' | 'B' = 'A';
+  caseId: 'A' | 'A2' | 'B' = 'A';
   onPick?: (hit: PickerHit) => void;
   onStats?: (s: Stats) => void;
   onMeasure?: (m: { mm: number; a: THREE.Vector3; b: THREE.Vector3 } | null) => void;

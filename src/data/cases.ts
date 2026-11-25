@@ -20,7 +20,7 @@ export type LayerSpec = {
 };
 
 export type CaseSpec = {
-  id: 'A' | 'B';
+  id: 'A' | 'A2' | 'B';
   nav: string;
   title: string;
   modality: 'IOS 口内扫描' | 'CBCT 锥形束 CT';
@@ -79,6 +79,28 @@ export const CASES: CaseSpec[] = [
     prunedUrl: asset('sceneA_poseidon_pruned.dspk'),
     proxyUrl: asset('proxy_A_poseidon.glb'),
     metaUrl: asset('meta_A_poseidon.json'),
+    layers: IOS_LAYERS,
+    presets: STANDARD_VIEWS,
+  },
+  {
+    id: 'A2',
+    nav: 'A · Trained',
+    title: 'IOS 牙列 · Poseidon3D 真实扫描（3DGS 训练版）',
+    modality: 'IOS 口内扫描',
+    dataset: 'Poseidon3D（Kubik & Španěl, Zenodo 15608906, CC BY 4.0）· Brush 0.3.0',
+    datasetUrl: 'https://zenodo.org/records/15608906',
+    license: 'CC BY 4.0 · 允许署名改编与公开分发',
+    blurb:
+      '同一例真实口扫的 120 张 Blender 渲染（1024²，釉质/牙龈为程序化材质，没有真实纹理）用 Brush 0.3.0 ' +
+      '在本地 RTX 5070 Ti 上训练 15,000 步：28,691 个各向异性高斯、SH1，外观由多视角光度损失优化得到，' +
+      '不再是平涂。几何监督只有这 120 张渲染图，所以它比采样版锐利，但不是“真实照片重建”。' +
+      'FDI 标签不是训练学出来的：从原采样包最近邻迁移（1.0 mm 内 99.5%），训练模型绕 Y 旋转 −90° 回到本项目坐标。' +
+      '与 Case A 并排看，可以直接比较“采样圆球”和“训练椭球”的差别。',
+    moneyShot: '同一病例的采样版（Case A）与训练版切换对比；牙位点击仍联动 2D 牙位图，标签来自迁移。',
+    fullUrl: asset('sceneA_trained_full.dspk'),
+    prunedUrl: asset('sceneA_trained_pruned.dspk'),
+    proxyUrl: asset('proxy_A_poseidon.glb'),
+    metaUrl: asset('meta_A_trained.json'),
     layers: IOS_LAYERS,
     presets: STANDARD_VIEWS,
   },
