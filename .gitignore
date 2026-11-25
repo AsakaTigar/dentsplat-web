@@ -25,3 +25,6 @@ tools/out/serve-*.log
 .DS_Store
 Thumbs.db
 .qoder/
+
+tools/out/data/
+tools/out/chain/

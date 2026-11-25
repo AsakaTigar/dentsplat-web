@@ -1,0 +1,108 @@
+{
+  "name": "poseidon125",
+  "source": {
+    "stl": "D:/Aodou/.cache/tmp/poseidon/c125/000125_MODEL_mandible.stl",
+    "fdi": "D:/Aodou/.cache/tmp/poseidon/labels/12850_REGIONS_FACES_QUADRANT_NUMBERING_before_model_trimming_mandible.pkl",
+    "triangles": 190724
+  },
+  "frame": {
+    "upAxisInSource": 2,
+    "anteriorAxis": 0,
+    "anteriorSign": 1,
+    "extent_mm": [
+      63.8,
+      57.3,
+      20.4
+    ]
+  },
+  "fdi": [
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47
+  ],
+  "fdi_face_counts": {
+    "0": 127776,
+    "31": 2705,
+    "32": 2832,
+    "33": 3006,
+    "34": 4075,
+    "35": 7440,
+    "36": 6199,
+    "37": 4678,
+    "41": 3061,
+    "42": 2922,
+    "43": 3332,
+    "44": 4289,
+    "45": 7451,
+    "46": 6327,
+    "47": 4631
+  },
+  "full": {
+    "count": 59808,
+    "bbox": {
+      "min": [
+        -28.65,
+        -10.18,
+        -31.92
+      ],
+      "max": [
+        28.64,
+        10.17,
+        31.91
+      ]
+    },
+    "ply": {
+      "path": "tools\\out\\poseidon\\poseidon125_full.ply",
+      "bytes": 957254,
+      "count": 59808,
+      "sha": "9deb81bb5c71dffa4229598b761d5d25c3cb97237ddf1483a6462139bca99928"
+    }
+  },
+  "pruned": {
+    "count": 10168,
+    "bbox": {
+      "min": [
+        -28.64,
+        -10.18,
+        -31.89
+      ],
+      "max": [
+        28.53,
+        10.15,
+        31.91
+      ]
+    },
+    "ply": {
+      "path": "tools\\out\\poseidon\\poseidon125_pruned.ply",
+      "bytes": 163014,
+      "count": 10168,
+      "sha": "d0a53592c425d4685871175eb09635b56caa0deb2c94adfcd412f65f4d6237ad"
+    }
+  },
+  "proxy": {
+    "path": "tools\\out\\poseidon\\poseidon125_proxy.glb",
+    "bytes": 244080,
+    "teeth": 14
+  },
+  "labels": {
+    "full": {
+      "fdi": "96b47bf070c7ecbc8da73b057656147a7ca7ecf1ad6cc669b300c8707e576531",
+      "layer": "8f4fd4cbc633c5ec775b7f09928dc39a4bba24ccbc5d696e8e9484f08e71c876"
+    },
+    "pruned": {
+      "fdi": "ae1fb99e9ec8da5c020c50b65f72e3cfabda4618854061261a68782bae0c0fae",
+      "layer": "4a2d69d5c5c6eb9be6e4b850409564bfa7150a859dbcefdc5bc704f491765406"
+    }
+  }
+}

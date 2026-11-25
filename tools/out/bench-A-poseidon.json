@@ -1,0 +1,62 @@
+{
+ "bundle": "index-B-CmWBdF.js (local dist build, 2026-11-25)",
+ "dspk": "assets/sceneA_poseidon_full.dspk",
+ "job": "bench",
+ "kind": "poseidon-real-ios",
+ "sha": "b2376f3a034bd23ac161b3efaf6be47cb3a22b81e4bfd77ceffdc06b6a733dbb",
+ "ua": "Qoder 0.5.18 / Chrome 150.0.7871.250 / Electron 43.8.4, Windows 10.0.26300 x64",
+ "wallMs": null,
+ "res": {
+  "caseId": "A",
+  "agrees": true,
+  "busyAfter": false,
+  "settleFrames": null,
+  "settled": true,
+  "before": null,
+  "after": null,
+  "audit": null,
+  "stats": null,
+  "dtLabels": null,
+  "direct": {
+   "psnr": 24.44,
+   "psnrInMask": 20.39,
+   "mae": 0.0136,
+   "covered": 0.3934,
+   "identicalFraction": 0.6125,
+   "errorInTop1Percent": 0.611,
+   "maxDiff": 221,
+   "meanFull": [
+    78.9,
+    57.1,
+    55.8
+   ],
+   "meanPruned": [
+    81.5,
+    59.1,
+    57.8
+   ],
+   "samples": 442368,
+   "psnrSelf": 999,
+   "identicalSelfFraction": 1,
+   "control": {
+    "psnr": 999,
+    "psnrInMask": 999,
+    "mae": 0,
+    "maxDiff": 0,
+    "covered": 0.3708,
+    "identicalFraction": 1,
+    "errorInTop1Percent": 0,
+    "meanFull": [
+     78.9,
+     57.1,
+     55.8
+    ],
+    "meanPruned": [
+     78.9,
+     57.1,
+     55.8
+    ]
+   }
+  }
+ }
+}

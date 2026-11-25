@@ -66,20 +66,20 @@ export const CASES: CaseSpec[] = [
   {
     id: 'A',
     nav: 'Case A',
-    title: 'IOS 牙列 · 合成几何（Teeth3DS+ 统计口径）',
+    title: 'IOS 牙列 · Poseidon3D 真实扫描（下颌）',
     modality: 'IOS 口内扫描',
-    dataset: 'Teeth3DS+ 公开统计口径（未使用其网格）',
-    datasetUrl: 'https://osf.io/um96h',
-    license: 'CC BY-NC-ND 4.0 · academic non-commercial',
+    dataset: 'Poseidon3D（Kubik & Španěl, Zenodo 15608906, CC BY 4.0）',
+    datasetUrl: 'https://zenodo.org/records/15608906',
+    license: 'CC BY 4.0 · 允许署名改编与公开分发',
     blurb:
-      '32 颗牙的 FDI 语义按 Teeth3DS+ 的牙位规则生成（11–48，0 = 牙龈）。牙冠/牙根比例、邻接与龈缘高度' +
-      '取自公开统计，几何与外观由解剖度量模型程序化合成——没有使用其真实扫描网格，也没有训练过程。' +
-      'Blender → gsplat 那条训练链在本仓库里只到脚本，未在本机执行。',
+      '真实口内扫描（单侧下颌，190,724 个三角面，逐面 FDI 标签 31–37 / 41–47），表面按 0.35 mm ' +
+      '采样为高斯：几何与牙位语义都来自这一例真实扫描。原始 STL 没有纹理，颜色是按层程序化生成的' +
+      '釉质/牙龈色，所以这里真实的是形状与拓扑，不是外观。这是下颌单颌，不是上下颌咬合。',
     moneyShot: '牙位级点击/高亮与 2D 牙位图双向联动，剖切面在牙颈部直接显出牙本质色带。',
-    fullUrl: asset('sceneA_full.dspk'),
-    prunedUrl: asset('sceneA_pruned.dspk'),
-    proxyUrl: asset('proxy_A.glb'),
-    metaUrl: asset('meta_A.json'),
+    fullUrl: asset('sceneA_poseidon_full.dspk'),
+    prunedUrl: asset('sceneA_poseidon_pruned.dspk'),
+    proxyUrl: asset('proxy_A_poseidon.glb'),
+    metaUrl: asset('meta_A_poseidon.json'),
     layers: IOS_LAYERS,
     presets: STANDARD_VIEWS,
   },

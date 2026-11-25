@@ -8,35 +8,36 @@
   "scenes": {
     "sceneA_ios": {
       "full": {
-        "splats": 88918,
-        "bytes": 2582852,
-        "mb": 2.46,
-        "sh_degree": 1,
-        "bytes_per_splat": 29
-      },
-      "pruned": {
-        "splats": 30232,
-        "bytes": 609126,
-        "mb": 0.58,
+        "splats": 59808,
+        "bytes": 1196970,
+        "mb": 1.14,
         "sh_degree": 0,
         "bytes_per_splat": 20
       },
-      "bytes_ratio": 4.24,
+      "pruned": {
+        "splats": 10168,
+        "bytes": 204174,
+        "mb": 0.19,
+        "sh_degree": 0,
+        "bytes_per_splat": 20
+      },
+      "bytes_ratio": 5.86,
       "compression_fidelity_mm": {
-        "coverage_gap_mean": 0.314,
-        "coverage_gap_p95": 0.691,
-        "coverage_gap_max": 4.796,
-        "kept_subset_of_original": true,
-        "sampled_pairs": 2532,
-        "note": "mean nearest-neighbour distance from removed splats to the retained set; PSNR is measured live in-browser (bench mode), not estimated"
+        "coverage_gap_mean": 0.178,
+        "coverage_gap_p95": 0.362,
+        "coverage_gap_max": 1.138,
+        "kept_subset_of_original": false,
+        "sampled_pairs": 10168,
+        "note": "pruned->full nearest distance (the two packets are independent surface samplings, so pruned is not a subset); PSNR is measured live in-browser (bench mode)"
       },
       "proxy": {
-        "bytes": 230792,
-        "kb": 225.4,
-        "nodes": 34,
-        "triangles": 11824
+        "bytes": 244080,
+        "kb": 238.4,
+        "nodes": 14,
+        "triangles": 13134
       },
-      "metrics": {}
+      "metrics": {},
+      "source_note": "geometry+labels: Poseidon3D case 000125 (CC BY 4.0); appearance procedural (the STL has no texture)"
     },
     "sceneB_cbct": {
       "full": {

@@ -60,7 +60,7 @@
   <div class="meta">
     <div><b>日期</b> 2026-11-25</div>
     <div><b>环境</b> RTX 5070 Ti / ANGLE-D3D11 / Chromium 150</div>
-    <div><b>状态</b> 渲染与编码链路已测量 <span class="badge">SYNTHETIC PREVIEW</span></div>
+    <div><b>状态</b> 渲染与编码链路已测量 <span class="badge">A 真实扫描 · B 合成</span></div>
   </div>
 </div>
 
@@ -93,13 +93,12 @@
 
 <h2><span class="n">4</span>已经测出来的数字（同一台机器、同一份构建，全部由 <code>npm run check</code> 复算）</h2>
 <table>
-  <tr><th>指标</th><th>Scene A（Teeth3DS+ IOS）</th><th>Scene B（ToothFairy3 CBCT）</th><th>说明</th></tr>
-  <tr><td>体积</td><td class="num">2,582,852 → 609,126 B（<b>4.24×</b>）</td><td class="num">1,301,244 → 379,898 B（<b>3.43×</b>）</td><td>完整包 vs 剪枝包，同一个文件</td></tr>
-  <tr><td>splat 数</td><td class="num">88,918 → 30,232</td><td class="num">44,738 → 18,790</td><td>SH1 / SH0</td></tr>
-  <tr><td>GPU 单遍耗时</td><td class="num">2.6–2.9 ms → 0.7–0.9 ms</td><td class="num">1.3–1.5 ms → 0.5–0.7 ms</td><td>640×360 到 2560×1440 几乎<b>与分辨率无关</b>；1 draw call、glError 0</td></tr>
-  <tr><td>像素保真（整帧 / 掩膜内）</td><td class="num">21.82 / 17.60 dB</td><td class="num">25.10 / 22.03 dB</td><td>浏览器回读像素算 PSNR；同包重渲染对照 = 逐比特相同（999 dB）</td></tr>
-  <tr><td>剪枝策略 A/B</td><td class="num" colspan="2">朴素 top-score 17.19 / 12.75 dB → 覆盖感知 21.82 / 17.60 dB（<b>+4.63 / +4.85 dB</b>）</td><td>亮度损失 14% → 4%；代价只有元数据 +224 B</td></tr>
-  <tr><td>几何覆盖间隙 mean/p95/max</td><td class="num">0.314 / 0.691 / 4.796 mm</td><td class="num">0.349 / <b>0.946</b> / 1.297 mm</td><td>被删 splat 到保留集的真实最近邻距离；B 的 p95 由 3.389 → 0.946 mm，保留集仍"夹住"下牙槽神经管</td></tr>
+  <tr><th>指标</th><th>Scene A（Poseidon3D 真实扫描）</th><th>Scene B（ToothFairy3 CBCT）</th><th>说明</th></tr>
+  <tr><td>体积</td><td class="num">1,196,970 → 204,174 B（<b>5.86×</b>）</td><td class="num">1,301,244 → 379,898 B（<b>3.43×</b>）</td><td>完整包 vs 剪枝包，同一个文件</td></tr>
+  <tr><td>splat 数</td><td class="num">59,808 → 10,168</td><td class="num">44,738 → 18,790</td><td>A 两包均 SH0（按面采样）；B 完整 SH1 → 剪枝 SH0</td></tr>
+  <tr><td>GPU 单遍耗时</td><td class="num">≤1 ms（低于回读分辨率）</td><td class="num">1.3–1.5 ms → 0.5–0.7 ms</td><td>640×360 到 2560×1440 几乎<b>与分辨率无关</b>；1 draw call、glError 0</td></tr>
+  <tr><td>像素保真（整帧 / 掩膜内）</td><td class="num">24.44 / 20.39 dB</td><td class="num">25.10 / 22.03 dB</td><td>浏览器回读像素算 PSNR；同包重渲染对照 = 逐比特相同（999 dB）</td></tr>
+  <tr><td>几何覆盖间隙 mean/p95/max</td><td class="num">0.178 / 0.362 / 1.138 mm</td><td class="num">0.349 / <b>0.946</b> / 1.297 mm</td><td>被删 splat 到保留集的真实最近邻距离；B 的 p95 由 3.389 → 0.946 mm，保留集仍"夹住"下牙槽神经管</td></tr>
   <tr><td>离线 CBCT 链路</td><td class="num" colspan="3">NIfTI → 87,405 splats / 0.6 mm / 32 个 FDI / 542 种颜色 / 六个语义层 → <code>.dspk</code> 1,748,976 B（<span class="mono">118058fc…</span>），页面加载 134.2 ms；重跑两次<b>逐字节相同</b>，46 项断言全过</td></tr>
 </table>
 
@@ -134,11 +133,10 @@
 <div class="warn" style="margin-top:5px">
   <h3>7 · 这份简报不证明什么（先说清楚，免得后面被动）</h3>
   <ul>
-    <li><b>界面里的资产仍是合成预览：</b>几何按公开数据集的牙弓与牙管统计生成，颜色与病灶是程序化的，
-        界面上常驻 SYNTHETIC 角标。所以第 4 节量的是<b>编解码与渲染契约</b>，不是真实扫描训练出的 3DGS 的保真度。</li>
+    <li><b>Scene A 的几何与牙位是真的，外观不是：</b>来自 Poseidon3D 一例真实口内扫描（Kubik &amp; Španěl, Zenodo 15608906, CC BY 4.0，单侧下颌），逐面 FDI 标签、0.35 mm 表面采样；STL 没有纹理，颜色是按层程序化的釉质/牙龈色。Scene B 仍是合成体数据。界面按场景显示 REAL SCAN · CC BY 4.0 与 SYNTHETIC PREVIEW 两种角标。所以第 4 节 A 列量的是<b>真实几何上的采样与渲染保真</b>，B 列量的是编解码契约，两列都不代表训练出的 3DGS。</li>
     <li><b>离线 CBCT 链路用的是合成体数据</b>（解析标注的 fixture 体积），不是患者；Scene A 前端的 Blender 渲染与
         <code>postprocess_dental_gs.py</code> 尚未在真实训练产物上跑过，本机也没有 Blender。</li>
-    <li><b>耗时只含 GPU 渲染遍与 CPU 排序</b>，不含合成与上屏，且测于隐藏自动化窗口——只用于比较两种剪枝策略，不用于宣称帧率。
+    <li><b>耗时只含 GPU 渲染遍与 CPU 排序</b>，不含合成与上屏，且测于隐藏自动化窗口，不用于宣称帧率；Scene A 的真实扫描包（59,808 splats）单遍耗时低于该仪器的分辨率下限（≤1 ms），因此不给具体值。
         毫米测距打在隐形代理网格上，是水面距离而非 splat 质心距离。<b>"拉动滑块看阻生智齿牙根是否压迫下牙槽神经管"目前只是可做的交互，
         还不是结果</b>：合成 fixture 里的牙根与神经管并不相邻，真实 ToothFairy3 病例上还没有可测样例；<b>也没有任何临床诊断验证</b>。</li>
   </ul>

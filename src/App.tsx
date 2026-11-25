@@ -311,7 +311,12 @@ export default function App() {
         </div>
         <button type="button" className={'btn' + (spin ? ' on' : '')} onClick={() => setSpin((s) => !s)}>自转</button>
         <button type="button" className="btn" onClick={shoot}>截图</button>
-        <span className={'badge' + (report ? '' : ' mode')}>SYNTHETIC PREVIEW</span>
+        {/* Scene A is a real intra-oral scan (Poseidon3D, CC BY 4.0) whose colours are procedural
+            because the STL carries no texture; Scene B is still synthetic. One badge that says which,
+            rather than a single label that is wrong for one of the two. */}
+        <span className={'badge' + (report ? '' : ' mode')}>
+          {caseId === 'A' ? 'REAL SCAN · CC BY 4.0' : 'SYNTHETIC PREVIEW'}
+        </span>
       </header>
 
       <div className={'main' + (collapsed ? ' collapsed' : '')}>

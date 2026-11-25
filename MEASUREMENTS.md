@@ -2,7 +2,15 @@
 
 Everything below was computed on this machine by the commands in §1. Nothing here is an estimate, a
 literature value, or a placeholder: where a number could not be obtained it is written as *not
-obtained* rather than guessed. Assets are still the synthetic preview (see §9), so these figures
+obtained* rather than guessed.
+
+> **2026-11-25, Scene A asset swap.** The shipped Scene A packets are now built from a real intra-oral
+> scan (Poseidon3D case 000125, Kubik & Španěl, Zenodo 15608906, CC BY 4.0) by
+> `tools/poseidon_to_assets.mjs`: 59,808 / 10,168 splats, 1,196,970 / 204,174 B (5.86×), whole-frame /
+> in-mask PSNR 24.44 / 20.39 dB, coverage 0.178 / 0.362 / 1.138 mm. That gap is measured pruned→full
+> because the two packets are independent surface samplings rather than a subset. Colours are
+> procedural — the STL carries no texture — so what is real here is geometry and tooth semantics.
+> Rows below marked "synthetic (retired)" describe the previous asset and are kept only as that record. Assets are still the synthetic preview (see §9), so these figures
 describe the **renderer and the codec contract**, not a trained 3DGS on real scans.
 
 ## 1. Provenance
@@ -73,7 +81,7 @@ The two independent instruments agree inside ~0.1 ms, which is the main reason t
 Offscreen target, current camera, GPU-complete per frame, IPC floor subtracted. `sortMs` is the CPU
 counting-sort pass and is *not* included in `netGpuMs`.
 
-**Case A — Teeth3DS+ IOS, full: 88,918 splats, SH1, 2,582,852 B (29 B/splat)**
+**Case A — synthetic (retired 2026-11-25), full: 88,918 splats, SH1, 2,582,852 B (29 B/splat)**
 
 | resolution | iters | serialMs p50 (min/p95) | netGpuMs | frame-rate ceiling | sortMs | painted |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -82,7 +90,7 @@ counting-sort pass and is *not* included in `netGpuMs`.
 | 1920×1080 | 10 | 3.0 (2.8/3.9) | 2.6 | 384.6 | 2.3 | 0.1938 |
 | 2560×1440 | 10 | 3.1 (2.7/4.4) | 2.7 | 370.4 | 2.2 | 0.1937 |
 
-**Case A — pruned: 30,232 splats, SH0, 609,126 B (20 B/splat), 4.24× smaller**
+**Case A — synthetic (retired), pruned: 30,232 splats, SH0, 609,126 B (20 B/splat), 4.24× smaller**
 
 | resolution | iters | serialMs p50 (min/p95) | netGpuMs | frame-rate ceiling | sortMs | painted | timer p50 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -129,7 +137,8 @@ variant painted something (`>8/255`), which is the stricter figure.
 
 | capture | whole-frame PSNR | in-mask PSNR | MAE (0–1) | bit-identical pixels | content pixels | control |
 | --- | --- | --- | --- | --- | --- | --- |
-| A full-vs-pruned (`bench-A-final.json`) | 21.82 dB | 17.60 dB | 0.0240 | 62.3% | 37.8% | 999 dB / 100% |
+| synthetic A full-vs-pruned (`bench-A-final.json`, retired) | 21.82 dB | 17.60 dB | 0.0240 | 62.3% | 37.8% | 999 dB / 100% |
+| **A (Poseidon3D, shipped)** `bench-A-poseidon.json` | **24.44 dB** | **20.39 dB** | 0.0136 | 61.3% | 39.3% | 999 dB / 100% |
 | B full-vs-pruned (`bench-B-final.json`) | 25.10 dB | 22.03 dB | 0.0160 | 49.9% | 49.2% | 999 dB / 100% |
 
 **The control is what makes the number mean something.** Rendering the *same* packet twice through the
@@ -177,7 +186,7 @@ same `uLayerAlpha` uniform the sliders drive, re-measures, and restores (`restor
 
 | case | all layers | opaque only |
 | --- | --- | --- |
-| A | 21.82 / 17.60 dB, 37.8% content | 21.82 / 17.59 dB, 37.8% content |
+| A (synthetic, retired) | 21.82 / 17.60 dB, 37.8% content | 21.82 / 17.59 dB, 37.8% content |
 | B | 25.10 / 22.03 dB, 49.2% content | 23.43 / 19.18 dB, 37.6% content |
 
 The intent was to separate "codec loss" from "synthetic translucent stacking". It does not, and the
@@ -195,7 +204,8 @@ in millimetres, grid-accelerated, sampled pairs as noted — a real computed cha
 | case | strategy | mean | p95 | max | sampled pairs |
 | --- | --- | --- | --- | --- | --- |
 | A | naive top-score | 0.469 | 1.359 | 6.556 | 2414 |
-| A | coverage-aware | **0.314** | **0.691** | 4.796 | 2532 |
+| A (synthetic, retired) | coverage-aware | **0.314** | **0.691** | 4.796 | 2532 |
+| **A (Poseidon3D, shipped)** | resampled 0.35→0.85 mm | **0.178** | **0.362** | 1.138 | 10168 |
 | B | naive top-score | 0.541 | 3.389 | 6.813 | 2236 |
 | B | coverage-aware | **0.349** | **0.946** | **1.297** | 2632 |
 

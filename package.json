@@ -14,7 +14,7 @@
     "selftest:nifti": "node tools/probe-nifti.selftest.mjs",
     "nifti:report": "node tools/nifti-report.mjs",
     "test:pipeline": "node tools/test-pipeline.mjs",
-    "test:glb": "node tools/check-glb.mjs public/assets/proxy_A.glb --min-teeth 26 && node tools/check-glb.mjs public/assets/proxy_B.glb --min-teeth 26",
+    "test:glb": "node tools/check-glb.mjs public/assets/proxy_A.glb --min-teeth 26 && node tools/check-glb.mjs public/assets/proxy_A_poseidon.glb --min-teeth 14 && node tools/check-glb.mjs public/assets/proxy_B.glb --min-teeth 26",
     "test:claims": "node tools/verify-claims.mjs",
     "test:claims:mut": "node tools/mutate-claims-test.mjs",
     "brief": "node brief/build-pdf.mjs",
