@@ -75,7 +75,7 @@ node tools/check-glb.mjs output/<case>/web_assets/proxy_B.glb --min-teeth 26
 
 ## 训练交接包（gsplat 未跑完的那一步）
 
-`Downloads/DentSplat-training-bundle-20261125.tar.gz`（3.7 MB，sha256 `af011d5d…`，120 张 1024² Cycles 渲染 + COLMAP 文本 + 代理 GLB + 脚本）。解包后 `bash run_all.sh` 会建 venv、装 torch/gsplat、跑 15k 步训练、再剪枝绑标签。
+`Downloads/DentSplat-training-bundle-20261125.tar.gz`（3,734,216 B，sha256 `1d20dee2…`，120 张 1024² Cycles 渲染 + COLMAP 文本 + 代理 GLB + 脚本）。解包后 `bash run_all.sh` 会建 venv、装 torch/gsplat、跑 15k 步训练、再剪枝绑标签。
 
 **如实说明**：这个包没有在任何机器上端到端跑完过。本次会话把 V100 的 torch 装好、gsplat 克隆到一半就被跳板机的凭据级限流掐断；渲染与 COLMAP 是在本机真跑的。所以包里给的是"应当得到"的路径，不是已有的结果。
 
