@@ -28,3 +28,6 @@ Thumbs.db
 
 tools/out/data/
 tools/out/chain/
+
+tools/out/live/
+tools/out/shots/
