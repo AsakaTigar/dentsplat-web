@@ -211,6 +211,33 @@ input[type=range] { width: 100%; accent-color: var(--acc); height: 18px; backgro
 @media (max-width: 1180px) {
   .main { grid-template-columns: minmax(0, 1fr) 340px; }
 }
+/* Phones and narrow tablets: stacking beats squeezing. At 390 px the two-column shell left the canvas
+   about fifty pixels wide, which looks like a broken viewer rather than a small one; here the stage keeps
+   most of the height and the panel scrolls underneath. `#gl` already sets touch-action:none, so a
+   one-finger drag orbits instead of scrolling the page. */
+@media (max-width: 860px) {
+  .main { grid-template-columns: minmax(0, 1fr); grid-template-rows: 58vh minmax(0, 1fr); }
+  .main.collapsed { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 44px; }
+  .side { border-left: 0; border-top: 1px solid var(--line); }
+  /* The header carries a brand, two case buttons, a mode switch and a badge; at 390 px that is about
+     600 px of content, so it scrolls sideways instead of wrapping into a three-line stack that pushes
+     the case switch off-screen. The subtitle and usage line are the first things to go. */
+  .top { gap: 8px; padding: 0 9px; overflow-x: auto; scrollbar-width: none; }
+  .top::-webkit-scrollbar { display: none; }
+  .top .who, .top .brand span { display: none; }
+  .toolbar { left: 8px; right: 8px; transform: none; max-width: none; justify-content: flex-start; }
+  .preset { padding: 5px 8px; }
+  .hud { font-size: 11px; }
+}
+@media (max-width: 560px) {
+  /* The panel below the stage already states splats/bytes; on a phone the HUD only covers the model. */
+  .hud { display: none; }
+  /* Two lines per preset (Chinese label + English sub-label) is what pushed the last toggle off the
+     edge at 390 px; the Chinese label alone still names the view unambiguously. */
+  .preset { padding: 4px 7px; }
+  .preset u { display: none; }
+  .btn { padding: 5px 9px; }
+}
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; }
 }
