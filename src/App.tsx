@@ -366,11 +366,7 @@ export default function App() {
                 <i>{p.label}</i><u>{p.sub}</u>
               </button>
             ))}
-            {caseId === 'B' && <><span className="tool-sep" />
-              <button type="button" className="btn warn" onClick={moneyShot} title="48 牙根与下牙槽神经管的最小距离">48–IAN .money shot</button></>}
             <span className="tool-sep" />
-            <button type="button" className={'btn' + (wire ? ' on' : '')} onClick={() => setWire((w) => !w)}
-              title="叠加隐形代理网格线框：线框若逐颗贴合 3DGS，即证明语义索引零误差">对齐校验线框</button>
             <div className="seg">
               <button type="button" className={variant === 'full' && !split ? 'on' : ''} onClick={() => { setVariant('full'); setSplit(false); }}>Full</button>
               <button type="button" className={variant === 'pruned' && !split ? 'on' : ''} onClick={() => { setVariant('pruned'); setSplit(false); }}>Pruned</button>
@@ -416,6 +412,14 @@ export default function App() {
                   <button type="button" className="sw" onClick={() => { setHidden([]); setIsolate(false); }}>全部显示</button>
                   <button type="button" className={'sw' + (showLesions ? ' on' : '')} onClick={() => setShowLesions((s) => !s)}>
                     <i style={{ background: '#e2565f' }} />病灶着色</button>
+                </div>
+                <div className="swatches">
+                  {caseId === 'B' && (
+                    <button type="button" className="sw" onClick={moneyShot}
+                      title="48 牙根与下牙槽神经管的最小距离">48–IAN .money shot</button>
+                  )}
+                  <button type="button" className={'sw' + (wire ? ' on' : '')} onClick={() => setWire((w) => !w)}
+                    title="叠加隐形代理网格线框：线框若逐颗贴合 3DGS，即证明语义索引零误差">对齐校验线框</button>
                 </div>
               </div>
             </section>

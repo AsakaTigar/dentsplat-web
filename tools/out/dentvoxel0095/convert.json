@@ -1,0 +1,91 @@
+{
+  "out": "public/assets/sceneB_dentvoxel_full.dspk",
+  "converted_at": "2026-11-25T06:29:39.413Z",
+  "bytes": 3219808,
+  "splats": 111000,
+  "dropped": 0,
+  "sh_degree": 1,
+  "bytes_per_splat": 29.01,
+  "bbox_mm": [
+    [
+      -63.02,
+      -47.75,
+      -47.72
+    ],
+    [
+      63.34,
+      47.75,
+      47.9
+    ]
+  ],
+  "encoded": {
+    "scale_mm": [
+      0.043,
+      1.2
+    ],
+    "alpha_byte": [
+      41,
+      247
+    ],
+    "distinct_colors": 1817,
+    "distinct_rotations": 4088,
+    "input_kind": "trained_3dgs"
+  },
+  "appearance": {
+    "color": "f_dc_ bands (trained SH0)",
+    "alpha": "sigmoid(opacity)",
+    "scale": "exp(scale_ bands)",
+    "rotation": "rot_ bands (w,x,y,z -> x,y,z,w)",
+    "sh1": "f_rest_0..8"
+  },
+  "fdi_histogram": {
+    "0": 46000,
+    "11": 2012,
+    "12": 1667,
+    "13": 2445,
+    "14": 1816,
+    "15": 1623,
+    "16": 3058,
+    "17": 2605,
+    "18": 2214,
+    "21": 2034,
+    "22": 1639,
+    "23": 2057,
+    "24": 1930,
+    "25": 1535,
+    "26": 3114,
+    "27": 2569,
+    "28": 2301,
+    "31": 1073,
+    "32": 1320,
+    "33": 2023,
+    "34": 1595,
+    "35": 1433,
+    "36": 2832,
+    "37": 2599,
+    "38": 2459,
+    "41": 1035,
+    "42": 1332,
+    "43": 2099,
+    "44": 1660,
+    "45": 1458,
+    "46": 2584,
+    "47": 2632,
+    "48": 2247
+  },
+  "layer_histogram": {
+    "1": 65000,
+    "3": 30000,
+    "4": 8000,
+    "7": 8000
+  },
+  "alignment": {
+    "ply_vertices": 111000,
+    "fdi_rows": 111000,
+    "layer_rows": 111000,
+    "manifest_count": null,
+    "manifest_order": "writer order, no permutation (marching-cubes layers concatenated teeth,bone,nerve,sinus)",
+    "ply_sha256": "a26a5b17d6a7f05723407dffc3f8ad8d",
+    "manifest_ply_sha256": "a26a5b17d6a7f05723407dffc3f8ad8d"
+  }
+}

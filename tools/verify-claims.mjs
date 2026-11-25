@@ -66,9 +66,9 @@ eq('synthetic A (retired) content pixels', bA.covered, 0.3782);
 eq('synthetic A (retired) control bit-identical', [bA.psnrSelf, bA.identicalSelfFraction], [999, 1]);
 eq('synthetic A (retired) error concentration', bA.errorInTop1Percent, 0.393);
 eq('synthetic A (retired) mean colours', [bA.meanFull, bA.meanPruned], [[63, 50, 45.7], [60.5, 49, 44.4]]);
-eq('B (DentVoxel) whole-frame PSNR', bB.psnr, 24.25);
-eq('B (DentVoxel) in-mask PSNR', bB.psnrInMask, 24.12);
-eq('B (DentVoxel) error concentration', bB.errorInTop1Percent, 0.327);
+eq('B (DentVoxel) whole-frame PSNR', bB.psnr, 28.04);
+eq('B (DentVoxel) in-mask PSNR', bB.psnrInMask, 27.2);
+eq('B (DentVoxel) error concentration', bB.errorInTop1Percent, 0.299);
 eq('B (DentVoxel) control bit-identical', [bB.psnrSelf, bB.identicalSelfFraction], [999, 1]);
 eq('synthetic B (retired) whole-frame PSNR', bBold.psnr, 24.28);
 eq('naive A whole-frame (retired comparison)', bNaive.psnr, 17.19);
@@ -112,9 +112,9 @@ const rep = JSON.parse(readFileSync('public/assets/report.json', 'utf8')).scenes
 // Scene A now ships the Poseidon3D scan: gap is pruned->full because the two packets are independent
 // surface samplings, not a subset relationship.
 eq('A gap now', Object.values(rep.sceneA_ios.compression_fidelity_mm).slice(0, 3), [0.178, 0.362, 1.138]);
-eq('B gap now', Object.values(rep.sceneB_cbct.compression_fidelity_mm).slice(0, 3), [0.701, 1.342, 2.782]);
+eq('B gap now', Object.values(rep.sceneB_cbct.compression_fidelity_mm).slice(0, 3), [0.602, 1.395, 3.701]);
 eq('ratios match the shipped packets', [rep.sceneA_ios.bytes_ratio, rep.sceneB_cbct.bytes_ratio], [5.86, 3]);
-eq('splat counts match the shipped packets', [rep.sceneA_ios.pruned.splats, rep.sceneB_cbct.pruned.splats], [10168, 40924]);
+eq('splat counts match the shipped packets', [rep.sceneA_ios.pruned.splats, rep.sceneB_cbct.pruned.splats], [10168, 37000]);
 const naiveRep = JSON.parse(readFileSync('tools/out/assets-naive/report.json', 'utf8')).scenes;
 eq('A gap naive', Object.values(naiveRep.sceneA_ios.compression_fidelity_mm).slice(0, 3), [0.469, 1.359, 6.556]);
 eq('B gap naive', Object.values(naiveRep.sceneB_cbct.compression_fidelity_mm).slice(0, 3), [0.541, 3.389, 6.813]);

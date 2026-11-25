@@ -1,0 +1,24 @@
+{
+  "generator": "pipeline/cbct_surfel.py",
+  "order": "writer order, no permutation (marching-cubes layers concatenated teeth,bone,nerve,sinus)",
+  "ply": {
+    "file": "surfel.ply",
+    "sha256": "a26a5b17d6a7f05723407dffc3f8ad8d0f020986ce0f7a68ec49639c24198407",
+    "count": 111000
+  },
+  "files": {
+    "fdi_labels.bin": {
+      "sha256": "885afafa61de1abce2b0a1b4e06282f134d36bc88e588dcaa702982651310d5f",
+      "count": 111000
+    },
+    "layer_labels.bin": {
+      "sha256": "6ca35c6eb9d40658c091a643e6b8ebf99f0bf7b38403d123909f6aa4f4bb7cb5",
+      "count": 111000
+    }
+  },
+  "counts": {
+    "fdi_nonzero": 65000,
+    "teeth": 65000
+  },
+  "spacing_mm": null
+}

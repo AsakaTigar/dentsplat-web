@@ -94,11 +94,11 @@
 <h2><span class="n">4</span>已经测出来的数字（同一台机器、同一份构建，全部由 <code>npm run check</code> 复算）</h2>
 <table>
   <tr><th>指标</th><th>Scene A（Poseidon3D 真实扫描）</th><th>Scene B（DentVoxel CBCT）</th><th>说明</th></tr>
-  <tr><td>体积</td><td class="num">1,196,970 → 204,174 B（<b>5.86×</b>）</td><td class="num">2,456,298 → 819,284 B（<b>3.00×</b>）</td><td>完整包 vs 剪枝包，同一个文件</td></tr>
-  <tr><td>splat 数</td><td class="num">59,808 → 10,168</td><td class="num">122,771 → 40,924</td><td>A 两包均 SH0（按面采样）；B 完整 SH1 → 剪枝 SH0</td></tr>
+  <tr><td>体积</td><td class="num">1,196,970 → 204,174 B（<b>5.86×</b>）</td><td class="num">3,219,808 → 1,073,808 B（<b>3.00×</b>）</td><td>完整包 vs 剪枝包，同一个文件</td></tr>
+  <tr><td>splat 数</td><td class="num">59,808 → 10,168</td><td class="num">111,000 → 37,000</td><td>A 两包均 SH0（按面采样）；B 完整与剪枝均 SH1（29 B/splat）</td></tr>
   <tr><td>GPU 单遍耗时</td><td class="num">≤1 ms（低于回读分辨率）</td><td class="num">1.3–1.5 ms → 0.5–0.7 ms</td><td>640×360 到 2560×1440 几乎<b>与分辨率无关</b>；1 draw call、glError 0</td></tr>
-  <tr><td>像素保真（整帧 / 掩膜内）</td><td class="num">24.46 / 20.41 dB</td><td class="num">24.25 / 24.12 dB</td><td>浏览器回读像素算 PSNR；同包重渲染对照 = 逐比特相同（999 dB）</td></tr>
-  <tr><td>几何覆盖间隙 mean/p95/max</td><td class="num">0.178 / 0.362 / 1.138 mm</td><td class="num">0.701 / <b>1.342</b> / 2.782 mm</td><td>被删 splat 到保留集的真实最近邻距离；B 的 p95 由 3.389 → 0.946 mm，保留集仍"夹住"下牙槽神经管</td></tr>
+  <tr><td>像素保真（整帧 / 掩膜内）</td><td class="num">24.46 / 20.41 dB</td><td class="num">28.04 / 27.20 dB</td><td>浏览器回读像素算 PSNR；同包重渲染对照 = 逐比特相同（999 dB）</td></tr>
+  <tr><td>几何覆盖间隙 mean/p95/max</td><td class="num">0.178 / 0.362 / 1.138 mm</td><td class="num">0.602 / <b>1.395</b> / 3.701 mm</td><td>被删 splat 到保留集的真实最近邻距离；B 每 3 个留 1 且切向尺度乘 √3，保留集仍是完整子集</td></tr>
   <tr><td>离线 CBCT 链路</td><td class="num" colspan="3">NIfTI → 87,405 splats / 0.6 mm / 32 个 FDI / 542 种颜色 / 六个语义层 → <code>.dspk</code> 1,748,976 B（<span class="mono">118058fc…</span>），页面加载 134.2 ms；重跑两次<b>逐字节相同</b>，46 项断言全过</td></tr>
 </table>
 

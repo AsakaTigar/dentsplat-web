@@ -368,6 +368,47 @@ The IAN clips carry their own disclaimer in the burned-in caption — `交互可
 5. **mm measurement taps the invisible proxy mesh, not splat centroids.** Distances are real millimetres
    on a watertight surface, which is the clinically meaningful referent, but they are *surface* hits; a
    claim about centroid-to-centroid distance would need a different implementation.
-6. **No clinical validation.** Nothing here is a diagnostic-accuracy result; `ian_48_min_mm = 2.35` is a
-   geometric distance computed from the synthetic model's own coordinates, and the audit cards label
-   their basis accordingly.
+6. **No clinical validation.** Nothing here is a diagnostic-accuracy result. `ian_48_min_mm` is a
+   geometric distance computed from the packet's own coordinates; after §10 it is the nearest
+   splat-centre distance between the FDI-48 surface shell and the canal surface shell (0.16 mm),
+   which is not the centroid-to-centroid distance the selection script ranked and is not a
+   validated clinical measurement — adjacent segmentation masks can touch.
+
+## 10. Oriented-surfel Scene B rebuild (2026-11-25, later the same day)
+
+The shipped B packet was rebuilt from the same DentVoxel case 0095 label volume, but no longer as
+voxel-centre blobs. `pipeline/cbct_surfel.py` runs marching cubes per semantic layer (teeth 11–48,
+bone 1/2, canal 3, sinus 5), two Laplacian smoothing passes, vertex normals, a discrete mean-curvature
+AO, and area-weighted sampling that is Poisson-thinned (no two centres closer than ~0.62 x spacing)
+before choosing the tangential sigma from the measured mean k=6 neighbour distance. Every quaternion
+takes local +Z to the interpolated vertex normal and s3 = 0.2 s1, and the packet is SH1 with a baked
+three-point key/fill/rim light. FDI labels are read back from the label volume 0.45 mm *inside* the
+surface (with a 5x5x5 tooth-only fallback), so the odontogram binds to the real voxel labels instead
+of a nearest-centroid guess.
+
+**The audit** (`tools/analyze_gaussians.mjs`; baseline kept at `tools/out/blob_audit_before.json`,
+after at `tools/out/blob_audit_after.json`):
+
+| metric | isotropic voxel sample (before) | oriented surfels (after) |
+|---|---|---|
+| isotropic / disk share | 100 % / 0 % | 0 % / 100 % |
+| rho < 0.6 (under-covered) | 49.0 % | 12.1 % |
+| rho > 2.0 (over-stacked) | 0 % | 2.7 % |
+| layer budget | teeth 21 %, bone 67.3 %, nerve 1.5 %, sinus 10.2 % | teeth 58.6 %, bone 27 %, nerve 7.2 %, sinus 7.2 % |
+| per-tooth labels | 32 by pipeline centroid | 32, every splat read from the volume |
+
+The packet is 111,000 splats x 29 B = 3,219,808 B (SH1). The pruned variant keeps every third splat
+with the tangential axes scaled by sqrt(3): 37,000 splats, 1,073,808 B, 3.00x. Its coverage gap is
+mean 0.602 / p95 1.395 / max 3.701 mm, and the browser read-back bench gives 28.04 dB whole-frame /
+27.20 dB in mask (self-render control bit-identical, PSNR 999) — above the isotropic packet's
+24.25 / 24.12 dB at the same 3.00x ratio, measured with the same instrument. The bench now runs
+over the DevTools protocol in headless Edge (`tools/cdp-bench.mjs`) because the in-app evaluator
+refuses calls with side effects; the capture is `tools/out/bench-B-dentvoxel.json` and the sha256 in it
+is the shipped file's.
+
+The UI was fixed in the same pass: the bottom toolbar is a single row and reserves its own 54 px strip
+so it cannot cover the jaw, the auxiliary toggles moved into the side panel, and the 16-column
+odontogram uses minmax(0,1fr) cells with 12 px glyphs so FDI 28/38 are fully visible.
+
+What this still is not: a trained appearance model. The colours are baked, not optimised against
+photographs, and the report/README keep the "procedural appearance" wording.

@@ -1,0 +1,286 @@
+{
+ "file": "public/assets/sceneB_dentvoxel_full.dspk",
+ "stride": 29,
+ "count": 111000,
+ "bbox_mm": [
+  [
+   -63,
+   -47.8,
+   -47.7
+  ],
+  [
+   63.3,
+   47.8,
+   47.9
+  ]
+ ],
+ "scale_mm": [
+  0.043,
+  1.2
+ ],
+ "shape": {
+  "disk": {
+   "n": 111000,
+   "pct": 100
+  },
+  "needle": {
+   "n": 0,
+   "pct": 0
+  },
+  "isotropic": {
+   "n": 0,
+   "pct": 0
+  },
+  "bloated": {
+   "n": 0,
+   "pct": 0
+  }
+ },
+ "rho": {
+  "under": {
+   "n": 13478,
+   "pct": 12.1
+  },
+  "good": {
+   "n": 94484,
+   "pct": 85.1
+  },
+  "over": {
+   "n": 3038,
+   "pct": 2.7
+  }
+ },
+ "layers": {
+  "1": {
+   "splats": 65000,
+   "pct": 58.6,
+   "area_mm2": 32619,
+   "area_pct": 22.1,
+   "mean_alpha": 0.96
+  },
+  "3": {
+   "splats": 30000,
+   "pct": 27,
+   "area_mm2": 96827,
+   "area_pct": 65.5,
+   "mean_alpha": 0.2
+  },
+  "4": {
+   "splats": 8000,
+   "pct": 7.2,
+   "area_mm2": 2517,
+   "area_pct": 1.7,
+   "mean_alpha": 0.97
+  },
+  "7": {
+   "splats": 8000,
+   "pct": 7.2,
+   "area_mm2": 15919,
+   "area_pct": 10.8,
+   "mean_alpha": 0.16
+  }
+ },
+ "teeth": [
+  {
+   "fdi": 11,
+   "splats": 2012,
+   "area_mm2": 999,
+   "per_mm2": 2.01
+  },
+  {
+   "fdi": 12,
+   "splats": 1667,
+   "area_mm2": 845,
+   "per_mm2": 1.97
+  },
+  {
+   "fdi": 13,
+   "splats": 2445,
+   "area_mm2": 1238,
+   "per_mm2": 1.97
+  },
+  {
+   "fdi": 14,
+   "splats": 1816,
+   "area_mm2": 899,
+   "per_mm2": 2.02
+  },
+  {
+   "fdi": 15,
+   "splats": 1623,
+   "area_mm2": 821,
+   "per_mm2": 1.98
+  },
+  {
+   "fdi": 16,
+   "splats": 3058,
+   "area_mm2": 1525,
+   "per_mm2": 2.01
+  },
+  {
+   "fdi": 17,
+   "splats": 2605,
+   "area_mm2": 1288,
+   "per_mm2": 2.02
+  },
+  {
+   "fdi": 18,
+   "splats": 2214,
+   "area_mm2": 1132,
+   "per_mm2": 1.96
+  },
+  {
+   "fdi": 21,
+   "splats": 2034,
+   "area_mm2": 1041,
+   "per_mm2": 1.95
+  },
+  {
+   "fdi": 22,
+   "splats": 1639,
+   "area_mm2": 846,
+   "per_mm2": 1.94
+  },
+  {
+   "fdi": 23,
+   "splats": 2057,
+   "area_mm2": 1028,
+   "per_mm2": 2
+  },
+  {
+   "fdi": 24,
+   "splats": 1930,
+   "area_mm2": 953,
+   "per_mm2": 2.03
+  },
+  {
+   "fdi": 25,
+   "splats": 1535,
+   "area_mm2": 771,
+   "per_mm2": 1.99
+  },
+  {
+   "fdi": 26,
+   "splats": 3114,
+   "area_mm2": 1557,
+   "per_mm2": 2
+  },
+  {
+   "fdi": 27,
+   "splats": 2569,
+   "area_mm2": 1306,
+   "per_mm2": 1.97
+  },
+  {
+   "fdi": 28,
+   "splats": 2301,
+   "area_mm2": 1152,
+   "per_mm2": 2
+  },
+  {
+   "fdi": 31,
+   "splats": 1073,
+   "area_mm2": 521,
+   "per_mm2": 2.06
+  },
+  {
+   "fdi": 32,
+   "splats": 1320,
+   "area_mm2": 647,
+   "per_mm2": 2.04
+  },
+  {
+   "fdi": 33,
+   "splats": 2023,
+   "area_mm2": 1016,
+   "per_mm2": 1.99
+  },
+  {
+   "fdi": 34,
+   "splats": 1595,
+   "area_mm2": 818,
+   "per_mm2": 1.95
+  },
+  {
+   "fdi": 35,
+   "splats": 1433,
+   "area_mm2": 741,
+   "per_mm2": 1.93
+  },
+  {
+   "fdi": 36,
+   "splats": 2832,
+   "area_mm2": 1398,
+   "per_mm2": 2.03
+  },
+  {
+   "fdi": 37,
+   "splats": 2599,
+   "area_mm2": 1314,
+   "per_mm2": 1.98
+  },
+  {
+   "fdi": 38,
+   "splats": 2459,
+   "area_mm2": 1225,
+   "per_mm2": 2.01
+  },
+  {
+   "fdi": 41,
+   "splats": 1035,
+   "area_mm2": 512,
+   "per_mm2": 2.02
+  },
+  {
+   "fdi": 42,
+   "splats": 1332,
+   "area_mm2": 659,
+   "per_mm2": 2.02
+  },
+  {
+   "fdi": 43,
+   "splats": 2099,
+   "area_mm2": 1039,
+   "per_mm2": 2.02
+  },
+  {
+   "fdi": 44,
+   "splats": 1660,
+   "area_mm2": 830,
+   "per_mm2": 2
+  },
+  {
+   "fdi": 45,
+   "splats": 1458,
+   "area_mm2": 736,
+   "per_mm2": 1.98
+  },
+  {
+   "fdi": 46,
+   "splats": 2584,
+   "area_mm2": 1313,
+   "per_mm2": 1.97
+  },
+  {
+   "fdi": 47,
+   "splats": 2632,
+   "area_mm2": 1319,
+   "per_mm2": 2
+  },
+  {
+   "fdi": 48,
+   "splats": 2247,
+   "area_mm2": 1130,
+   "per_mm2": 1.99
+  }
+ ],
+ "flags": {
+  "over": 3038
+ },
+ "verdict": {
+  "isotropic_pct": 0,
+  "disk_pct": 100,
+  "under_pct": 12.1,
+  "over_pct": 2.7
+ }
+}

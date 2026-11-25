@@ -1,0 +1,61 @@
+{
+ "bundle": "local dist build",
+ "job": "bench",
+ "url": "http://localhost:5178/#B",
+ "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36 Edg/158.0.0.0",
+ "res": {
+  "caseId": "B",
+  "stats": {
+   "fps": 29,
+   "splats": 111000,
+   "visible": 111000,
+   "sortMs": 1.3,
+   "frameMs": 1.35,
+   "bytes": 3219808,
+   "gpu": "Vulkan 1.3.0 (SwiftShader Device (Subzer"
+  },
+  "ms": 407,
+  "bench": {
+   "psnr": 28.04,
+   "psnrInMask": 27.2,
+   "mae": 0.0244,
+   "covered": 0.8215,
+   "identicalFraction": 0.1466,
+   "errorInTop1Percent": 0.299,
+   "maxDiff": 128,
+   "meanFull": [
+    68.3,
+    62.4,
+    50.7
+   ],
+   "meanPruned": [
+    68.7,
+    62.9,
+    51.2
+   ],
+   "samples": 442368,
+   "control": {
+    "psnr": 999,
+    "psnrInMask": 999,
+    "mae": 0,
+    "covered": 0.8051,
+    "identicalFraction": 1,
+    "errorInTop1Percent": 0,
+    "maxDiff": 0,
+    "meanFull": [
+     68.3,
+     62.4,
+     50.7
+    ],
+    "meanPruned": [
+     68.3,
+     62.4,
+     50.7
+    ]
+   },
+   "psnrSelf": 999,
+   "identicalSelfFraction": 1
+  }
+ },
+ "exception": null
+}

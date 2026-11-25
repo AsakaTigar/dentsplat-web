@@ -101,4 +101,9 @@ MEASUREMENTS.md    每个数字的仪器、口径与反例
 - **Scene B（在售资产）**：DentVoxel v4 case 0095（<https://figshare.com/articles/dataset/DentVoxel_a_fully_annotated_dental_CBCT_dataset_with_38_instance_anatomical_structures/31239889>，CC BY 4.0）。
   真实患者 CBCT，440×440×344 / 0.3 mm，39 类标注（牙位即 FDI，左右下颌神经管与上颌窦独立）；`pipeline/dentvoxel_to_tf3.py` 把它映射到渲染端的四层，`tools/ziprange.mjs` 只从 8.8 GB 的发布包里取这一例。
 - ToothFairy3 / ODIN2025 语义口径（CC BY-NC-SA 4.0）仍是手册里的对照，需要 ditto 账号；仓库不含任何患者原始数据。
-- 本仓库不包含上述数据集的原始文件；产物为合成资产。仅用于学术研究与演示。
+- 本仓库不包含上述数据集的原始文件。两个场景的几何与 FDI 语义都来自真实公开病例（CC BY 4.0）；
+  外观（颜色/光照）是程序化烘焙，不是训练出来的 3DGS 外观。仅用于学术研究与演示。
+- Scene B 已改为 **oriented-surfel** 包（`pipeline/cbct_surfel.py`）：Marching Cubes 曲面、Poisson
+  抽稀采样、四元数对齐法线、s3 = 0.2 s1、SH1 + 曲率 AO。blob 审计的前后对照在
+  `tools/out/blob_audit_before.json` 与 `tools/out/blob_audit_after.json`
+  （0% 各向同性 / 100% 贴面盘 / 欠覆盖 12.1%，改前为 100% 圆球 / 欠覆盖 49%）。

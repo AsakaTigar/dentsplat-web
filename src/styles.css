@@ -43,7 +43,8 @@ button { font: inherit; color: inherit; }
 .main { display: grid; grid-template-columns: minmax(0, 1fr) 386px; min-height: 0; }
 .main.collapsed { grid-template-columns: minmax(0, 1fr) 44px; }
 .stage { position: relative; min-width: 0; background: radial-gradient(120% 100% at 50% 0%, #0d1626 0%, #070a11 70%); }
-#gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+/* reserve the toolbar strip so the presets never sit on top of the jaw */
+#gl { position: absolute; left: 0; right: 0; top: 0; bottom: 54px; width: 100%; height: auto; display: block; touch-action: none; cursor: crosshair; }
 .stage.pick #gl { cursor: pointer; }
 .vignette { position: absolute; inset: 0; pointer-events: none;
   box-shadow: inset 0 0 120px 20px rgba(0, 0, 0, .55); }
@@ -78,17 +79,20 @@ button { font: inherit; color: inherit; }
 .badge.mode { border-color: var(--line2); background: rgba(16, 26, 42, .8); color: #9fb6d2; text-transform: none; letter-spacing: 0; }
 
 .toolbar {
-  position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px;
-  display: flex; align-items: center; gap: 6px; padding: 7px;
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 10px;
+  display: flex; align-items: center; gap: 5px; padding: 5px 6px;
   border: 1px solid var(--line2); border-radius: 11px; background: rgba(9, 15, 25, .8);
-  backdrop-filter: blur(8px); max-width: calc(100% - 24px); flex-wrap: wrap; justify-content: center;
+  backdrop-filter: blur(8px); max-width: calc(100% - 190px); flex-wrap: nowrap;
+  justify-content: center; overflow-x: auto; scrollbar-width: none;
 }
-.preset { display: grid; gap: 1px; padding: 6px 10px; border-radius: 8px; border: 1px solid transparent;
+.toolbar::-webkit-scrollbar { display: none; }
+.toolbar > * { flex: 0 0 auto; }
+.preset { display: grid; gap: 1px; padding: 4px 7px; border-radius: 8px; border: 1px solid transparent;
   background: #121c2c; cursor: pointer; text-align: center; }
 .preset:hover { border-color: var(--acc-dim); }
 .preset.on { background: #14314a; border-color: var(--acc); }
-.preset i { font-style: normal; font-size: 12px; color: #d5e6f8; }
-.preset u { text-decoration: none; font-size: 9.5px; color: var(--mut); letter-spacing: .04em; }
+.preset i { font-style: normal; font-size: 11px; line-height: 1.15; color: #d5e6f8; white-space: nowrap; }
+.preset u { text-decoration: none; font-size: 8.5px; color: var(--mut); letter-spacing: .03em; white-space: nowrap; }
 .tool-sep { width: 1px; align-self: stretch; background: var(--line2); margin: 0 3px; }
 
 .btn { padding: 6px 11px; border-radius: 8px; border: 1px solid var(--line2); background: #101a29; cursor: pointer; font-size: 12px; }
@@ -172,19 +176,19 @@ input[type=range] { width: 100%; accent-color: var(--acc); height: 18px; backgro
 
 /* ------------------------------------------------------------------ odontogram */
 .odo { display: grid; gap: 7px; }
-.odo-row { display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 6px; }
+.odo-row { display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; gap: 4px; }
 .odo-arch { font-size: 9px; letter-spacing: .06em; color: var(--mut); line-height: 1.2; }
-.odo-cells { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
-.odo-cell { position: relative; display: grid; justify-items: center; gap: 1px; padding: 3px 0 2px;
+.odo-cells { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 1px; min-width: 0; }
+.odo-cell { position: relative; display: grid; justify-items: center; gap: 0; padding: 2px 0 1px; min-width: 0; overflow: hidden;
   border: 1px solid transparent; border-radius: 6px; background: #0d1726; cursor: pointer; }
 .odo-cell:hover { border-color: var(--acc-dim); }
-.odo-cell.is-mid { margin-right: 6px; }
+.odo-cell.is-mid { margin-right: 3px; }
 .odo-cell.is-sel { background: #14314a; border-color: var(--acc); }
 .odo-cell.is-none { opacity: .28; cursor: default; }
 .odo-cell.is-off { opacity: .5; }
-.odo-num { font: 9.5px/1 ui-monospace, Menlo, Consolas, monospace; color: #8fa8c6; }
+.odo-num { font: 8.5px/1 ui-monospace, Menlo, Consolas, monospace; color: #8fa8c6; letter-spacing: -.03em; }
 .odo-cell.is-sel .odo-num { color: #eaf6ff; }
-.odo-cell svg { width: 14px; height: 18px; }
+.odo-cell svg { width: 12px; height: 15px; }
 .odo-shape { fill: #cfd9e6; stroke: #6f8199; stroke-width: .7; }
 .odo-cell.is-off .odo-shape { fill: #47566a; }
 .odo-dot { position: absolute; right: 2px; top: 2px; width: 5px; height: 5px; border-radius: 50%; background: var(--hot); }
