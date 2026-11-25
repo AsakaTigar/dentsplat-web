@@ -1,0 +1,165 @@
+{
+ "file": "public/assets/sceneA_trained_full.dspk",
+ "stride": 29,
+ "count": 28691,
+ "bbox_mm": [
+  [
+   -29.1,
+   -10.6,
+   -32.4
+  ],
+  [
+   29.1,
+   10.7,
+   32.4
+  ]
+ ],
+ "scale_mm": [
+  0,
+  8.835
+ ],
+ "shape": {
+  "disk": {
+   "n": 11381,
+   "pct": 39.7
+  },
+  "needle": {
+   "n": 15109,
+   "pct": 52.7
+  },
+  "isotropic": {
+   "n": 1884,
+   "pct": 6.6
+  },
+  "bloated": {
+   "n": 317,
+   "pct": 1.1
+  }
+ },
+ "rho": {
+  "under": {
+   "n": 14666,
+   "pct": 51.1
+  },
+  "good": {
+   "n": 13637,
+   "pct": 47.5
+  },
+  "over": {
+   "n": 388,
+   "pct": 1.4
+  }
+ },
+ "layers": {
+  "0": {
+   "splats": 21099,
+   "pct": 73.5,
+   "area_mm2": 21058,
+   "area_pct": 82.4,
+   "mean_alpha": 0.39
+  },
+  "1": {
+   "splats": 7592,
+   "pct": 26.5,
+   "area_mm2": 4501,
+   "area_pct": 17.6,
+   "mean_alpha": 0.47
+  }
+ },
+ "teeth": [
+  {
+   "fdi": 31,
+   "splats": 350,
+   "area_mm2": 199,
+   "per_mm2": 1.76
+  },
+  {
+   "fdi": 32,
+   "splats": 370,
+   "area_mm2": 198,
+   "per_mm2": 1.87
+  },
+  {
+   "fdi": 33,
+   "splats": 405,
+   "area_mm2": 268,
+   "per_mm2": 1.51
+  },
+  {
+   "fdi": 34,
+   "splats": 469,
+   "area_mm2": 269,
+   "per_mm2": 1.74
+  },
+  {
+   "fdi": 35,
+   "splats": 781,
+   "area_mm2": 477,
+   "per_mm2": 1.64
+  },
+  {
+   "fdi": 36,
+   "splats": 715,
+   "area_mm2": 450,
+   "per_mm2": 1.59
+  },
+  {
+   "fdi": 37,
+   "splats": 646,
+   "area_mm2": 366,
+   "per_mm2": 1.76
+  },
+  {
+   "fdi": 41,
+   "splats": 382,
+   "area_mm2": 250,
+   "per_mm2": 1.53
+  },
+  {
+   "fdi": 42,
+   "splats": 428,
+   "area_mm2": 242,
+   "per_mm2": 1.77
+  },
+  {
+   "fdi": 43,
+   "splats": 452,
+   "area_mm2": 267,
+   "per_mm2": 1.69
+  },
+  {
+   "fdi": 44,
+   "splats": 505,
+   "area_mm2": 281,
+   "per_mm2": 1.79
+  },
+  {
+   "fdi": 45,
+   "splats": 789,
+   "area_mm2": 459,
+   "per_mm2": 1.72
+  },
+  {
+   "fdi": 46,
+   "splats": 718,
+   "area_mm2": 462,
+   "per_mm2": 1.55
+  },
+  {
+   "fdi": 47,
+   "splats": 582,
+   "area_mm2": 311,
+   "per_mm2": 1.87
+  }
+ ],
+ "flags": {
+  "ghost": 1138,
+  "over": 388
+ },
+ "verdict": {
+  "isotropic_pct": 6.6,
+  "disk_pct": 39.7,
+  "under_pct": 51.1,
+  "over_pct": 1.4
+ }
+}

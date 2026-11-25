@@ -102,12 +102,12 @@
       },
       "bytes_ratio": 2.99,
       "compression_fidelity_mm": {
-        "coverage_gap_mean": null,
-        "coverage_gap_p95": null,
-        "coverage_gap_max": null,
+        "coverage_gap_mean": 0.496,
+        "coverage_gap_p95": 0.885,
+        "coverage_gap_max": 2.857,
         "kept_subset_of_original": true,
-        "sampled_pairs": 0,
-        "note": "TBD: decimation gap not yet measured for the trained packet"
+        "sampled_pairs": 19127,
+        "note": "every third splat retained with sqrt(3)x tangential scale; removed -> retained nearest centre distance"
       },
       "proxy": {
         "bytes": 244080,
@@ -120,8 +120,21 @@
         "tool": "Brush v0.3.0 (WGPU)",
         "steps": 15000,
         "views": 120,
-        "sh_degree_pl_y": 1,
+        "sh_degree": 1,
+        "sh1_nonzero": true,
         "labels": "transferred from the sampled packet, 99.5% within 1.0 mm"
+      },
+      "bench": {
+        "psnr": 31.04,
+        "psnr_in_mask": 26.37,
+        "mae": 0.0106,
+        "identical_fraction": 0.6256,
+        "self_psnr": 999,
+        "self_identical_fraction": 1,
+        "size": 384,
+        "capture": "tools/out/bench-A2-trained.json",
+        "sha256": "a02d190748442adaae0da6398ae531fcfddd095e5fee9467a84a9d71fb760359",
+        "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36 Edg/158.0.0.0"
       },
       "source_note": "Poseidon3D case 000125 geometry via 120 Blender renders; appearance optimised by Brush (no real texture exists)"
     }

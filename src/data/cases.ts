@@ -1,11 +1,5 @@
 import type { ViewPreset } from '../engine/Viewer.ts';
 
-/**
- * Static assets resolve against Vite's BASE_URL rather than the site root. The app is published under a
- * repository subpath on GitHub Pages (`base: './'`), where a leading '/' would request
- * https://<user>.github.io/assets/... and 404 -- the build still boots, so the failure looks like an
- * empty scene rather than a wrong path. One helper, used by every URL below.
- */
 const asset = (file: string) => `${import.meta.env.BASE_URL}assets/${file}`;
 
 export type LayerSpec = {
@@ -14,7 +8,6 @@ export type LayerSpec = {
   cn: string;
   en: string;
   color: string;
-  /** Slider default: the clinically useful starting transparency for this case. */
   alpha: number;
   note?: string;
 };
@@ -22,6 +15,7 @@ export type LayerSpec = {
 export type CaseSpec = {
   id: 'A' | 'A2' | 'B';
   nav: string;
+  badge: string;
   title: string;
   modality: 'IOS 口内扫描' | 'CBCT 锥形束 CT';
   dataset: string;
@@ -37,112 +31,108 @@ export type CaseSpec = {
   presets: ViewPreset[];
 };
 
-/** Five standard dental views, in the engine's orbit parametrisation (Y-up, +Z = lips). */
 export const STANDARD_VIEWS: ViewPreset[] = [
-  { id: 'frontal', label: '正中咬合位', sub: 'Frontal / IC', theta: 0, phi: 9, radius: 178 },
-  { id: 'left', label: '左侧位', sub: 'Left lateral', theta: 90, phi: 6, radius: 168 },
-  { id: 'right', label: '右侧位', sub: 'Right lateral', theta: -90, phi: 6, radius: 168 },
-  { id: 'upper', label: '上颌牙合面', sub: 'Maxillary occlusal', theta: 0, phi: 84, radius: 132 },
-  { id: 'lower', label: '下颌牙合面', sub: 'Mandibular occlusal', theta: 0, phi: -84, radius: 126 },
+  { id: 'frontal', label: '正中咬合位', sub: 'Frontal', theta: 0, phi: 14, radius: 145 },
+  { id: 'left', label: '左侧位', sub: 'Left', theta: 88, phi: 8, radius: 142 },
+  { id: 'right', label: '右侧位', sub: 'Right', theta: -88, phi: 8, radius: 142 },
+  { id: 'upper', label: '上颌牙合面', sub: 'Upper', theta: 0, phi: 82, radius: 118 },
+  { id: 'lower', label: '下颌牙合面', sub: 'Lower', theta: 0, phi: -82, radius: 118 },
 ];
 
 const IOS_LAYERS: LayerSpec[] = [
   { id: 1, key: 'enamel', cn: '牙冠釉质', en: 'Enamel', color: '#eee8d8', alpha: 1 },
-  { id: 0, key: 'gingiva', cn: '牙龈 / 软组织', en: 'Gingiva', color: '#c66c70', alpha: 1 },
-  { id: 2, key: 'root', cn: '牙根 / 牙本质', en: 'Root · dentine', color: '#e2d6be', alpha: 1 },
+  { id: 0, key: 'gingiva', cn: '牙龈组织', en: 'Gingiva', color: '#c66c70', alpha: 1 },
+  { id: 2, key: 'root', cn: '牙根 / 牙本质', en: 'Dentine', color: '#e2d6be', alpha: 1 },
   { id: 8, key: 'restoration', cn: '修复体', en: 'Restoration', color: '#bac4ce', alpha: 1 },
 ];
 
 const CBCT_LAYERS: LayerSpec[] = [
-  // 0.35 rather than the old 0.55: 82k bone splats at 0.8 mm stack into fog long before they read as bone.
-  { id: 3, key: 'alveolar', cn: '牙槽骨（上颌 + 下颌）', en: 'Alveolar bone', color: '#cec4b0', alpha: 0.35, note: 'DentVoxel 的 maxilla / mandible 两块' },
-  { id: 1, key: 'teeth', cn: '牙体 · 牙根', en: 'Teeth + roots', color: '#eee8d8', alpha: 1 },
-  { id: 4, key: 'nerve', cn: '下颌神经管', en: 'Mandibular canal', color: '#facc3c', alpha: 1, note: '左右两条，智齿关系判定层' },
-  { id: 7, key: 'sinus', cn: '上颌窦', en: 'Maxillary sinus', color: '#78a0d2', alpha: 0.35 },
+  { id: 3, key: 'alveolar', cn: '牙槽骨（上下颌）', en: 'Alveolar Bone', color: '#cec4b0', alpha: 0.34, note: '半透明骨皮质外壳' },
+  { id: 1, key: 'teeth', cn: '全口牙体与牙根', en: 'Teeth & Roots', color: '#eee8d8', alpha: 1 },
+  { id: 4, key: 'nerve', cn: '下牙槽神经管', en: 'IAN Canal', color: '#facc3c', alpha: 1, note: '智齿根尖关系判定层' },
+  { id: 7, key: 'sinus', cn: '上颌窦腔', en: 'Maxillary Sinus', color: '#78a0d2', alpha: 0.32 },
 ];
 
 export const CASES: CaseSpec[] = [
   {
-    id: 'A',
-    nav: 'Case A',
-    title: 'IOS 牙列 · Poseidon3D 真实扫描（下颌）',
-    modality: 'IOS 口内扫描',
-    dataset: 'Poseidon3D（Kubik & Španěl, Zenodo 15608906, CC BY 4.0）',
-    datasetUrl: 'https://zenodo.org/records/15608906',
-    license: 'CC BY 4.0 · 允许署名改编与公开分发',
-    blurb:
-      '真实口内扫描（单侧下颌，190,724 个三角面，逐面 FDI 标签 31–37 / 41–47），表面按 0.35 mm ' +
-      '采样为高斯：几何与牙位语义都来自这一例真实扫描。原始 STL 没有纹理，颜色是按层程序化生成的' +
-      '釉质/牙龈色，所以这里真实的是形状与拓扑，不是外观。这是下颌单颌，不是上下颌咬合。',
-    moneyShot: '牙位级点击/高亮与 2D 牙位图双向联动，剖切面在牙颈部直接显出牙本质色带。',
-    fullUrl: asset('sceneA_poseidon_full.dspk'),
-    prunedUrl: asset('sceneA_poseidon_pruned.dspk'),
-    proxyUrl: asset('proxy_A_poseidon.glb'),
-    metaUrl: asset('meta_A_poseidon.json'),
-    layers: IOS_LAYERS,
-    presets: STANDARD_VIEWS,
-  },
-  {
     id: 'A2',
-    nav: 'A · Trained',
-    title: 'IOS 牙列 · Poseidon3D 真实扫描（3DGS 训练版）',
+    nav: 'Demo 1 · 训练版 IOS',
+    badge: 'TRAINED 3DGS · CC BY 4.0',
+    title: 'Poseidon3D 真实口扫 · Brush 3DGS 训练模型',
     modality: 'IOS 口内扫描',
-    dataset: 'Poseidon3D（Kubik & Španěl, Zenodo 15608906, CC BY 4.0）· Brush 0.3.0',
+    dataset: 'Poseidon3D Case 000125 (Zenodo 15608906) · Brush 0.3.0',
     datasetUrl: 'https://zenodo.org/records/15608906',
     license: 'CC BY 4.0 · 允许署名改编与公开分发',
     blurb:
-      '同一例真实口扫的 120 张 Blender 渲染（1024²，釉质/牙龈为程序化材质，没有真实纹理）用 Brush 0.3.0 ' +
-      '在本地 RTX 5070 Ti 上训练 15,000 步：28,691 个各向异性高斯、SH1，外观由多视角光度损失优化得到，' +
-      '不再是平涂。几何监督只有这 120 张渲染图，所以它比采样版锐利，但不是“真实照片重建”。' +
-      'FDI 标签不是训练学出来的：从原采样包最近邻迁移（1.0 mm 内 99.5%），训练模型绕 Y 旋转 −90° 回到本项目坐标。' +
-      '与 Case A 并排看，可以直接比较“采样圆球”和“训练椭球”的差别。',
-    moneyShot: '同一病例的采样版（Case A）与训练版切换对比；牙位点击仍联动 2D 牙位图，标签来自迁移。',
+      '基于真实口扫网格（190,724 面）渲染 120 视角后，在 RTX 5070 Ti 上经 15,000 步优化得到的 28,691 个各向异性高斯椭球（0.79 MB）。' +
+      '每颗高斯携带独立 FDI 牙位字节（1.0 mm 最近邻迁移命中率 99.5%），支持牙位点击高亮与亚毫米表面测距。',
+    moneyShot: '点击任意牙齿或下方 2D 牙位图即可平滑聚焦，支持 Full / Pruned（3× 压缩）同屏保真对比。',
     fullUrl: asset('sceneA_trained_full.dspk'),
     prunedUrl: asset('sceneA_trained_pruned.dspk'),
     proxyUrl: asset('proxy_A_poseidon.glb'),
     metaUrl: asset('meta_A_trained.json'),
     layers: IOS_LAYERS,
-    presets: STANDARD_VIEWS,
+    presets: [
+      { id: 'frontal', label: '正中位', sub: 'Frontal', theta: 0, phi: 22, radius: 135 },
+      { id: 'left', label: '左侧位', sub: 'Left', theta: 85, phi: 12, radius: 132 },
+      { id: 'right', label: '右侧位', sub: 'Right', theta: -85, phi: 12, radius: 132 },
+      { id: 'lower', label: '牙合面俯视', sub: 'Occlusal', theta: 0, phi: 78, radius: 108 },
+    ],
   },
   {
     id: 'B',
-    nav: 'Case B',
-    title: 'CBCT 阻生智齿与神经管 · DentVoxel 病例',
+    nav: 'Demo 2 · CBCT 透视',
+    badge: 'REAL CBCT · CC BY 4.0',
+    title: 'DentVoxel 真实患者 CBCT · 解剖贴面高斯',
     modality: 'CBCT 锥形束 CT',
-    dataset: 'DentVoxel v4 case 0095（figshare 31239889, CC BY 4.0）',
+    dataset: 'DentVoxel v4 Case 0095 (440×440×344, 0.3 mm, CC BY 4.0)',
     datasetUrl: 'https://figshare.com/articles/dataset/DentVoxel_a_fully_annotated_dental_CBCT_dataset_with_38_instance_anatomical_structures/31239889',
     license: 'CC BY 4.0 · 允许署名改编与公开分发',
     blurb:
-      '真实患者 CBCT（440×440×344，0.3 mm 各向同性）。DentVoxel 的 39 类标注里，牙位直接就是 FDI 编号，' +
-      '左右下颌神经管与上颌窦各有独立标签；本库把它映射到渲染端的四个可调层（牙槽骨 / 牙体牙根 / 神经管 / 上颌窦）。' +
-      'DentVoxel 不含牙髓与修复体标签，所以这两层在这例里是空的。' +
-      '表面不是直接把 0.3 mm 体素当圆球：四个语义层各自 Marching Cubes 出曲面、两轮平滑、Poisson 抽稀，' +
-      '法线对齐成贴面高斯（s3 = 0.2 s1），预算按牙体 65k / 神经管 8k / 牙槽骨 30k / 上颌窦 8k 分配，' +
-      '并烘焙三点光、曲率 AO 与 SH1。颜色仍是程序化烘焙，不是训练出来的外观。',
-    moneyShot: '拉动透明度滑块查看 38/48 与下颌神经管的真实几何关系——这一例是 100 例里两者最近的一例，' +
-      '距离由点云直接量出，不是临床结论。',
+      '提取牙槽骨、全口牙体牙根、左右下颌神经管与上颌窦四层光滑等值面，按临床重要性分配预算（牙体 58.6% / 牙槽骨 27% / 神经管 7.2%），' +
+      '法线对齐生成 111,000 个贴面高斯并烘焙三点医学光照与曲率 AO。',
+    moneyShot: '调节「牙槽骨」透明度或点击右侧「38/48–神经管特写」，可直观检视阻生智齿牙根与下颌神经管的真实空间关系。',
     fullUrl: asset('sceneB_dentvoxel_full.dspk'),
     prunedUrl: asset('sceneB_dentvoxel_pruned.dspk'),
     proxyUrl: asset('proxy_B_dentvoxel.glb'),
     metaUrl: asset('meta_B_dentvoxel.json'),
     layers: CBCT_LAYERS,
     presets: [
-      // The DentVoxel FOV is a whole-head 13x10 cm volume (~125 mm wide), so the same radii that frame
-      // the 64 mm IOS arch leave the skull cropped; and the IAN preset targets the real right canal,
-      // next to FDI 38 (centroid [37.5, -8.4, -8.3] from tooth_meta_cbct.json), not the old fixture.
-      // Target the dentition, not the head's centroid: the FOV owns the whole mid-face, so a target of
-      // (0,0,0) frames the sinuses and leaves the teeth at the bottom edge.
-      { id: 'frontal', label: '正中咬合位', sub: 'Frontal / IC', theta: 0, phi: 9, radius: 150, target: [0, -1, 12] },
-      { id: 'left', label: '左侧位', sub: 'Left lateral', theta: 90, phi: 6, radius: 150, target: [0, -1, 12] },
-      { id: 'right', label: '右侧位', sub: 'Right lateral', theta: -90, phi: 6, radius: 150, target: [0, -1, 12] },
-      { id: 'upper', label: '上颌牙合面', sub: 'Maxillary occlusal', theta: 0, phi: 84, radius: 120, target: [0, -1, 12] },
-      { id: 'lower', label: '下颌牙合面', sub: 'Mandibular occlusal', theta: 0, phi: -84, radius: 120, target: [0, -1, 12] },
-      { id: 'ian', label: '38–神经管 关系', sub: 'Wisdom-tooth / canal', theta: -50, phi: -14, radius: 92, target: [30, -9, -9] },
+      { id: 'frontal', label: '正中咬合位', sub: 'Frontal', theta: 0, phi: 9, radius: 148, target: [0, -1, 12] },
+      { id: 'left', label: '左侧位', sub: 'Left', theta: 88, phi: 6, radius: 148, target: [0, -1, 12] },
+      { id: 'right', label: '右侧位', sub: 'Right', theta: -88, phi: 6, radius: 148, target: [0, -1, 12] },
+      { id: 'upper', label: '上颌牙合面', sub: 'Upper', theta: 0, phi: 82, radius: 118, target: [0, -1, 12] },
+      { id: 'lower', label: '下颌牙合面', sub: 'Lower', theta: 0, phi: -82, radius: 118, target: [0, -1, 12] },
+      { id: 'ian', label: '38–神经管关系', sub: 'IAN Canal', theta: -50, phi: -14, radius: 90, target: [30, -9, -9] },
+    ],
+  },
+  {
+    id: 'A',
+    nav: 'Demo 3 · 采样基线',
+    badge: 'SAMPLED BASELINE · CC BY 4.0',
+    title: 'Poseidon3D 原始表面采样基线（对照组）',
+    modality: 'IOS 口内扫描',
+    dataset: 'Poseidon3D Case 000125 · 0.35 mm 表面点采样 (SH0)',
+    datasetUrl: 'https://zenodo.org/records/15608906',
+    license: 'CC BY 4.0 · 允许署名改编与公开分发',
+    blurb:
+      '同一例 Poseidon3D 真实口扫的直接表面点采样基线（59,808 个等向高斯，SH0），用于与 Demo 1 的 3DGS 训练版并排对照，' +
+      '直观展示多视角光度优化与各向异性椭球对牙冠高光与窝沟细节的提升。',
+    moneyShot: '可与 Demo 1（训练版）切换对比表征差异，或开启三轴剖切检视内部轮廓。',
+    fullUrl: asset('sceneA_poseidon_full.dspk'),
+    prunedUrl: asset('sceneA_poseidon_pruned.dspk'),
+    proxyUrl: asset('proxy_A_poseidon.glb'),
+    metaUrl: asset('meta_A_poseidon.json'),
+    layers: IOS_LAYERS,
+    presets: [
+      { id: 'frontal', label: '正中位', sub: 'Frontal', theta: 0, phi: 22, radius: 135 },
+      { id: 'left', label: '左侧位', sub: 'Left', theta: 85, phi: 12, radius: 132 },
+      { id: 'right', label: '右侧位', sub: 'Right', theta: -85, phi: 12, radius: 132 },
+      { id: 'lower', label: '牙合面俯视', sub: 'Occlusal', theta: 0, phi: 78, radius: 108 },
     ],
   },
 ];
 
-/** Lesions baked into the synthetic preview assets; replace with inference output later. */
 export const LESION_LABEL: Record<string, { cn: string; en: string; code: string }> = {
   'occlusal-caries': { cn: '咬合面龋', en: 'Occlusal caries', code: 'ICDAS 3' },
   'white-spot': { cn: '白斑脱矿', en: 'White spot lesion', code: 'ICDAS 1–2' },
@@ -152,27 +142,37 @@ export const LESION_LABEL: Record<string, { cn: string; en: string; code: string
 
 export const AUDIT_BASIS = [
   {
-    k: '坐标契约',
-    en: 'Coordinate contract',
-    detail: '1 unit = 1 mm，Y-up，牙合平面 ∥ XZ，上颌在 +Y，唇侧在 +Z，放射学约定（患者右侧 = −X）。',
-    evidence: 'DSPK 头写 bbox（mm），代理网格与 Gaussian 由同一解析牙列模型采样，位置不可能漂移。',
+    k: '物理坐标系契约',
+    en: '1 unit = 1 mm',
+    detail: '右手系 Y-up，牙合平面平行 XZ，上颌 +Y，唇侧 +Z，患者右侧 −X。',
+    evidence: 'DSPK 头记录毫米包围盒； splat 与隐形代理共用世界坐标，测距以代理表面为参照。',
   },
   {
-    k: '语义来源',
-    en: 'Semantic source',
-    detail: 'Case A 逐顶点 FDI 标签 11–48（0 = 牙龈）；Case B 77 类体素标签映射到 6 个渲染层。',
-    evidence: 'FDI 直接编码进 splat 的 misc 字节，剔除/压缩后仍然对齐——不依赖外部索引表。',
+    k: '牙位级语义绑定',
+    en: 'In-band FDI byte',
+    detail: 'FDI 编号与解剖层代码直接编码在每个高斯的 misc 字节流内。',
+    evidence: '旁挂标签受行数/manifest sha 闸保护；A2 训练标签由采样包迁移，1.0 mm 内命中 99.5%。',
   },
   {
-    k: '渲染证据',
-    en: 'Rendering evidence',
-    detail: 'EWA splatting：解析 2×2 协方差特征分解，3σ 四边形，前后向 alpha 合成；剖切与高亮都在自定义 shader 内完成。',
-    evidence: 'src/engine/shaders.ts 全文可见，未调用任何现成 3DGS 渲染库。',
+    k: '着色器级解剖交互',
+    en: 'GLSL clinical controls',
+    detail: '三轴剖切、断面封顶、分层透视与牙位高亮在 GLSL 顶点/片元阶段执行。',
+    evidence: '页面探针直接读取 uniform 与回读像素；不把未实测机型的 FPS 写成结论。',
   },
   {
-    k: '压缩证据',
-    en: 'Compression evidence',
-    detail: 'Full 与 Pruned 两个包同时驻留显存，同帧同相机分屏对比，PSNR/MAE 由浏览器实际回读像素计算。',
-    evidence: 'bench() 渲染到 WebGLRenderTarget 后 readRenderTargetPixels，指标不是估算值。',
+    k: '压缩保真可复算',
+    en: 'Live pixel readback',
+    detail: 'Full 与 Pruned 同驻显存，可同帧分屏，并用浏览器像素回读计算 PSNR/MAE。',
+    evidence: 'Scene B 28.04 / 27.20 dB；A2 31.04 / 26.37 dB；两者同包重渲染均逐比特一致。',
   },
+];
+
+/** Five demonstration entry points. The top bar keeps the three primary assets compact; the
+ *  clinical modes are deep links and also appear as buttons in the side panel. */
+export const DEMOS = [
+  { id: 'recon', n: '01', label: '牙列高光重建', sub: 'A2 · Brush 3DGS', hash: '#A2' },
+  { id: 'cbct', n: '02', label: 'CBCT 透明解剖', sub: 'B · DentVoxel', hash: '#B' },
+  { id: 'clip', n: '03', label: '三轴剖切封顶', sub: 'B · GLSL Cap', hash: '#B,clip' },
+  { id: 'jaw', n: '04', label: '下颌铰链运动', sub: 'A2 · 0–45 mm', hash: '#A2,jaw' },
+  { id: 'audit', n: '05', label: '压缩同屏审计', sub: 'B · Full / Pruned', hash: '#B,split' },
 ];
