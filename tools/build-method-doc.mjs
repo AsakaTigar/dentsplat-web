@@ -85,6 +85,7 @@ const GROUPS = [
       ['tools/ffmpeg-drawtext-probe.mjs', RAN, '八种 fontfile 写法对照真二进制；两种必须失败'],
       ['tools/check-glb.mjs', RAN, '代理 GLB 的结构校验：块边界、accessor 越界、索引越界、FDI 命名（抓出过 Qhull 索引未重映射）'],
       ['tools/poseidon_to_assets.mjs', RAN, '真实口内扫描 STL + 逐面 FDI → PLY/标签/代理，自动定帧（最薄轴向上、31/41 朝前）'],
+      ['tools/obj_labels_to_assets.mjs', RAN, 'Teeth3DS+ 式 OBJ + 逐顶点标签 → 同一套 PLY/代理（仅研究模式：CC BY-NC-ND 不得公开）'],
       ['tools/pickle_ints.mjs', RAN, '不执行代码地读 Poseidon3D 的 int pickle（只实现用到的 opcode，其余拒绝）'],
       ['tools/coverage-gap.mjs', RAN, '剪枝点云到完整点云的最近距离（两包独立采样时 subset 定义会读成 0）'],
       ['tools/serve-subpath.mjs', RAN, '按 GitHub Pages 的子路径与 404 语义伺服 dist（预部署检查用它，不用 preview）'],

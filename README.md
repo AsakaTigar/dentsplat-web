@@ -87,6 +87,10 @@ MEASUREMENTS.md    每个数字的仪器、口径与反例
 
 ## 数据与许可
 
-- Scene A 统计口径：Teeth3DS+ / 3DTeethSeg（<https://osf.io/um96h>，CC BY-NC-ND 4.0）。
-- Scene B 语义口径：ToothFairy3 / ODIN2025（MICCAI 2025，CC BY-NC-SA 4.0）。
+- **Scene A（在售资产）**：Poseidon3D 单侧下颌扫描，case 000125（Kubik & Španěl，<https://zenodo.org/records/15608906>，CC BY 4.0）。
+  几何与逐面 FDI 标签来自这一例真实扫描；STL 无纹理，颜色为程序化生成。允许署名改编与公开分发。
+- **Research Mode（不入库、不上线）**：Teeth3DS+ 的真实网格在 <https://osf.io/xctdy/>（单例样本 <https://osf.io/download/vr38s/>），
+  协议 CC BY-NC-ND 4.0——可以本地跑通转换与论文实验，**不得**把衍生的 .dspk/.ply 提交到公开仓库或放到 Pages。
+  `tools/obj_labels_to_assets.mjs` 就是为这条路准备的，输出固定写在 `tools/out/research/`（已 gitignore）。
+- **Scene B**：ToothFairy3 / ODIN2025 语义口径（MICCAI 2025，CC BY-NC-SA 4.0）；数据集需在 ditto.ing.unimore.it 登录后下载，仓库不含患者数据。
 - 本仓库不包含上述数据集的原始文件；产物为合成资产。仅用于学术研究与演示。
