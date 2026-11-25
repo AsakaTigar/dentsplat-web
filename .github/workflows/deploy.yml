@@ -27,6 +27,12 @@ jobs:
       # step, so nothing here needs the GPU, a browser, or the Python pipeline.
       - run: npm ci
       - run: npm run build
+      # A brand-new repository has Pages switched off, and `deploy-pages` fails outright in that state.
+      # `enablement: true` turns it on with the workflow token, so the first push is self-sufficient --
+      # no manual Settings -> Pages click, and no admin-scoped PAT needed for it.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       # `base: './'` in vite.config.ts is what makes the artefact work under /<repo>/; the app's asset
       # fetches go through import.meta.env.BASE_URL for the same reason.
       - uses: actions/upload-pages-artifact@v3
