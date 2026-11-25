@@ -1,0 +1,240 @@
+{
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "arch_extent_mm": 93.09,
+  "mode": "upper",
+  "seed": 1337,
+  "teeth": {
+    "GINGIVA_upper": {
+      "fdi": 0,
+      "arch": "upper",
+      "centroid_mm": [
+        -4.873,
+        3.892,
+        0.714
+      ],
+      "bbox_min_mm": [
+        -33.505,
+        -5.429,
+        -30.709
+      ],
+      "bbox_max_mm": [
+        33.505,
+        10.043,
+        27.563
+      ],
+      "n_vertices": 58251,
+      "n_faces": 114838
+    },
+    "FDI_11": {
+      "fdi": 11,
+      "arch": "upper",
+      "centroid_mm": [
+        6.159,
+        -4.729,
+        27.777
+      ],
+      "bbox_min_mm": [
+        1.056,
+        -8.551,
+        21.806
+      ],
+      "bbox_max_mm": [
+        11.308,
+        3.492,
+        30.709
+      ],
+      "n_vertices": 2938,
+      "n_faces": 5466
+    },
+    "FDI_12": {
+      "fdi": 12,
+      "arch": "upper",
+      "centroid_mm": [
+        13.265,
+        -5.554,
+        23.658
+      ],
+      "bbox_min_mm": [
+        8.668,
+        -9.319,
+        18.073
+      ],
+      "bbox_max_mm": [
+        17.681,
+        0.126,
+        27.827
+      ],
+      "n_vertices": 2600,
+      "n_faces": 4852
+    },
+    "FDI_13": {
+      "fdi": 13,
+      "arch": "upper",
+      "centroid_mm": [
+        20.125,
+        -4.554,
+        19.07
+      ],
+      "bbox_min_mm": [
+        14.705,
+        -8.555,
+        13.859
+      ],
+      "bbox_max_mm": [
+        23.862,
+        2.645,
+        22.748
+      ],
+      "n_vertices": 2316,
+      "n_faces": 4312
+    },
+    "FDI_14": {
+      "fdi": 14,
+      "arch": "upper",
+      "centroid_mm": [
+        21.123,
+        -6.897,
+        10.978
+      ],
+      "bbox_min_mm": [
+        15.663,
+        -10.033,
+        5.713
+      ],
+      "bbox_max_mm": [
+        26.364,
+        -1.292,
+        15.747
+      ],
+      "n_vertices": 3098,
+      "n_faces": 5964
+    },
+    "FDI_21": {
+      "fdi": 21,
+      "arch": "upper",
+      "centroid_mm": [
+        -3.578,
+        -4.967,
+        27.003
+      ],
+      "bbox_min_mm": [
+        -8.229,
+        -8.886,
+        20.609
+      ],
+      "bbox_max_mm": [
+        1.624,
+        2.196,
+        30.256
+      ],
+      "n_vertices": 2571,
+      "n_faces": 4784
+    },
+    "FDI_22": {
+      "fdi": 22,
+      "arch": "upper",
+      "centroid_mm": [
+        -9.717,
+        -5.253,
+        21.618
+      ],
+      "bbox_min_mm": [
+        -14.048,
+        -8.829,
+        17.576
+      ],
+      "bbox_max_mm": [
+        -4.731,
+        1.203,
+        24.681
+      ],
+      "n_vertices": 1950,
+      "n_faces": 3608
+    },
+    "FDI_23": {
+      "fdi": 23,
+      "arch": "upper",
+      "centroid_mm": [
+        -15.95,
+        -5.32,
+        16.166
+      ],
+      "bbox_min_mm": [
+        -20.149,
+        -9.591,
+        11.434
+      ],
+      "bbox_max_mm": [
+        -10.714,
+        1.128,
+        20.18
+      ],
+      "n_vertices": 2207,
+      "n_faces": 4092
+    },
+    "FDI_24": {
+      "fdi": 24,
+      "arch": "upper",
+      "centroid_mm": [
+        -16.987,
+        -6.493,
+        8.31
+      ],
+      "bbox_min_mm": [
+        -22.599,
+        -10.043,
+        3.015
+      ],
+      "bbox_max_mm": [
+        -11.761,
+        -1.391,
+        12.749
+      ],
+      "n_vertices": 2912,
+      "n_faces": 5500
+    },
+    "FDI_25": {
+      "fdi": 25,
+      "arch": "upper",
+      "centroid_mm": [
+        -20.036,
+        -6.76,
+        0.952
+      ],
+      "bbox_min_mm": [
+        -25.546,
+        -9.641,
+        -4.48
+      ],
+      "bbox_max_mm": [
+        -14.432,
+        -1.69,
+        5.22
+      ],
+      "n_vertices": 2975,
+      "n_faces": 5612
+    },
+    "FDI_26": {
+      "fdi": 26,
+      "arch": "upper",
+      "centroid_mm": [
+        -23.178,
+        -6.983,
+        -9.419
+      ],
+      "bbox_min_mm": [
+        -29.139,
+        -9.79,
+        -16.152
+      ],
+      "bbox_max_mm": [
+        -16.215,
+        -1.834,
+        -2.357
+      ],
+      "n_vertices": 4069,
+      "n_faces": 7810
+    }
+  }
+}

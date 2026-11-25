@@ -1,5 +1,7 @@
-/** Regression for the COLMAP -> DentSplat frame fix. The oracle is the transform itself:
- *  R_y(-90): (x,y,z) -> (-z,y,x), q' = q_R q, and l=1 (y,z,x) -> (y,x,-z). */
+/** Regression for the COLMAP -> DentSplat frame fix. The oracle is the transform itself, not a
+ *  hand-written expectation: R_y(-90): (x,y,z) -> (-z,y,x), q' = q_R q, and the l=1 colour field
+ *  the shader evaluates -- dot((-d.y, d.z, -d.x), (c0, c1, c2)) -- must be unchanged when the
+ *  scene and the view direction are rotated together. That pins (c0,c1,c2) -> (c0,-c2,c1). */
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -29,12 +31,20 @@ try {
   const get = (name) => got.readFloatLE(start + props.indexOf(name) * 4);
   const near = (a, b) => Math.abs(a - b) < 1e-6;
   const s = Math.SQRT1_2;
+  // Same formula as src/engine/shaders.ts: dir = (-d.y, d.z, -d.x), colour = dot(dir, c).
+  const evalSH = (c, d) => -c[0] * d[1] + c[1] * d[2] - c[2] * d[0];
+  const rotateDir = (d) => [-d[2], d[1], d[0]];   // R_y(-90) applied to the view direction
+  const dirs = [[0.3, -0.7, 0.64], [-0.8, 0.1, 0.59], [0.55, 0.83, -0.1], [0, 0, 1], [1, 0, 0]];
+  const shOk = [0, 1, 2].every((c) => {
+    const cin = [1, 2, 3];
+    const cout = [get(`f_rest_${c * 3}`), get(`f_rest_${c * 3 + 1}`), get(`f_rest_${c * 3 + 2}`)];
+    return dirs.every((d) => Math.abs(evalSH(cout, rotateDir(d)) - evalSH(cin, d)) < 1e-5);
+  });
   const checks = [
     ['position', near(get('x'), -3) && near(get('y'), 2) && near(get('z'), 1)],
     ['quaternion', near(get('rot_0'), s) && near(get('rot_1'), 0) && near(get('rot_2'), -s) && near(get('rot_3'), 0)],
     ['scale unchanged', near(get('scale_0'), 0.2) && near(get('scale_1'), 0.3) && near(get('scale_2'), 0.04)],
-    ['SH1 mapping', [0, 1, 2].every((c) => near(get(`f_rest_${c * 3}`), 1)
-      && near(get(`f_rest_${c * 3 + 1}`), 3) && near(get(`f_rest_${c * 3 + 2}`), -2))],
+    ['SH1 field invariant under the rotation', shOk],
   ];
   for (const [name, ok] of checks) console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}`);
   if (checks.some(([, ok]) => !ok)) process.exitCode = 1;

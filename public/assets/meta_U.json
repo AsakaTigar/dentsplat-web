@@ -1,0 +1,80 @@
+{
+  "name": "scene_upper_full.dspk",
+  "kind": "ios",
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "source": {
+    "ply": "tools/out/upper/brush/caseU_viewer.ply",
+    "ply_sha256": "7c8a9bfa7bb7055afc59741597c8312f",
+    "ply_vertices": 27703,
+    "format": "format binary_little_endian 1.0",
+    "labels_manifest": null,
+    "order": "as-written",
+    "spacing_mm": null,
+    "appearance": {
+      "color": "f_dc_ bands (trained SH0)",
+      "alpha": "sigmoid(opacity)",
+      "scale": "exp(scale_ bands)",
+      "rotation": "rot_ bands (w,x,y,z -> x,y,z,w)",
+      "sh1": "f_rest_0..8"
+    }
+  },
+  "provenance": "trained 3DGS splats + side-car semantics via tools/ply2dspk.ts",
+  "teeth": {},
+  "conversion": {
+    "out": "public/assets/scene_upper_full.dspk",
+    "converted_at": "2026-11-25T09:45:33.949Z",
+    "bytes": 804085,
+    "splats": 27703,
+    "dropped": 0,
+    "sh_degree": 1,
+    "bytes_per_splat": 29.03,
+    "bbox_mm": [
+      [
+        -31.19,
+        -10.45,
+        -33.94
+      ],
+      [
+        31.14,
+        10.5,
+        33.97
+      ]
+    ],
+    "encoded": {
+      "scale_mm": [
+        0,
+        10.015
+      ],
+      "alpha_byte": [
+        2,
+        255
+      ],
+      "distinct_colors": 14709,
+      "distinct_rotations": 7633,
+      "input_kind": "trained_3dgs"
+    },
+    "appearance": {
+      "color": "f_dc_ bands (trained SH0)",
+      "alpha": "sigmoid(opacity)",
+      "scale": "exp(scale_ bands)",
+      "rotation": "rot_ bands (w,x,y,z -> x,y,z,w)",
+      "sh1": "f_rest_0..8"
+    },
+    "fdi_histogram": {
+      "0": 27703
+    },
+    "layer_histogram": {
+      "0": 27703
+    },
+    "alignment": {
+      "ply_vertices": 27703,
+      "fdi_rows": null,
+      "layer_rows": null,
+      "manifest_count": null,
+      "manifest_order": null,
+      "ply_sha256": "7c8a9bfa7bb7055afc59741597c8312f",
+      "manifest_ply_sha256": null
+    }
+  }
+}

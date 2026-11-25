@@ -13,11 +13,11 @@ export type LayerSpec = {
 };
 
 export type CaseSpec = {
-  id: 'A' | 'A2' | 'B';
+  id: string;
   nav: string;
   badge: string;
   title: string;
-  modality: 'IOS 口内扫描' | 'CBCT 锥形束 CT';
+  modality: 'IOS 口内扫描' | 'CBCT 锥形束 CT' | '修复体扫描';
   dataset: string;
   datasetUrl: string;
   license: string;
@@ -27,17 +27,13 @@ export type CaseSpec = {
   prunedUrl: string;
   proxyUrl: string;
   metaUrl: string;
+  /** key in public/assets/report.json */
+  sceneKey: string;
+  /** only a two-jaw volume offers a hinge to open */
+  hasJaw?: boolean;
   layers: LayerSpec[];
   presets: ViewPreset[];
 };
-
-export const STANDARD_VIEWS: ViewPreset[] = [
-  { id: 'frontal', label: '正中咬合位', sub: 'Frontal', theta: 0, phi: 14, radius: 145 },
-  { id: 'left', label: '左侧位', sub: 'Left', theta: 88, phi: 8, radius: 142 },
-  { id: 'right', label: '右侧位', sub: 'Right', theta: -88, phi: 8, radius: 142 },
-  { id: 'upper', label: '上颌牙合面', sub: 'Upper', theta: 0, phi: 82, radius: 118 },
-  { id: 'lower', label: '下颌牙合面', sub: 'Lower', theta: 0, phi: -82, radius: 118 },
-];
 
 const IOS_LAYERS: LayerSpec[] = [
   { id: 1, key: 'enamel', cn: '牙冠釉质', en: 'Enamel', color: '#eee8d8', alpha: 1 },
@@ -56,21 +52,22 @@ const CBCT_LAYERS: LayerSpec[] = [
 export const CASES: CaseSpec[] = [
   {
     id: 'A2',
-    nav: 'Demo 1 · 训练版 IOS',
-    badge: 'TRAINED 3DGS · CC BY 4.0',
-    title: 'Poseidon3D 真实口扫 · Brush 3DGS 训练模型',
+    nav: '01 下颌 · 3DGS',
+    badge: 'REAL IOS · TRAINED 3DGS · CC BY 4.0',
+    title: 'Poseidon3D 真实下颌口扫 · Brush 3DGS',
     modality: 'IOS 口内扫描',
-    dataset: 'Poseidon3D Case 000125 (Zenodo 15608906) · Brush 0.3.0',
+    dataset: 'Poseidon3D case 000125 (Zenodo 15608906) · Brush 0.3.0',
     datasetUrl: 'https://zenodo.org/records/15608906',
     license: 'CC BY 4.0 · 允许署名改编与公开分发',
     blurb:
-      '基于真实口扫网格（190,724 面）渲染 120 视角后，在 RTX 5070 Ti 上经 15,000 步优化得到的 28,691 个各向异性高斯椭球（0.79 MB）。' +
-      '每颗高斯携带独立 FDI 牙位字节（1.0 mm 最近邻迁移命中率 99.5%），支持牙位点击高亮与亚毫米表面测距。',
-    moneyShot: '点击任意牙齿或下方 2D 牙位图即可平滑聚焦，支持 Full / Pruned（3× 压缩）同屏保真对比。',
+      '真实口扫网格（190,724 面）经 Blender 120 视角渲染后，在 RTX 5070 Ti 上用 Brush 训练 15,000 步，得到 28,691 个各向异性高斯（SH1）。' +
+      'FDI 牙位从采样包迁移（1.0 mm 内命中 99.5%）；坐标绕 Y 轴修正 -90° 后，l=1 系数按 (c0,c1,c2) -> (c0,-c2,c1) 同步旋转。',
+    moneyShot: '点击任意牙齿或牙位图聚焦；拖动底部 Pruned 比较 3× 压缩后的形态。',
     fullUrl: asset('sceneA_trained_full.dspk'),
     prunedUrl: asset('sceneA_trained_pruned.dspk'),
     proxyUrl: asset('proxy_A_poseidon.glb'),
     metaUrl: asset('meta_A_trained.json'),
+    sceneKey: 'sceneA_trained',
     layers: IOS_LAYERS,
     presets: [
       { id: 'frontal', label: '正中位', sub: 'Frontal', theta: 0, phi: 22, radius: 135 },
@@ -80,8 +77,34 @@ export const CASES: CaseSpec[] = [
     ],
   },
   {
+    id: 'U',
+    nav: '02 上颌 · 3DGS',
+    badge: 'REAL MAXILLA · TRAINED 3DGS · CC BY 4.0',
+    title: 'Poseidon3D 真实上颌口扫 · Brush 3DGS',
+    modality: 'IOS 口内扫描',
+    dataset: 'Poseidon3D case 000122 (ortho23-000337, Zenodo 15608906) · Brush 0.3.0',
+    datasetUrl: 'https://zenodo.org/records/15608906',
+    license: 'CC BY 4.0 · 允许署名改编与公开分发',
+    blurb:
+      '另一例独立的真实上颌扫描（88 例上颌病例之一，标注文件名为 ortho23，属正畸病例）：完整腭穹窿、腭皱襞与牙列。' +
+      '同一套 Blender 120 视角 → Brush 15,000 步 → 帧变换（含 SH1 旋转）→ DSPK 流程，与下颌病例没有共享任何几何。',
+    moneyShot: '从下方牙合面视角看腭穹窿与腭皱襞；与 01 下颌病例并排切换即可看出是两口不同的扫描。',
+    fullUrl: asset('scene_upper_full.dspk'),
+    prunedUrl: asset('scene_upper_pruned.dspk'),
+    proxyUrl: asset('proxy_U.glb'),
+    metaUrl: asset('meta_U.json'),
+    sceneKey: 'sceneU_upper',
+    layers: IOS_LAYERS,
+    presets: [
+      { id: 'frontal', label: '正中位', sub: 'Frontal', theta: 0, phi: -18, radius: 128 },
+      { id: 'left', label: '左侧位', sub: 'Left', theta: 85, phi: 6, radius: 126 },
+      { id: 'right', label: '右侧位', sub: 'Right', theta: -85, phi: 6, radius: 126 },
+      { id: 'upper', label: '腭侧仰视', sub: 'Palatal', theta: 0, phi: -78, radius: 104 },
+    ],
+  },
+  {
     id: 'B',
-    nav: 'Demo 2 · CBCT 透视',
+    nav: '03 CBCT 透视',
     badge: 'REAL CBCT · CC BY 4.0',
     title: 'DentVoxel 真实患者 CBCT · 解剖贴面高斯',
     modality: 'CBCT 锥形束 CT',
@@ -89,13 +112,15 @@ export const CASES: CaseSpec[] = [
     datasetUrl: 'https://figshare.com/articles/dataset/DentVoxel_a_fully_annotated_dental_CBCT_dataset_with_38_instance_anatomical_structures/31239889',
     license: 'CC BY 4.0 · 允许署名改编与公开分发',
     blurb:
-      '提取牙槽骨、全口牙体牙根、左右下颌神经管与上颌窦四层光滑等值面，按临床重要性分配预算（牙体 58.6% / 牙槽骨 27% / 神经管 7.2%），' +
-      '法线对齐生成 111,000 个贴面高斯并烘焙三点医学光照与曲率 AO。',
-    moneyShot: '调节「牙槽骨」透明度或点击右侧「38/48–神经管特写」，可直观检视阻生智齿牙根与下颌神经管的真实空间关系。',
+      '牙槽骨、牙体牙根、下牙槽神经管与上颌窦四层等值面，法线对齐生成 111,000 个贴面高斯（s3 = 0.2 s1），烘焙三点医学光照与曲率 AO。' +
+      '这是唯一含上下颌的真实体数据：下颌铰链只在它上面出现，单颌口扫不提供张口。',
+    moneyShot: '调低牙槽骨透明度，或点 38–神经管特写，直视阻生智齿牙根与神经管的真实空间关系。',
     fullUrl: asset('sceneB_dentvoxel_full.dspk'),
     prunedUrl: asset('sceneB_dentvoxel_pruned.dspk'),
     proxyUrl: asset('proxy_B_dentvoxel.glb'),
     metaUrl: asset('meta_B_dentvoxel.json'),
+    sceneKey: 'sceneB_cbct',
+    hasJaw: true,
     layers: CBCT_LAYERS,
     presets: [
       { id: 'frontal', label: '正中咬合位', sub: 'Frontal', theta: 0, phi: 9, radius: 148, target: [0, -1, 12] },
@@ -107,28 +132,28 @@ export const CASES: CaseSpec[] = [
     ],
   },
   {
-    id: 'A',
-    nav: 'Demo 3 · 采样基线',
-    badge: 'SAMPLED BASELINE · CC BY 4.0',
-    title: 'Poseidon3D 原始表面采样基线（对照组）',
-    modality: 'IOS 口内扫描',
-    dataset: 'Poseidon3D Case 000125 · 0.35 mm 表面点采样 (SH0)',
-    datasetUrl: 'https://zenodo.org/records/15608906',
+    id: 'P',
+    nav: '04 修复体',
+    badge: 'REAL PROSTHETIC SCAN · CC BY 4.0',
+    title: 'ProsthoObjects3D 全瓷修复体扫描 · Brush 3DGS',
+    modality: '修复体扫描',
+    dataset: 'ProsthoObjects3D scan 608 (Zenodo 18488594) · 12 个冠/扫描杆',
+    datasetUrl: 'https://zenodo.org/records/18488594',
     license: 'CC BY 4.0 · 允许署名改编与公开分发',
     blurb:
-      '同一例 Poseidon3D 真实口扫的直接表面点采样基线（59,808 个等向高斯，SH0），用于与 Demo 1 的 3DGS 训练版并排对照，' +
-      '直观展示多视角光度优化与各向异性椭球对牙冠高光与窝沟细节的提升。',
-    moneyShot: '可与 Demo 1（训练版）切换对比表征差异，或开启三轴剖切检视内部轮廓。',
-    fullUrl: asset('sceneA_poseidon_full.dspk'),
-    prunedUrl: asset('sceneA_poseidon_pruned.dspk'),
-    proxyUrl: asset('proxy_A_poseidon.glb'),
-    metaUrl: asset('meta_A_poseidon.json'),
+      '同一批数据里的另一类真实对象：一例上颌固定修复扫描（905,782 面）。12 个修复体按厂商 JSON 包围盒 + 临床 CSV 标注到 FDI，' +
+      '其余为软组织；Blender 以同一套高光釉质/牙龈材质渲染 120 视角，再训练 15,000 步。',
+    moneyShot: '绕到侧位看全瓷冠与扫描杆的镜面高光如何随视角移动；与 01/02 的自然牙列对照。',
+    fullUrl: asset('scene_crown_full.dspk'),
+    prunedUrl: asset('scene_crown_pruned.dspk'),
+    proxyUrl: asset('proxy_P.glb'),
+    metaUrl: asset('meta_P.json'),
+    sceneKey: 'sceneP_crown',
     layers: IOS_LAYERS,
     presets: [
-      { id: 'frontal', label: '正中位', sub: 'Frontal', theta: 0, phi: 22, radius: 135 },
-      { id: 'left', label: '左侧位', sub: 'Left', theta: 85, phi: 12, radius: 132 },
-      { id: 'right', label: '右侧位', sub: 'Right', theta: -85, phi: 12, radius: 132 },
-      { id: 'lower', label: '牙合面俯视', sub: 'Occlusal', theta: 0, phi: 78, radius: 108 },
+      { id: 'frontal', label: '正中位', sub: 'Frontal', theta: 0, phi: -12, radius: 118 },
+      { id: 'right', label: '右侧位', sub: 'Right', theta: -72, phi: 4, radius: 112 },
+      { id: 'upper', label: '牙合面仰视', sub: 'Occlusal', theta: 0, phi: -72, radius: 100 },
     ],
   },
 ];
@@ -145,7 +170,7 @@ export const AUDIT_BASIS = [
     k: '物理坐标系契约',
     en: '1 unit = 1 mm',
     detail: '右手系 Y-up，牙合平面平行 XZ，上颌 +Y，唇侧 +Z，患者右侧 −X。',
-    evidence: 'DSPK 头记录毫米包围盒； splat 与隐形代理共用世界坐标，测距以代理表面为参照。',
+    evidence: 'DSPK 头记录毫米包围盒；splat 与隐形代理共用世界坐标，测距以代理表面为参照。',
   },
   {
     k: '牙位级语义绑定',
@@ -165,14 +190,4 @@ export const AUDIT_BASIS = [
     detail: 'Full 与 Pruned 同驻显存，可同帧分屏，并用浏览器像素回读计算 PSNR/MAE。',
     evidence: 'Scene B 28.04 / 27.20 dB；A2 31.04 / 26.37 dB；两者同包重渲染均逐比特一致。',
   },
-];
-
-/** Five demonstration entry points. The top bar keeps the three primary assets compact; the
- *  clinical modes are deep links and also appear as buttons in the side panel. */
-export const DEMOS = [
-  { id: 'recon', n: '01', label: '牙列高光重建', sub: 'A2 · Brush 3DGS', hash: '#A2' },
-  { id: 'cbct', n: '02', label: 'CBCT 透明解剖', sub: 'B · DentVoxel', hash: '#B' },
-  { id: 'clip', n: '03', label: '三轴剖切封顶', sub: 'B · GLSL Cap', hash: '#B,clip' },
-  { id: 'jaw', n: '04', label: '下颌铰链运动', sub: 'A2 · 0–45 mm', hash: '#A2,jaw' },
-  { id: 'audit', n: '05', label: '压缩同屏审计', sub: 'B · Full / Pruned', hash: '#B,split' },
 ];

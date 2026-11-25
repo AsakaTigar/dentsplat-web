@@ -1,11 +1,11 @@
 {
-  "name": "poseidon3d-trained",
+  "name": "sceneA_trained_full.dspk",
   "kind": "ios",
   "unit": "mm",
   "coordinate_system": "glTF_Y_up",
   "source": {
     "ply": "tools/out/case125/brush_run/caseA_15000_viewer.ply",
-    "ply_sha256": "be1c4150b870fbd78d6d9569b9a2ed2e",
+    "ply_sha256": "de222f970cdd872e9892028b89310812",
     "ply_vertices": 28691,
     "format": "format binary_little_endian 1.0",
     "labels_manifest": "tools/out/case125/trained_v/labels_manifest.json",
@@ -164,8 +164,8 @@
   },
   "conversion": {
     "out": "public/assets/sceneA_trained_full.dspk",
-    "converted_at": "2026-11-25T08:37:55.516Z",
-    "bytes": 832829,
+    "converted_at": "2026-11-25T09:33:49.326Z",
+    "bytes": 832835,
     "splats": 28691,
     "dropped": 0,
     "sh_degree": 1,
@@ -229,7 +229,7 @@
       "layer_rows": 28691,
       "manifest_count": null,
       "manifest_order": "writer order of the trained PLY, no permutation",
-      "ply_sha256": "be1c4150b870fbd78d6d9569b9a2ed2e",
+      "ply_sha256": "de222f970cdd872e9892028b89310812",
       "manifest_ply_sha256": "be1c4150b870fbd78d6d9569b9a2ed2e"
     }
   }

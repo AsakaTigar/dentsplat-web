@@ -137,6 +137,96 @@
         "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36 Edg/158.0.0.0"
       },
       "source_note": "Poseidon3D case 000125 geometry via 120 Blender renders; appearance optimised by Brush (no real texture exists)"
+    },
+    "sceneU_upper": {
+      "full": {
+        "splats": 27703,
+        "bytes": 804085,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "version": 1,
+        "mb": 0.77
+      },
+      "pruned": {
+        "splats": 9235,
+        "bytes": 268513,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "version": 1,
+        "mb": 0.26
+      },
+      "bytes_ratio": 2.99,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 294888,
+        "kb": 288,
+        "nodes": 11,
+        "triangles": 13339
+      },
+      "metrics": {},
+      "training": {
+        "tool": "Brush v0.3.0 (WGPU)",
+        "steps": 15000,
+        "views": 120,
+        "sh_degree": 1,
+        "render": "Blender Cycles orbit, 1024 px, 48 spp",
+        "labels": "no per-splat FDI side-car in this pass; odontogram intentionally empty"
+      },
+      "provenance": {
+        "source": "Poseidon3D case 000122 (ortho23-000337, Zenodo 15608906)",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_upper_full.dspk",
+          "pruned": "public/assets/scene_upper_pruned.dspk",
+          "proxy": "public/assets/proxy_U.glb"
+        }
+      }
+    },
+    "sceneP_crown": {
+      "full": {
+        "splats": 31083,
+        "bytes": 902105,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "version": 1,
+        "mb": 0.86
+      },
+      "pruned": {
+        "splats": 10361,
+        "bytes": 301167,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "version": 1,
+        "mb": 0.29
+      },
+      "bytes_ratio": 3,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 1465228,
+        "kb": 1430.9,
+        "nodes": 13,
+        "triangles": 72450
+      },
+      "metrics": {},
+      "training": {
+        "tool": "Brush v0.3.0 (WGPU)",
+        "steps": 15000,
+        "views": 120,
+        "sh_degree": 1,
+        "render": "Blender Cycles orbit, 1024 px, 48 spp",
+        "labels": "no per-splat FDI side-car in this pass; odontogram intentionally empty"
+      },
+      "provenance": {
+        "source": "ProsthoObjects3D scan 608 (Zenodo 18488594)",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_crown_full.dspk",
+          "pruned": "public/assets/scene_crown_pruned.dspk",
+          "proxy": "public/assets/proxy_P.glb"
+        }
+      }
     }
   }
 }

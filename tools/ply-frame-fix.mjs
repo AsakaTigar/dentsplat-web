@@ -8,9 +8,14 @@
  *   x' = -z,  y' = y,  z' =  x        (R_y(-90), det = +1, no mirror)
  *
  * Positions take R; orientations take q' = q_R (x) q with q_R = (s, 0, -s, 0), s = sqrt(1/2).
- * The real l=1 basis in a standard 3DGS PLY is (Y1,-1, Y1,0, Y1,1) = (y, z, x) per colour
- * channel. Under this active rotation the coefficients map (c_y, c_z, c_x) -> (c_y, c_x, -c_z),
- * so the trained view-dependent sheen is preserved rather than discarded.
+ * The shader evaluates l=1 as dot((-d.y, d.z, -d.x), (c0, c1, c2)) -- the 3DGS convention, where
+ * (c0, c1, c2) are the (y, z, x) coefficients with a -,+,- basis. Requiring the colour field to be
+ * unchanged under d' = R d gives, per channel:
+ *
+ *   -c0' d'y + c1' d'z - c2' d'x  ==  -c0 d'y - c1 d'x - c2 d'z
+ *   =>  (c0', c1', c2') = (c0, -c2, c1)
+ *
+ * Getting this sign wrong flips the view-dependent term and shows up as a plastic-white rim.
  *
  *   node tools/ply-frame-fix.mjs --in caseA_15000.ply --out caseA_15000_viewer.ply
  */
@@ -51,11 +56,11 @@ for (let i = 0; i < n; i++) {
     const a = off['f_rest_' + (c * 3)], b = off['f_rest_' + (c * 3 + 1)], d = off['f_rest_' + (c * 3 + 2)];
     const cy = buf.readFloatLE(o + a), cz = buf.readFloatLE(o + b), cx = buf.readFloatLE(o + d);
     out.writeFloatLE(cy, o + a);
-    out.writeFloatLE(cx, o + b);
-    out.writeFloatLE(-cz, o + d);
+    out.writeFloatLE(-cx, o + b);
+    out.writeFloatLE(cz, o + d);
   }
 }
 const headText = text.slice(0, headEnd).replace(marker,
-  'comment rotated -90 deg about Y into the viewer frame; l=1 (y,z,x)->(y,x,-z) (see tools/ply-frame-fix.mjs)\n' + marker);
+  'comment rotated -90 deg about Y into the viewer frame; l=1 (c0,c1,c2)->(c0,-c2,c1) (see tools/ply-frame-fix.mjs)\n' + marker);
 writeFileSync(OUT, Buffer.concat([Buffer.from(headText, 'latin1'), out.subarray(headEnd)]));
 console.log(JSON.stringify({ in: IN, out: OUT, splats: n }));

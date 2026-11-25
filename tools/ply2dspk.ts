@@ -248,6 +248,17 @@ if (!fdi && !layer) {
   console.warn('  odontogram, per-tooth highlight and measurement will have nothing to bind to.');
 }
 
+// Jaw membership has to be decided once, from the labels, because splats with no FDI (gingiva) still
+// have to follow the jaw they sit on when the viewer opens the hinge. A single-jaw scan gives its
+// background that jaw's flag; a two-jaw volume is split at the occlusal plane (project frame: +Y is
+// above it). Without this the hinge rotates teeth out of a gum that stays put.
+let jawMask = 0;
+if (fdi) for (let i = 0; i < fdi.length; i++) {
+  const id = fdi[i];
+  if (id >= 11 && id <= 28) jawMask |= FLAG.upperJaw;
+  else if (id >= 31 && id <= 48) jawMask |= FLAG.lowerJaw;
+}
+
 const n = Math.min(ply.vertexCount, maxSplats);
 const centers = new Float64Array(n * 3), quats = new Float64Array(n * 4), scales = new Float64Array(n * 3);
 const colors = new Float64Array(n * 3), alphas = new Float64Array(n);
@@ -349,6 +360,12 @@ for (let i = 0; i < n; i++) {
   // real Teeth3DS+ scan those two teeth came out with no jaw flag at all (no jaw recoil, wrong arch).
   if (f >= 11 && f <= 18) fl |= FLAG.upperJaw; else if (f >= 21 && f <= 28) fl |= FLAG.upperJaw;
   else if (f >= 31 && f <= 38) fl |= FLAG.lowerJaw; else if (f >= 41 && f <= 48) fl |= FLAG.lowerJaw;
+  else if (f === 0) {
+    // Background (gingiva) follows its jaw: a single-jaw scan has only one answer, a two-jaw volume
+    // splits at the occlusal plane. Leaving it at 0 detaches the gum when the hinge opens.
+    fl |= (jawMask === FLAG.lowerJaw || jawMask === FLAG.upperJaw) ? jawMask
+      : (y < 0 ? FLAG.lowerJaw : FLAG.upperJaw);
+  }
   if (kind === 'cbct') fl |= FLAG.cutCapEligible;
   flags[o] = fl;
   hist[f] = (hist[f] || 0) + 1;
