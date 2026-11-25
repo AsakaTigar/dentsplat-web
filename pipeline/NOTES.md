@@ -278,6 +278,18 @@ here implements `.dspk`.
 
 ## 7. What is NOT verified
 
+1b. **Blender render: executed once, on a real scan, and it needed four fixes.** On 2026-11-25
+   `dental_pipeline_blender.py` ran end to end for the first time (Blender 4.5.9 LTS, RTX 5070 Ti,
+   OptiX) on the Poseidon3D mandible converted by `tools/stl_to_obj_labels.mjs`: 120 views at
+   1024²/48 spp, COLMAP sparse text, proxy GLB and tooth meta. Four bugs had to be fixed first —
+   `rotation_to_quaternion_wxyz` unpacked four numbers from a 3-vector (pinned now by
+   `pipeline/test_camera_math.py`); the camera was driven by `to_track_quat` while `images.txt` came
+   from `look_at_world_to_camera`, a 180° roll apart at steep elevations; render paths were relative
+   and resolved against "//"; and (in the web renderer, not Blender) the quaternion attribute was
+   normalised without the [0,1]→[-1,1] remap. **gsplat training has still never run** — torch is
+   installed on the V100 and `pipeline/bootstrap_gsplat.sh` prepares gsplat, but the jump host kept
+   shedding the session before the example trainer started.
+
 Stated plainly so nothing fails mysteriously on your machine:
 
 1. **Python: executed, but only on synthetic fixtures.** The interpreter claim above was true in
@@ -294,7 +306,8 @@ Stated plainly so nothing fails mysteriously on your machine:
    names on each `npm run check`.
    What is still **not** executed: `postprocess_dental_gs.py` against a real trained `.ply`
    (the coverage pruner has only been exercised by the Node-side tests and by reading),
-   `dental_pipeline_blender.py` (no Blender on this machine), and the Scene A `run_case.sh` chain
+   `dental_pipeline_blender.py` (updated 2026-11-25: it has now run — see item 1b below, which also
+   records the four bugs its first run exposed), and the Scene A `run_case.sh` chain
    end to end. `npm run pycheck` only compiles them. Expect first-run fixes there.
 2. **Blender version drift.** Principled BSDF input names changed between 3.6 and 4.x
    (`Specular` → `Specular IOR Level`, etc.). Every property write is wrapped in try/except with

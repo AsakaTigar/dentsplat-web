@@ -105,6 +105,7 @@ const GROUPS = [
       ['pipeline/postprocess_dental_gs.py', COMPILED, '训练产物后处理（从未见过真实训练的 .ply）'],
       ['pipeline/dental_pipeline_blender.py', RAN, 'Blender Cycles 多视角渲染 + COLMAP 稀疏场景 + 代理 GLB（2026-11-25 首次真跑，修了两个 bug）'],
       ['pipeline/test_camera_math.py', RAN, '相机数学回归：四元数往返、M/S 矩阵往返，机器精度'],
+      ['pipeline/bootstrap_gsplat.sh', NEVER, '远程 CUDA 环境一键准备（torch cu121 + gsplat + examples），尚未完整执行'],
       ['pipeline/train_gsplat.sh', NEVER, 'gsplat 训练（本机无训练环境）'],
       ['pipeline/train_2dgs.sh', NEVER, '2DGS 训练（同上）'],
       ['pipeline/requirements.txt', RAN, '离线链路依赖'],

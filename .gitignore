@@ -36,3 +36,5 @@ tools/out/research/
 
 tools/out/case125/
 tools/out/rtest/
+
+tools/out/*.log
