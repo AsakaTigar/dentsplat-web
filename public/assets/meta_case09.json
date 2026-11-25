@@ -1,0 +1,392 @@
+{
+  "name": "dentvoxel0069",
+  "kind": "cbct",
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "source": {
+    "ply": "tools/out/dentvoxel0069/surfel.ply",
+    "ply_sha256": "0bd7de60934dba021800861ea03b24c8",
+    "ply_vertices": 111000,
+    "format": "format binary_little_endian 1.0",
+    "labels_manifest": "tools/out/dentvoxel0069/labels_manifest.json",
+    "order": "writer order, no permutation (marching-cubes layers concatenated teeth,bone,nerve,sinus)",
+    "spacing_mm": null,
+    "appearance": {
+      "color": "f_dc_ bands (trained SH0)",
+      "alpha": "sigmoid(opacity)",
+      "scale": "exp(scale_ bands)",
+      "rotation": "rot_ bands (w,x,y,z -> x,y,z,w)",
+      "sh1": "f_rest_0..8"
+    }
+  },
+  "provenance": "trained 3DGS splats + side-car semantics via tools/ply2dspk.ts",
+  "teeth": {
+    "FDI_11": {
+      "fdi": 11,
+      "arch": "upper",
+      "at": [
+        -4.97,
+        6.81,
+        51.46
+      ],
+      "splats": 2325
+    },
+    "FDI_12": {
+      "fdi": 12,
+      "arch": "upper",
+      "at": [
+        -12.32,
+        6.85,
+        47.81
+      ],
+      "splats": 2085
+    },
+    "FDI_13": {
+      "fdi": 13,
+      "arch": "upper",
+      "at": [
+        -18.71,
+        7.87,
+        42.06
+      ],
+      "splats": 2455
+    },
+    "FDI_14": {
+      "fdi": 14,
+      "arch": "upper",
+      "at": [
+        -21.34,
+        3.48,
+        36.45
+      ],
+      "splats": 2131
+    },
+    "FDI_15": {
+      "fdi": 15,
+      "arch": "upper",
+      "at": [
+        -23.58,
+        1.43,
+        29.67
+      ],
+      "splats": 1941
+    },
+    "FDI_16": {
+      "fdi": 16,
+      "arch": "upper",
+      "at": [
+        -26.34,
+        1.32,
+        20.66
+      ],
+      "splats": 3270
+    },
+    "FDI_17": {
+      "fdi": 17,
+      "arch": "upper",
+      "at": [
+        -29.71,
+        1.85,
+        10.85
+      ],
+      "splats": 3373
+    },
+    "FDI_21": {
+      "fdi": 21,
+      "arch": "upper",
+      "at": [
+        4.17,
+        6.48,
+        51.1
+      ],
+      "splats": 2181
+    },
+    "FDI_22": {
+      "fdi": 22,
+      "arch": "upper",
+      "at": [
+        11.56,
+        6.6,
+        47.8
+      ],
+      "splats": 2131
+    },
+    "FDI_23": {
+      "fdi": 23,
+      "arch": "upper",
+      "at": [
+        17.42,
+        6.21,
+        42.09
+      ],
+      "splats": 2365
+    },
+    "FDI_24": {
+      "fdi": 24,
+      "arch": "upper",
+      "at": [
+        19.81,
+        2.35,
+        36.17
+      ],
+      "splats": 2148
+    },
+    "FDI_25": {
+      "fdi": 25,
+      "arch": "upper",
+      "at": [
+        22.11,
+        0.97,
+        28.85
+      ],
+      "splats": 1891
+    },
+    "FDI_26": {
+      "fdi": 26,
+      "arch": "upper",
+      "at": [
+        23.63,
+        1.11,
+        19.42
+      ],
+      "splats": 3365
+    },
+    "FDI_27": {
+      "fdi": 27,
+      "arch": "upper",
+      "at": [
+        25.64,
+        1.13,
+        9.05
+      ],
+      "splats": 3380
+    },
+    "FDI_31": {
+      "fdi": 31,
+      "arch": "lower",
+      "at": [
+        2.66,
+        -13.45,
+        50.72
+      ],
+      "splats": 1333
+    },
+    "FDI_32": {
+      "fdi": 32,
+      "arch": "lower",
+      "at": [
+        7.38,
+        -14.5,
+        49.03
+      ],
+      "splats": 1577
+    },
+    "FDI_33": {
+      "fdi": 33,
+      "arch": "lower",
+      "at": [
+        13.01,
+        -16.69,
+        45.23
+      ],
+      "splats": 2157
+    },
+    "FDI_34": {
+      "fdi": 34,
+      "arch": "lower",
+      "at": [
+        17.43,
+        -15.65,
+        39.96
+      ],
+      "splats": 1802
+    },
+    "FDI_35": {
+      "fdi": 35,
+      "arch": "lower",
+      "at": [
+        19.44,
+        -15.73,
+        32.89
+      ],
+      "splats": 1760
+    },
+    "FDI_36": {
+      "fdi": 36,
+      "arch": "lower",
+      "at": [
+        22.52,
+        -16.17,
+        23.89
+      ],
+      "splats": 3240
+    },
+    "FDI_37": {
+      "fdi": 37,
+      "arch": "lower",
+      "at": [
+        25.36,
+        -16.31,
+        11.56
+      ],
+      "splats": 3042
+    },
+    "FDI_41": {
+      "fdi": 41,
+      "arch": "lower",
+      "at": [
+        -2.73,
+        -13.12,
+        50.29
+      ],
+      "splats": 1318
+    },
+    "FDI_42": {
+      "fdi": 42,
+      "arch": "lower",
+      "at": [
+        -7.53,
+        -13.57,
+        49.02
+      ],
+      "splats": 1541
+    },
+    "FDI_43": {
+      "fdi": 43,
+      "arch": "lower",
+      "at": [
+        -12.91,
+        -15.6,
+        45.33
+      ],
+      "splats": 2280
+    },
+    "FDI_44": {
+      "fdi": 44,
+      "arch": "lower",
+      "at": [
+        -17.49,
+        -14.06,
+        40.25
+      ],
+      "splats": 1798
+    },
+    "FDI_45": {
+      "fdi": 45,
+      "arch": "lower",
+      "at": [
+        -20.39,
+        -15.12,
+        33.11
+      ],
+      "splats": 1767
+    },
+    "FDI_46": {
+      "fdi": 46,
+      "arch": "lower",
+      "at": [
+        -24.07,
+        -15.62,
+        24.18
+      ],
+      "splats": 3204
+    },
+    "FDI_47": {
+      "fdi": 47,
+      "arch": "lower",
+      "at": [
+        -28.25,
+        -15.59,
+        12.58
+      ],
+      "splats": 3140
+    }
+  },
+  "conversion": {
+    "out": "public/assets/scene_case69_full.dspk",
+    "converted_at": "2026-11-25T10:20:10.918Z",
+    "bytes": 3219808,
+    "splats": 111000,
+    "dropped": 0,
+    "sh_degree": 1,
+    "bytes_per_splat": 29.01,
+    "bbox_mm": [
+      [
+        -66.5,
+        -48.35,
+        -58.4
+      ],
+      [
+        66.5,
+        48.35,
+        58.4
+      ]
+    ],
+    "encoded": {
+      "scale_mm": [
+        0.06,
+        1.2
+      ],
+      "alpha_byte": [
+        41,
+        247
+      ],
+      "distinct_colors": 1802,
+      "distinct_rotations": 4095,
+      "input_kind": "trained_3dgs"
+    },
+    "appearance": {
+      "color": "f_dc_ bands (trained SH0)",
+      "alpha": "sigmoid(opacity)",
+      "scale": "exp(scale_ bands)",
+      "rotation": "rot_ bands (w,x,y,z -> x,y,z,w)",
+      "sh1": "f_rest_0..8"
+    },
+    "fdi_histogram": {
+      "0": 46000,
+      "11": 2325,
+      "12": 2085,
+      "13": 2455,
+      "14": 2131,
+      "15": 1941,
+      "16": 3270,
+      "17": 3373,
+      "21": 2181,
+      "22": 2131,
+      "23": 2365,
+      "24": 2148,
+      "25": 1891,
+      "26": 3365,
+      "27": 3380,
+      "31": 1333,
+      "32": 1577,
+      "33": 2157,
+      "34": 1802,
+      "35": 1760,
+      "36": 3240,
+      "37": 3042,
+      "41": 1318,
+      "42": 1541,
+      "43": 2280,
+      "44": 1798,
+      "45": 1767,
+      "46": 3204,
+      "47": 3140
+    },
+    "layer_histogram": {
+      "1": 65000,
+      "3": 30000,
+      "4": 8000,
+      "7": 8000
+    },
+    "alignment": {
+      "ply_vertices": 111000,
+      "fdi_rows": 111000,
+      "layer_rows": 111000,
+      "manifest_count": null,
+      "manifest_order": "writer order, no permutation (marching-cubes layers concatenated teeth,bone,nerve,sinus)",
+      "ply_sha256": "0bd7de60934dba021800861ea03b24c8",
+      "manifest_ply_sha256": "0bd7de60934dba021800861ea03b24c8"
+    }
+  }
+}

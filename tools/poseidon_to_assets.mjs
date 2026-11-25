@@ -11,11 +11,15 @@
  *        --out-dir tools/out/poseidon --step 0.35 --pruned-step 0.85 --name poseidon125
  *
  * Rotation is derived, not assumed: the thinnest axis becomes +Y (up), and the sign of the remaining
- * horizontal axis is chosen so the FDI 31/41 centrals sit at +Z (the app puts the lips there). The
- * script refuses a scan whose 31/41 are missing or whose extents do not look like a dental arch.
+ * horizontal axis is chosen so the FDI 31/41 (or 11/21) centrals sit at +Z (the app puts the lips there).
+ * The script refuses a scan whose central pair is missing or whose extents do not look like a dental arch.
+ *
+ * When a sibling `case/frame.json` exists (the Blender training route writes it), that rigid frame is
+ * reused instead of the heuristic: the sampled packet, its proxy and the Brush-trained splats must share
+ * one frame exactly, or the FDI transfer compares points in two different coordinate systems.
  */
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import { Vector3 } from 'three';
@@ -24,6 +28,7 @@ const argv = process.argv.slice(2);
 const arg = (f, d) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
 const STL = arg('--stl'), FDI_PKL = arg('--fdi'), OUT = arg('--out-dir', 'tools/out/poseidon');
 const STEP = Number(arg('--step', 0.35)), PSTEP = Number(arg('--pruned-step', 0.85));
+const YAW180 = argv.includes('--yaw180');
 const NAME = arg('--name', 'poseidon');
 if (!STL || !FDI_PKL) { console.error('usage: --stl X.stl --fdi Y.pkl [--out-dir d] [--step 0.35]'); process.exit(2); }
 mkdirSync(OUT, { recursive: true });
@@ -85,29 +90,62 @@ for (let k = 0; k < verts.length; k += 3) for (let a = 0; a < 3; a++) {
   if (verts[k + a] < mn[a]) mn[a] = verts[k + a];
   if (verts[k + a] > mx[a]) mx[a] = verts[k + a];
 }
-const ext = [0, 1, 2].map((a) => mx[a] - mn[a]);
-const up = ext.indexOf(Math.min(...ext));
-const horiz = [0, 1, 2].filter((a) => a !== up);
-if (ext[up] > 35) throw new Error(`thinnest extent is ${ext[up].toFixed(1)} mm -- not an arch scan?`);
-const cent = [0, 1, 2].map((a) => (mn[a] + mx[a]) / 2);
-const centroidOf = (fdi) => {
-  let x = 0, y = 0, z = 0, n = 0;
-  for (let t = 0; t < nTri; t++) if (labels[t] === fdi) {
-    for (let v = 0; v < 3; v++) { x += verts[t * 9 + v * 3]; y += verts[t * 9 + v * 3 + 1]; z += verts[t * 9 + v * 3 + 2]; n++; }
-  }
-  return n ? [x / n, y / n, z / n] : null;
-};
-const c31 = centroidOf(31), c41 = centroidOf(41);
-if (!c31 || !c41) throw new Error('FDI 31 and 41 must both be present to orient the arch (they set +Z)');
-const ant = [0, 1, 2].map((a) => (c31[a] + c41[a]) / 2);
-const fwd = horiz[0];
-const sign = ant[fwd] - cent[fwd] >= 0 ? 1 : -1;
-const side = horiz[1];
-// (x,y,z)_stl -> (X,Y,Z)_app:  X = side axis, Y = up, Z = sign*fwd
-const toApp = (x, y, z) => {
-  const p = [x, y, z];
-  return [p[side] - cent[side], p[up] - cent[up], sign * (p[fwd] - cent[fwd])];
-};
+// ---------------------------------------------------------------- frame
+// The trained route renders the same STL through pipeline/dental_pipeline_blender.py, which writes
+// case/frame.json and uses the rigid Blender-Z-up -> glTF-Y-up transform. When that sidecar exists,
+// reuse it so the sampled packet, its proxy and the trained splats share exactly one frame. The
+// FDI-based heuristic below stays for the original 000125 sampled packet (no Blender sibling).
+const FRAME_JSON = arg('--frame-json', join(OUT, '..', 'case', 'frame.json'));
+let toApp, up = null, fwd = null, sign = null, ext = null;
+if (existsSync(FRAME_JSON)) {
+  const f = JSON.parse(readFileSync(FRAME_JSON, 'utf8'));
+  const c = f.center_blender_zup;
+  if (!Array.isArray(c) || c.length !== 3) throw new Error(`${FRAME_JSON}: center_blender_zup missing`);
+  const rawUp = f.raw_up || 'Z';
+  up = rawUp === 'Y' ? 1 : 2; fwd = rawUp === 'Y' ? 2 : 1; sign = rawUp === 'Y' ? 1 : -1;
+  ext = [mx[0]-mn[0], mx[1]-mn[1], mx[2]-mn[2]];
+  console.error(`# frame: Blender sidecar ${FRAME_JSON} (raw_up=${rawUp})`);
+  // Raw src -> Blender Z-up -> glTF Y-up, exactly as dental_pipeline_blender.py does it:
+  //   raw_up=Z: (x,y,z)_src -> (x, z, -y)_gltf
+  //   raw_up=Y: (x,y,z)_src -> (x, y, z + c_y)_gltf after the same centre subtraction
+  toApp = rawUp === 'Y'
+    ? (x, y, z) => [x - c[0], y - c[2], z + c[1]]
+    : (x, y, z) => [x - c[0], z - c[2], -(y - c[1])];
+} else {
+  ext = [0, 1, 2].map((a) => mx[a] - mn[a]);
+  up = ext.indexOf(Math.min(...ext));
+  const horiz = [0, 1, 2].filter((a) => a !== up);
+  if (ext[up] > 35) throw new Error(`thinnest extent is ${ext[up].toFixed(1)} mm -- not an arch scan?`);
+  const cent = [0, 1, 2].map((a) => (mn[a] + mx[a]) / 2);
+  const centroidOf = (fdi) => {
+    let x = 0, y = 0, z = 0, n = 0;
+    for (let t = 0; t < nTri; t++) if (labels[t] === fdi) {
+      for (let v = 0; v < 3; v++) { x += verts[t * 9 + v * 3]; y += verts[t * 9 + v * 3 + 1]; z += verts[t * 9 + v * 3 + 2]; n++; }
+    }
+    return n ? [x / n, y / n, z / n] : null;
+  };
+  // Mandible sets +Z with the lower central incisors 31/41; a maxilla has 11/21 instead. Use whichever
+  // pair the scan actually carries, and refuse only when neither anterior pair exists (no honest way to
+  // decide which way the lips face).
+  const c31 = centroidOf(31), c41 = centroidOf(41), c11 = centroidOf(11), c21 = centroidOf(21);
+  const antPair = c31 && c41 ? [c31, c41] : c11 && c21 ? [c11, c21] : null;
+  if (!antPair) throw new Error('neither FDI 31/41 nor 11/21 is present to orient the arch (they set +Z)');
+  const ant = [0, 1, 2].map((a) => (antPair[0][a] + antPair[1][a]) / 2);
+  fwd = horiz[0];
+  sign = ant[fwd] - cent[fwd] >= 0 ? 1 : -1;
+  const side = horiz[1];
+  // (x,y,z)_stl -> (X,Y,Z)_app:  X = side axis, Y = up, Z = sign*fwd
+  toApp = (x, y, z) => {
+    const p = [x, y, z];
+    return [p[side] - cent[side], p[up] - cent[up], sign * (p[fwd] - cent[fwd])];
+  };
+  console.error('# frame: FDI heuristic (no Blender frame.json next to the sampled packet)');
+}
+if (YAW180) {
+  const base = toApp;
+  toApp = (x, y, z) => { const [X, Y, Z] = base(x, y, z); return [-X, Y, -Z]; };
+  console.error("# frame: extra 180 deg yaw (case-specific, to match this case's COLMAP reconstruction)");
+}
 
 // ---------------------------------------------------------------- sampling
 const rng = (() => { let s = 0x9e3779b9; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); })();
@@ -152,7 +190,7 @@ const sample = (step) => {
 const writePly = (path, s, step) => {
   const n = s.F.length;
   const head = ['ply', 'format binary_little_endian 1.0',
-    `comment Poseidon3D real intra-oral scan, surface-sampled at ${step} mm, ${NAME}`, 'comment frame: millimetre, Y up, +Z anterior',
+    `comment Poseidon3D real intra-oral scan, surface-sampled at ${step} mm, ${NAME}`, 'comment frame: millimetre, Y up; orientation follows the case frame sidecar or the FDI heuristic',
     `element vertex ${n}`,
     'property float x', 'property float y', 'property float z',
     'property uchar red', 'property uchar green', 'property uchar blue', 'property uchar alpha',

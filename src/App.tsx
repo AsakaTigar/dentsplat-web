@@ -3,7 +3,7 @@ import type * as THREE from 'three';
 import { DentSplatViewer } from './engine/Viewer.ts';
 import type { BenchResult, ClipAxis, PickerHit, ProbeResult, Stats, ViewPreset } from './engine/Viewer.ts';
 import { CASES, AUDIT_BASIS, LESION_LABEL } from './data/cases.ts';
-import type { CaseSpec } from './data/cases.ts';
+import type { CaseSpec, CaseCohort } from './data/cases.ts';
 import Odontogram from './ui/Odontogram.tsx';
 import type { ToothMeta } from './ui/Odontogram.tsx';
 
@@ -38,6 +38,12 @@ type EvidenceFinding = {
 const fmtMB = (b: number) => (b / 1048576).toFixed(2);
 const fmtInt = (n: number) => n.toLocaleString('en-US');
 const hashCase = () => location.hash.replace(/^#/, '').split(/[,/]/)[0];
+
+const COHORT_TABS: { id: 'all' | CaseCohort; label: string }[] = [
+  { id: 'all', label: '全部 10 例' },
+  { id: 'ios', label: 'IOS 3DGS' },
+  { id: 'cbct', label: 'CBCT 贴面' },
+];
 
 function parseFdiInfo(fdi: number, raw?: ToothMeta) {
   if (!fdi) return null;
@@ -120,6 +126,17 @@ export default function App() {
   const [activeFindingId, setActiveFindingId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [customAssetName, setCustomAssetName] = useState<string | null>(null);
+
+  // 10-case cohort selector (right inspector)
+  const [cohort, setCohort] = useState<'all' | CaseCohort>('all');
+  const [pickerOpen, setPickerOpen] = useState(true);
+  const [caseQuery, setCaseQuery] = useState('');
+  const [allScenes, setAllScenes] = useState<Record<string, SceneReport>>({});
+
+  const switchCase = useCallback((id: string) => {
+    setCaseId(id);
+    history.replaceState(null, '', `#${id}`);
+  }, []);
 
   // ---------------------------------------------------------------- viewer lifecycle
 
@@ -251,6 +268,7 @@ export default function App() {
         });
         if (dead) return;
         setReport(scene);
+        setAllScenes((rep.scenes ?? {}) as Record<string, SceneReport>);
         setMeta(mf as MetaFile);
         setAlphas(defaults);
         // Reset jaw / clipping on every switch: single-jaw scans have no hinge.
@@ -327,13 +345,18 @@ export default function App() {
   }, [goPreset, spec]);
 
   const focusCanal = useCallback(() => {
-    if (caseId !== 'B') { setCaseId('B'); return; }
-    setSelected(38);
+    if (spec.cohort !== 'cbct') {
+      const first = CASES.find((c) => c.cohort === 'cbct');
+      if (first) switchCase(first.id);
+      return;
+    }
+    const canalTooth = [38, 48, 37, 47, 36, 46, 35, 45, 34, 44].find((f) => meta?.teeth?.[`FDI_${f}`]) ?? 0;
+    setSelected(canalTooth);
     setAlphas((a) => ({ ...a, 3: 0.14, 1: 0.9, 4: 1.0, 7: 0.12 }));
     setClipAxis('x'); setFlip(false); setClipOffset(18); setClipBand(1.2); setCap(true);
     const p = spec.presets.find((x) => x.id === 'ian') ?? spec.presets[0];
     goPreset(p);
-  }, [caseId, goPreset, spec]);
+  }, [goPreset, meta, spec, switchCase]);
 
   const runBench = useCallback(async () => {
     const v = viewerRef.current;
@@ -386,6 +409,21 @@ export default function App() {
 
   const alphaOf = (id: number) => alphas[id] ?? 1;
 
+  const pickerCases = useMemo(() => {
+    const base = cohort === 'all' ? CASES : CASES.filter((c) => c.cohort === cohort);
+    const q = caseQuery.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter((c) =>
+      [c.code, c.shortTitle, c.modality, c.tag, c.dataset].join(' ').toLowerCase().includes(q),
+    );
+  }, [cohort, caseQuery]);
+
+  const cohortCounts = useMemo(() => ({
+    all: CASES.length,
+    ios: CASES.filter((c) => c.cohort === 'ios').length,
+    cbct: CASES.filter((c) => c.cohort === 'cbct').length,
+  }), []);
+
   // Evidence-linked findings. Numbers shown here all come from report.json / meta.json of the
   // current case; anything not measured is labelled TBD rather than filled with a placeholder.
   const findings = useMemo<EvidenceFinding[]>(() => {
@@ -418,6 +456,57 @@ export default function App() {
           action: () => { setClipAxis('y'); setClipOffset(-2); setCap(true); setRailTab('slice'); },
         },
       );
+    } else if (spec.cohort === 'cbct') {
+      const firstTooth = Object.values(meta?.teeth ?? {}).map((t) => t.fdi).find((f) => f > 0) ?? 0;
+      const sinusTooth = [16, 26, 17, 27, 15, 25].find((f) => meta?.teeth?.[`FDI_${f}`]) ?? firstTooth;
+      const canalTooth = [38, 48, 37, 47, 36, 46, 35, 45].find((f) => meta?.teeth?.[`FDI_${f}`]) ?? 0;
+      const ian = typeof report?.metrics?.ian_48_min_mm === 'number' ? report.metrics.ian_48_min_mm : null;
+      list.push(
+        {
+          id: 'ian-layer', fdi: canalTooth, title: 'IAN Canal Layer', subtitle: '下牙槽神经管与后牙根尖的空间关系',
+          status: ian != null ? 'caution' : 'info',
+          metric: ian != null ? `IAN ${ian.toFixed(2)} mm` : 'Layer L4',
+          evidence: ian != null
+            ? `${spec.dataset} 的 0.3 mm 标注体素重建；该读数是贴面高斯中心之间的最近距离（非临床安全边界，也不构成诊断）。`
+            : `${spec.dataset} 的 0.3 mm 标注体素重建；神经管与牙体分层独立编码，可在 Layers 面板调低骨透明度后直视。`,
+          action: () => focusCanal(),
+        },
+        {
+          id: 'sinus-layer', fdi: sinusTooth, title: 'Maxillary Sinus Context', subtitle: '上颌窦底与后牙根尖毗邻区',
+          status: 'info', metric: 'Layer L7',
+          evidence: '上颌窦（L7）与牙槽骨（L3）分层编码；调节透明度可检查后牙根尖与窦底关系，页面不预写任何未量测的距离。',
+          action: () => { setSelected(sinusTooth); setAlphas((a) => ({ ...a, 3: 0.18, 7: 0.55 })); if (sinusTooth) viewerRef.current?.focusTooth(sinusTooth); },
+        },
+        {
+          id: 'cbct-labels', fdi: 0, title: 'Voxel-Read FDI Binding', subtitle: '逐高斯牙位直接回读自 0.3 mm 标注',
+          status: 'verified', metric: meta ? `${Object.keys(meta.teeth ?? {}).length} FDI` : '—',
+          evidence: 'FDI 不是按位置猜的：每个贴面高斯在表面内侧回读 DentVoxel 分割标签，旁挂文件经行数与 sha 校验后才写入 DSPK。',
+          action: () => setRailTab('source'),
+        },
+      );
+    } else if (caseId === 'C05' || caseId === 'C06' || caseId === 'C07') {
+      const firstTooth = Object.values(meta?.teeth ?? {}).map((t) => t.fdi).find((f) => f > 0) ?? 0;
+      list.push(
+        {
+          id: 'independent-scan', fdi: firstTooth, title: 'Independent Patient Scan', subtitle: '独立真实个体 · 120 视角 / Brush 15,000 步',
+          status: 'verified', metric: report ? `${fmtInt(report.full.splats)} splats` : '—',
+          evidence: `${spec.dataset}；与 Case 01/02 不共享任何几何。高光与牙龈细节来自真实口扫网格的 Blender 渲染，不是生成式补全。`,
+          action: () => { if (firstTooth) { setSelected(firstTooth); viewerRef.current?.focusTooth(firstTooth); } },
+        },
+        {
+          id: 'transferred-labels', fdi: 0, title: 'Cross-Packet FDI Transfer', subtitle: '同源 0.35 mm 采样包 → 训练高斯的最近邻迁移',
+          status: 'info', metric: meta ? `${Object.keys(meta.teeth ?? {}).length} FDI` : '—',
+          evidence: '迁移半径 1.0 mm；超过半径的高斯保留 0 而不被强行指派牙位。迁移件写明参考包与逐行 sha，可复核。',
+          action: () => setRailTab('source'),
+        },
+      );
+    } else if (caseId === 'A') {
+      list.push({
+        id: 'sampled-baseline', fdi: 0, title: 'Untrained Surface Baseline', subtitle: '同一 000125 的 0.35 mm 采样包 · SH0',
+        status: 'info', metric: report ? `${fmtInt(report.full.splats)} splats` : '—',
+        evidence: '与 Case 01 同源但未经过 Brush 优化；把训练前后的边缘锐度、遮挡与高光差异放在同一相机和同一代理坐标系下比较。',
+        action: () => switchCase('A2'),
+      });
     } else if (caseId === 'A2' && meta?.teeth?.FDI_46) {
       list.push(
         {
@@ -489,7 +578,7 @@ export default function App() {
       }
     });
     return list;
-  }, [caseId, focusCanal, goPreset, meta, mbText, ratio, report, spec.presets]);
+  }, [caseId, focusCanal, goPreset, meta, mbText, ratio, report, spec, switchCase]);
 
   const filteredFindings = useMemo(() => {
     const q = findingFilter.trim().toLowerCase();
@@ -549,7 +638,7 @@ export default function App() {
           <button type="button" className={'rib-btn' + (cap && clipAxis !== null ? ' on' : '')} onClick={() => setCap((c) => !c)}>
             <Icon name="cap" /><span>断面封顶</span>
           </button>
-          <button type="button" className={'rib-btn' + (caseId === 'B' && activePreset === 'ian' ? ' on' : '')} onClick={focusCanal}>
+          <button type="button" className={'rib-btn' + (spec.cohort === 'cbct' && activePreset === 'ian' ? ' on' : '')} onClick={focusCanal}>
             <Icon name="nerve" /><span>神经管特写</span>
           </button>
         </div>
@@ -601,19 +690,32 @@ export default function App() {
       </div>
 
       <div className="dtx-subtabs">
-        {CASES.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            className={'subtab' + (caseId === c.id ? ' on' : '')}
-            onClick={() => { setCaseId(c.id); history.replaceState(null, '', `#${c.id}`); }}
-          >
-            <span className="subtab-dot" />
-            {c.nav} · {c.modality.split(' ')[0]}
-          </button>
-        ))}
+        <div className="cohort-tabs" role="tablist" aria-label="病例类别">
+          {COHORT_TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={cohort === t.id}
+              className={'subtab cohort-tab' + (cohort === t.id ? ' on' : '')}
+              onClick={() => {
+                setCohort(t.id);
+                setCaseQuery('');
+                setPickerOpen(true);
+                if (t.id !== 'all' && spec.cohort !== t.id) {
+                  const first = CASES.find((c) => c.cohort === t.id);
+                  if (first) switchCase(first.id);
+                }
+              }}
+            >
+              <span className="subtab-dot" />
+              {t.label}
+              {t.id !== 'all' && <small>{cohortCounts[t.id]}</small>}
+            </button>
+          ))}
+        </div>
         <div className="dtx-spacer" />
-        <div className="subtab-info">{spec.title}</div>
+        <div className="subtab-info">{spec.code} · {spec.title}</div>
       </div>
 
       <div className={'dtx-workspace' + (inspectorOpen ? '' : ' collapsed')}>
@@ -733,6 +835,59 @@ export default function App() {
           </div>
 
           <div className="insp-scroll">
+            <div className={'case-picker' + (pickerOpen ? '' : ' collapsed')}>
+              <button
+                type="button"
+                className="picker-head"
+                aria-expanded={pickerOpen}
+                onClick={() => setPickerOpen((o) => !o)}
+              >
+                <span>3DGS CASE COHORT ({CASES.length})</span>
+                <span className="picker-head-r">
+                  <span className="picker-active-code">{spec.code}</span>
+                  <span className="picker-caret">{pickerOpen ? '−' : '+'}</span>
+                </span>
+              </button>
+              {pickerOpen && (
+                <>
+                  <input
+                    type="search"
+                    className="case-search"
+                    placeholder="搜索病例编号 / 名称 / 模态…"
+                    value={caseQuery}
+                    onChange={(e) => setCaseQuery(e.target.value)}
+                  />
+                  <div className="case-list" role="listbox" aria-label="选择 3DGS 病例">
+                    {pickerCases.map((c) => {
+                      const sc = allScenes[c.sceneKey];
+                      const cls = c.tag === 'CBCT Surfel' ? 'cbct' : c.tag === 'Sampled IOS' ? 'base' : 'gs';
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          role="option"
+                          aria-selected={c.id === caseId}
+                          className={'case-row' + (c.id === caseId ? ' on' : '')}
+                          onClick={() => switchCase(c.id)}
+                        >
+                          <span className="cr-code">{c.code.replace('Case ', 'C')}</span>
+                          <span className="cr-main">
+                            <b>{c.shortTitle}</b>
+                            <small>
+                              {c.modality}
+                              {sc ? ` · ${fmtInt(sc.full.splats)} splats · ${fmtMB(sc.full.bytes)} MB` : ' · metrics TBD'}
+                            </small>
+                          </span>
+                          <span className={'cr-tag ' + cls}>{c.tag}</span>
+                        </button>
+                      );
+                    })}
+                    {pickerCases.length === 0 && <div className="case-empty">没有匹配的病例</div>}
+                  </div>
+                </>
+              )}
+            </div>
+
             <div className={'insp-pane' + (railTab === 'findings' ? ' active' : '')}>
               <input
                 type="search"
@@ -787,7 +942,7 @@ export default function App() {
 
             <div className={'insp-pane' + (railTab === 'layers' ? ' active' : '')}>
               <div className="sec-head"><span>ANATOMICAL LAYERS (uLayerAlpha)</span></div>
-              {caseId === 'B' && (
+              {spec.cohort === 'cbct' && (
                 <div className="quick-row">
                   <button type="button" className="tbar-btn" onClick={() => setAlphas((a) => ({ ...a, 3: 0.14, 1: 0.95, 4: 1, 7: 0.12 }))}>透视牙根+神经管</button>
                   <button type="button" className="tbar-btn" onClick={() => setAlphas((a) => ({ ...a, 3: 0.85, 1: 1, 4: 1, 7: 0.35 }))}>实心骨表面</button>

@@ -88,14 +88,14 @@
     "sceneA_trained": {
       "full": {
         "splats": 28691,
-        "bytes": 832829,
+        "bytes": 832835,
         "mb": 0.79,
         "sh_degree": 1,
         "bytes_per_splat": 29
       },
       "pruned": {
         "splats": 9564,
-        "bytes": 278146,
+        "bytes": 278152,
         "mb": 0.27,
         "sh_degree": 1,
         "bytes_per_splat": 29
@@ -225,6 +225,234 @@
           "full": "public/assets/scene_crown_full.dspk",
           "pruned": "public/assets/scene_crown_pruned.dspk",
           "proxy": "public/assets/proxy_P.glb"
+        }
+      }
+    },
+    "scene_case08": {
+      "full": {
+        "splats": 111000,
+        "bytes": 3219808,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 3.07
+      },
+      "pruned": {
+        "splats": 37000,
+        "bytes": 1073808,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 1.02
+      },
+      "bytes_ratio": 3,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 243420,
+        "kb": 237.7,
+        "nodes": 30,
+        "triangles": 12628
+      },
+      "metrics": {
+        "ian_48_min_mm": 0.06,
+        "tooth_48_at_mm": [
+          -36.5,
+          -20.3,
+          3.5
+        ],
+        "nerve_at_mm": [
+          -36.5,
+          -20.2,
+          3.5
+        ]
+      },
+      "representation": {
+        "generator": "pipeline/cbct_surfel.py",
+        "layers": "teeth / alveolar bone / IAN canal / maxillary sinus",
+        "primitives": "oriented surfels, s3 = 0.2 s1, SH1",
+        "labels": "per-splat FDI read back from the 0.3 mm label volume; row-aligned side-cars guarded by labels_manifest.json"
+      },
+      "source_note": "DentVoxel v4 case 0001: 111,000 oriented surfels from the 0.3 mm label volume; FDI read back per splat",
+      "provenance": {
+        "source": "DentVoxel v4 case 0001 (figshare 31239889), CC BY 4.0",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_case08_full.dspk",
+          "pruned": "public/assets/scene_case08_pruned.dspk",
+          "proxy": "public/assets/proxy_case08.glb"
+        }
+      }
+    },
+    "scene_case09": {
+      "full": {
+        "splats": 111000,
+        "bytes": 3219808,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 3.07
+      },
+      "pruned": {
+        "splats": 37000,
+        "bytes": 1073808,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 1.02
+      },
+      "bytes_ratio": 3,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 250496,
+        "kb": 244.6,
+        "nodes": 28,
+        "triangles": 13084
+      },
+      "metrics": {},
+      "representation": {
+        "generator": "pipeline/cbct_surfel.py",
+        "layers": "teeth / alveolar bone / IAN canal / maxillary sinus",
+        "primitives": "oriented surfels, s3 = 0.2 s1, SH1",
+        "labels": "per-splat FDI read back from the 0.3 mm label volume; row-aligned side-cars guarded by labels_manifest.json"
+      },
+      "source_note": "DentVoxel v4 case 0069: 111,000 oriented surfels; both maxillary sinuses prominent (2,365,232 label voxels)",
+      "provenance": {
+        "source": "DentVoxel v4 case 0069 (figshare 31239889), CC BY 4.0",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_case09_full.dspk",
+          "pruned": "public/assets/scene_case09_pruned.dspk",
+          "proxy": "public/assets/proxy_case09.glb"
+        }
+      }
+    },
+    "scene_case05": {
+      "full": {
+        "splats": 27901,
+        "bytes": 809934,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 0.77
+      },
+      "pruned": {
+        "splats": 9301,
+        "bytes": 270534,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 0.26
+      },
+      "bytes_ratio": 2.99,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 233332,
+        "kb": 227.9,
+        "nodes": 11,
+        "triangles": 12626
+      },
+      "metrics": {},
+      "training": {
+        "tool": "Brush v0.3.0 (WGPU)",
+        "steps": 15000,
+        "views": 120,
+        "sh_degree": 1,
+        "render": "Blender Cycles orbit, 1024 px, 48 spp",
+        "labels": "nearest-neighbour transfer from the same-source 0.35 mm sampled packet: 7,440/27,901 within 1.0 mm; 2,055 splats carry a nonzero FDI (9 teeth)"
+      },
+      "source_note": "Poseidon3D case 000113: 120 Blender views -> Brush 15,000 steps -> SH1 DSPK. Labels are a nearest-neighbour transfer from the same-source 0.35 mm sampled packet; no clinical finding is asserted.",
+      "provenance": {
+        "source": "Poseidon3D case 000113 (Zenodo 15608906), CC BY 4.0",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_case05_full.dspk",
+          "pruned": "public/assets/scene_case05_pruned.dspk",
+          "proxy": "public/assets/proxy_case05.glb"
+        }
+      }
+    },
+    "scene_case06": {
+      "full": {
+        "splats": 29036,
+        "bytes": 842852,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 0.8
+      },
+      "pruned": {
+        "splats": 9679,
+        "bytes": 281499,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 0.27
+      },
+      "bytes_ratio": 2.99,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 229600,
+        "kb": 224.2,
+        "nodes": 12,
+        "triangles": 12388
+      },
+      "metrics": {},
+      "training": {
+        "tool": "Brush v0.3.0 (WGPU)",
+        "steps": 15000,
+        "views": 120,
+        "sh_degree": 1,
+        "render": "Blender Cycles orbit, 1024 px, 48 spp",
+        "labels": "nearest-neighbour transfer from the same-source 0.35 mm sampled packet: 28,898/29,036 within 1.0 mm; 7,686 splats carry a nonzero FDI (12 teeth). The reference was rotated 180 deg about Y to match this case's Brush/COLMAP reconstruction."
+      },
+      "source_note": "Poseidon3D case 000114: 120 Blender views (raw_up=Y) -> Brush 15,000 steps -> SH1 DSPK. Sampled proxy and labels share the trained frame after a 180 deg yaw correction; no clinical finding is asserted.",
+      "provenance": {
+        "source": "Poseidon3D case 000114 (Zenodo 15608906), CC BY 4.0",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_case06_full.dspk",
+          "pruned": "public/assets/scene_case06_pruned.dspk",
+          "proxy": "public/assets/proxy_case06.glb"
+        }
+      }
+    },
+    "scene_case07": {
+      "full": {
+        "splats": 27937,
+        "bytes": 810977,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 0.77
+      },
+      "pruned": {
+        "splats": 9313,
+        "bytes": 270881,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 0.26
+      },
+      "bytes_ratio": 2.99,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 233968,
+        "kb": 228.5,
+        "nodes": 14,
+        "triangles": 12572
+      },
+      "metrics": {},
+      "training": {
+        "tool": "Brush v0.3.0 (WGPU)",
+        "steps": 15000,
+        "views": 120,
+        "sh_degree": 1,
+        "render": "Blender Cycles orbit, 1024 px, 48 spp",
+        "labels": "nearest-neighbour transfer from the same-source 0.35 mm sampled packet: 27,820/27,937 within 1.0 mm; 9,386 splats carry a nonzero FDI (14 teeth)"
+      },
+      "source_note": "Poseidon3D case 000178: 120 Blender views -> Brush 15,000 steps -> SH1 DSPK. Labels are a nearest-neighbour transfer from the same-source 0.35 mm sampled packet; no clinical finding is asserted.",
+      "provenance": {
+        "source": "Poseidon3D case 000178 (Zenodo 15608906), CC BY 4.0",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_case07_full.dspk",
+          "pruned": "public/assets/scene_case07_pruned.dspk",
+          "proxy": "public/assets/proxy_case07.glb"
         }
       }
     }
