@@ -262,51 +262,59 @@ let alphaMin = 255, alphaMax = 0;
 const colorSet = new Set<number>(), rotSet = new Set<number>();
 
 for (let i = 0; i < n; i++) {
+  // The drop test has to run before anything is written, and every output array has to be indexed by the
+  // output row `o`, not the input row `i`: with --drop the two diverge from the first filtered splat, so
+  // geometry written at `i` and labels written at `kept` would describe different splats. (`sh1`, tooth,
+  // layer and flag bytes were already on `kept`; positions, rotations, scales, colours and alphas were not.)
+  const f = fdi ? fdi[i] : 0;
+  if (drop && f === 0) { dropped++; continue; }
+  const o = kept;
+
   let x = ply.get(i, 'x') * unit, y = ply.get(i, 'y') * unit, z = ply.get(i, 'z') * unit;
   if (axis === 'z-up') { const t = y; y = z; z = -t; }
   if (A['flip-x'] === true) x = -x;
   if (A['flip-z'] === true) z = -z;
-  centers[i * 3] = x; centers[i * 3 + 1] = y; centers[i * 3 + 2] = z;
+  centers[o * 3] = x; centers[o * 3 + 1] = y; centers[o * 3 + 2] = z;
 
   // quaternion: PLY stores (rot_0=w, rot_1..3 = x,y,z); dspk wants (x,y,z,w). With no rot_* at all the
   // answer is the identity (0,0,0,1) -- the previous default put 1 in the x slot, i.e. a 180 deg roll
   // about X, which is invisible while all three scales are equal and wrong the moment they are not.
   const rw = hasRot ? ply.get(i, 'rot_0') : 1, rx = hasRot ? ply.get(i, 'rot_1') : 0;
   const ry = hasRot ? ply.get(i, 'rot_2') : 0, rz = hasRot ? ply.get(i, 'rot_3') : 0;
-  quats[i * 4] = Number.isFinite(rx) ? rx : 0;
-  quats[i * 4 + 1] = Number.isFinite(ry) ? ry : 0;
-  quats[i * 4 + 2] = Number.isFinite(rz) ? rz : 0;
-  quats[i * 4 + 3] = Number.isFinite(rw) ? rw : 1;
+  quats[o * 4] = Number.isFinite(rx) ? rx : 0;
+  quats[o * 4 + 1] = Number.isFinite(ry) ? ry : 0;
+  quats[o * 4 + 2] = Number.isFinite(rz) ? rz : 0;
+  quats[o * 4 + 3] = Number.isFinite(rw) ? rw : 1;
 
   for (let k = 0; k < 3; k++) {
-    if (!hasScales) { scales[i * 3 + k] = sigmaMm; continue; }
+    if (!hasScales) { scales[o * 3 + k] = sigmaMm; continue; }
     const s = ply.get(i, 'scale_' + k);
-    scales[i * 3 + k] = Number.isFinite(s) ? (expScale ? Math.exp(s) : s) : 0.2;
+    scales[o * 3 + k] = Number.isFinite(s) ? (expScale ? Math.exp(s) : s) : 0.2;
   }
-  if (A['scale-mult']) for (let k = 0; k < 3; k++) scales[i * 3 + k] *= Number(A['scale-mult']);
+  if (A['scale-mult']) for (let k = 0; k < 3; k++) scales[o * 3 + k] *= Number(A['scale-mult']);
 
   if (hasOpacity) {
     let op = ply.get(i, 'opacity');
     if (!Number.isFinite(op)) op = 1;
-    alphas[i] = sigmoidOpacity ? 1 / (1 + Math.exp(-op)) : op;
+    alphas[o] = sigmoidOpacity ? 1 / (1 + Math.exp(-op)) : op;
   } else if (hasAlphaByte) {
     // An 8-bit coverage/alpha channel is already linear 0..1; sigmoid() on it would crush every
     // opaque splat to 0.73 and every transparent one to 0.5.
     const a = ply.get(i, 'alpha');
-    alphas[i] = Number.isFinite(a) ? Math.min(1, Math.max(0, a / 255)) : 1;
+    alphas[o] = Number.isFinite(a) ? Math.min(1, Math.max(0, a / 255)) : 1;
   } else {
-    alphas[i] = 1;
+    alphas[o] = 1;
   }
 
   for (let k = 0; k < 3; k++) {
     if (hasDC) {
       const dc = ply.get(i, 'f_dc_' + k);
-      colors[i * 3 + k] = Number.isFinite(dc) ? Math.min(1, Math.max(0, 0.5 + SH_C0 * dc)) : 0.8;
+      colors[o * 3 + k] = Number.isFinite(dc) ? Math.min(1, Math.max(0, 0.5 + SH_C0 * dc)) : 0.8;
     } else if (hasRGB) {
       const v = ply.get(i, ['red', 'green', 'blue'][k]);
-      colors[i * 3 + k] = Number.isFinite(v) ? Math.min(1, Math.max(0, v / 255)) : 0.8;
+      colors[o * 3 + k] = Number.isFinite(v) ? Math.min(1, Math.max(0, v / 255)) : 0.8;
     } else {
-      colors[i * 3 + k] = 0.8;
+      colors[o * 3 + k] = 0.8;
     }
   }
   if (sh1) {
@@ -316,32 +324,33 @@ for (let i = 0; i < n; i++) {
         let v = ply.get(i, 'f_rest_' + (c * 3 + b));
         if (!Number.isFinite(v)) v = 0;
         if (negateXY && b !== 1) v = -v;
-        sh1[kept * 9 + c * 3 + b] = v;
+        sh1[o * 9 + c * 3 + b] = v;
       }
     }
   }
 
-  const f = fdi ? fdi[i] : 0;
+  // `f` was read at the top of the loop; the row that reaches this point always survives --drop.
   let ly = layer ? layer[i] : (f >= 11 ? LAYER.enamel : kind === 'cbct' ? LAYER.alveolar : LAYER.gingiva);
   if (ly > 8) ly = LAYER.other;
-  if (drop && f === 0) { dropped++; continue; }
 
   // Statistics over the splats that actually survive, so `encoded` describes the packet and not the
   // rows that --drop threw away.
   {
-    const ab = Math.min(255, Math.max(0, Math.round(alphas[i] * 255)));
+    const ab = Math.min(255, Math.max(0, Math.round(alphas[o] * 255)));
     if (ab < alphaMin) alphaMin = ab;
     if (ab > alphaMax) alphaMax = ab;
-    colorSet.add((Math.round(colors[i * 3] * 255) << 16) | (Math.round(colors[i * 3 + 1] * 255) << 8) |
-      Math.round(colors[i * 3 + 2] * 255));
-    rotSet.add((quats[i * 4] << 20) ^ (quats[i * 4 + 1] << 10) ^ quats[i * 4 + 2] ^ (quats[i * 4 + 3] * 4096));
+    colorSet.add((Math.round(colors[o * 3] * 255) << 16) | (Math.round(colors[o * 3 + 1] * 255) << 8) |
+      Math.round(colors[o * 3 + 2] * 255));
+    rotSet.add((quats[o * 4] << 20) ^ (quats[o * 4 + 1] << 10) ^ quats[o * 4 + 2] ^ (quats[o * 4 + 3] * 4096));
   }
-  toothIds[kept] = f; layerIds[kept] = ly;
+  toothIds[o] = f; layerIds[o] = ly;
   let fl = 0;
-  if (f >= 13 && f <= 18) fl |= FLAG.upperJaw; else if (f >= 21 && f <= 28) fl |= FLAG.upperJaw;
+  // FDI 11 and 12 are the upper-right central and lateral incisors; the old range started at 13, so on a
+  // real Teeth3DS+ scan those two teeth came out with no jaw flag at all (no jaw recoil, wrong arch).
+  if (f >= 11 && f <= 18) fl |= FLAG.upperJaw; else if (f >= 21 && f <= 28) fl |= FLAG.upperJaw;
   else if (f >= 31 && f <= 38) fl |= FLAG.lowerJaw; else if (f >= 41 && f <= 48) fl |= FLAG.lowerJaw;
   if (kind === 'cbct') fl |= FLAG.cutCapEligible;
-  flags[kept] = fl;
+  flags[o] = fl;
   hist[f] = (hist[f] || 0) + 1;
   layerHist[ly] = (layerHist[ly] || 0) + 1;
   const c = centroid[f] ?? (centroid[f] = [0, 0, 0, 0]);

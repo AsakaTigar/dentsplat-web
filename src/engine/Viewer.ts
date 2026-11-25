@@ -194,10 +194,20 @@ export class DentSplatViewer {
       m.geometry.computeBoundingBox();
     });
     root.updateMatrixWorld(true);
+    // Freeze each proxy mesh's world matrix: the jaw transform below is applied as
+    // local = parentWorld^-1 * W * world0, so it must always start from the same rest pose instead of
+    // accumulating a little rounding on every slider step.
+    root.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      m.userData.world0 = m.matrixWorld.clone();
+      m.matrixAutoUpdate = false;
+    });
     this.proxy = root;
     this.scene.add(root);
     this.forceSort = true;
     this.applyUniforms();
+    this.applyJawToProxy();
   }
 
   private disposeLayers() {
@@ -273,6 +283,23 @@ export class DentSplatViewer {
       this.autoRotate = false;
     }, { passive: false });
     c.addEventListener('contextmenu', (e) => e.preventDefault());
+    // Double-click locks the orbit centre onto the surface point under the cursor and pulls in to a
+    // micro-distance. The single-click path is untouched, so tooth picking and measurement still work.
+    c.addEventListener('dblclick', (e) => {
+      const hit = this.pick(e.clientX, e.clientY);
+      const p = hit?.point ?? this.pickSplatCenter(e.clientX, e.clientY);
+      if (!p) return;
+      this.goal = { theta: this.theta, phi: this.phi, radius: Math.max(26, Math.min(this.radius, 65)), target: p.clone() };
+      this.autoRotate = false;
+    });
+    // R recentres: the same target the frontal preset starts from, without hunting for the button.
+    window.addEventListener('keydown', (e) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'r' || e.key === 'R') {
+        this.goal = { theta: 0, phi: 9 * Math.PI / 180, radius: 178, target: new THREE.Vector3(0, 0, 0) };
+        this.autoRotate = false;
+      }
+    });
   }
 
   private tap(e: PointerEvent) {
@@ -430,12 +457,46 @@ export class DentSplatViewer {
     Object.assign(this, patch);
     if (patch.clip) this.clip = patch.clip;
     // The hinge moves splats in depth, so the bucket order has to be rebuilt.
-    if (patch.jawGap !== undefined) this.forceSort = true;
+    if (patch.jawGap !== undefined) { this.forceSort = true; this.applyJawToProxy(); }
     if (patch.hiddenTeeth || patch.isolateTooth !== undefined) {
       const hidden = this.isolateTooth && this.selectedTooth ? this.allFdIs().filter((f) => f !== this.selectedTooth) : this.hiddenTeeth;
       for (const l of [this.layer, this.layerAlt]) l?.setHidden(hidden);
     }
     this.applyUniforms();
+  }
+
+  /**
+   * Move the invisible proxy with the same jaw kinematics the shader applies to the splats. Without
+   * this the mandible visibly opens while every click and every millimetre measurement still lands on
+   * the closed rest pose. rh and the hinge are copied from SPLAT_VERTEX (rh = 66 mm, hinge = (0,-14,-34)).
+   */
+  private applyJawToProxy() {
+    if (!this.proxy) return;
+    const gap = this.jawGap;
+    const th = gap > 0.001 ? 2 * Math.asin(Math.min(0.8, gap / (2 * 66))) : 0;
+    const glide = Math.max(0, gap - 20) * 0.30;
+    const hinge = new THREE.Vector3(0, -14, -34);
+    const W = new THREE.Matrix4();
+    const tmp = new THREE.Matrix4();
+    this.proxy.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh || !m.parent) return;
+      const fdi = Number(/^FDI_(\d+)/.exec(fdiNameOf(m))?.[1] ?? 0);
+      const world0 = m.userData.world0 as THREE.Matrix4 | undefined;
+      if (!fdi || !world0) return;
+      if (fdi >= 30) {
+        // W = T(hinge) * T(glide) * Rx(th) * T(-hinge); the two translations commute, so the shader's
+        // order (rotate about the hinge, then glide) is preserved.
+        W.makeTranslation(hinge.x, hinge.y, hinge.z);
+        tmp.makeTranslation(0, -glide, -glide * 0.45); W.multiply(tmp);
+        tmp.makeRotationX(th); W.multiply(tmp);
+        tmp.makeTranslation(-hinge.x, -hinge.y, -hinge.z); W.multiply(tmp);
+      } else {
+        W.makeTranslation(0, Math.min(1.2, gap * 0.02), 0);
+      }
+      m.matrix.copy(m.parent!.matrixWorld.clone().invert().multiply(W).multiply(world0));
+    });
+    this.proxy.updateMatrixWorld(true);
   }
 
   private allFdIs(): number[] {

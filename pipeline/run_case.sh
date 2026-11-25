@@ -201,7 +201,7 @@ if [[ "${IS_CBCT}" -eq 1 ]]; then
   for f in "${WEB}/fdi_labels.bin" "${WEB}/layer_labels.bin"; do
     if [[ ! -f "${f}" ]]; then echo "FATAL: expected artefact missing: ${f}" >&2; exit 5; fi
   done
-  echo "[NEXT] node tools/ply2dspk.mjs ${WEB}/cbct_layers.ply --labels ${WEB}/fdi_labels.bin --layer-labels ${WEB}/layer_labels.bin --meta ${WEB}/tooth_meta_combined.json --out public/assets/sceneB.dspk"
+  echo "[NEXT] node tools/ply2dspk.ts --in ${WEB}/cbct_layers.ply --fdi ${WEB}/fdi_labels.bin --layer ${WEB}/layer_labels.bin --manifest ${WEB}/labels_manifest.json --out public/assets/sceneB_from_nifti.dspk --meta-out public/assets/meta_B.json --kind cbct --name sceneB"
   banner "SUMMARY :: ${WEB}"
   for f in "${WEB}"/*; do printf '  %10s  %s\n' "$(du -h "$f" | cut -f1)" "$f"; done
   echo "  stages completed: ${STAGES[*]}"
@@ -344,9 +344,9 @@ STAGES+=("postprocess")
 banner "[4/4] hand-off to the web asset converter"
 PRUNED="${WEB}/dental_pruned.ply"
 if [[ -f "${PRUNED}" ]]; then
-  echo "[NEXT] node tools/ply2dspk.mjs ${PRUNED} --labels ${WEB}/fdi_labels.bin --layer-labels ${WEB}/layer_labels.bin --meta ${COMBINED_META} --out public/assets/sceneA.dspk"
+  echo "[NEXT] node tools/ply2dspk.ts --in ${PRUNED} --fdi ${WEB}/fdi_labels.bin --layer ${WEB}/layer_labels.bin --out public/assets/sceneA_pruned.dspk --meta-out public/assets/meta_A.json --kind ios --name sceneA"
 else
-  echo "[NEXT] (assets not ready yet) node tools/ply2dspk.mjs output/${CASE}/web_assets/dental_pruned.ply --labels output/${CASE}/web_assets/fdi_labels.bin --layer-labels output/${CASE}/web_assets/layer_labels.bin --meta output/${CASE}/web_assets/tooth_meta_combined.json --out public/assets/sceneA.dspk"
+  echo "[NEXT] (assets not ready yet) node tools/ply2dspk.ts --in output/${CASE}/web_assets/dental_pruned.ply --fdi output/${CASE}/web_assets/fdi_labels.bin --layer output/${CASE}/web_assets/layer_labels.bin --out public/assets/sceneA_pruned.dspk --meta-out public/assets/meta_A.json --kind ios --name sceneA"
 fi
 
 banner "SUMMARY :: ${OUT}"

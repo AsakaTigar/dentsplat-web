@@ -447,11 +447,14 @@ def main(argv=None):
         # (--dilate_cap) so a sparse cell cannot become a balloon. Positions are never moved, so the
         # pruned cloud stays a subset of the trained one and the chamfer/coverage metrics stay valid.
         lg = prune_info["log_gain"]
-        rows = np.arange(len(keep_idx))
         thick = np.argmin(np.stack([out["scale_0"], out["scale_1"], out["scale_2"]], axis=1), axis=1)
         for k in range(3):
             field = f"scale_{k}"
-            grow = np.where(rows == thick, lg * 0.5, lg)
+            # `thick` holds an axis index (0/1/2), not a row number. The old `rows == thick` compared two
+            # unrelated integers, so it was true for at most the single row whose index equalled its own
+            # thin axis -- every other splat grew its thin axis by the full amount and the surface read as
+            # a slab. Compare the axis index to the axis being written instead.
+            grow = np.where(thick == k, lg * 0.5, lg)
             out[field] = out[field] + grow
         if args.alpha_comp > 0:
             st = prune_info["stands"]

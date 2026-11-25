@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { decodeSplatCloud, LAYER } from '../src/engine/dspk.ts';
+import { decodeSplatCloud, LAYER, splatCenter } from '../src/engine/dspk.ts';
 
 const dir = mkdtempSync(join(tmpdir(), 'dspk-test-'));
 const N = 400;
@@ -167,6 +167,45 @@ const dropText = run(['--in', plyPath, '--fdi', fdiPath, '--layer', layerPath, '
 const drep = JSON.parse(dropText.slice(dropText.indexOf('{'), dropText.lastIndexOf('}') + 1));
 ok('--drop removes unlabelled splats', drep.splats === N - drep.dropped && drep.dropped > 0,
   `${drep.splats} kept, ${drep.dropped} dropped`);
+
+// The count above was true even when geometry was written at the input row `i` while labels were written
+// at the output row `kept`: both arrays were the right LENGTH, they just described different splats. So
+// re-derive each surviving splat's position from its own input row and compare it with the decoded centre.
+const dBytes = readFileSync(join(dir, 'dropped.dspk'));
+const dc = decodeSplatCloud(dBytes.buffer.slice(dBytes.byteOffset, dBytes.byteOffset + dBytes.length));
+const survivors = Array.from({ length: N }, (_, i) => i).filter((i) => fdi[i] !== 0);
+let worstMm = 0, labelRows = 0;
+for (let k = 0; k < dc.count; k++) {
+  const i = survivors[k];
+  if (i === undefined) { worstMm = Infinity; break; }
+  const t = i / N;
+  const expect: [number, number, number] = [Math.cos(t * 6.28) * 30, t * 20 - 10, Math.sin(t * 6.28) * 28];
+  const got: [number, number, number] = [0, 0, 0];
+  splatCenter(dc, k, got);
+  for (let a = 0; a < 3; a++) worstMm = Math.max(worstMm, Math.abs(got[a] - expect[a]));
+  if (dc.misc[k * 4 + 1] !== fdi[i]) labelRows++;
+}
+ok('--drop writes each survivor\'s geometry at its own row', worstMm < 0.01,
+  `max position error ${worstMm.toFixed(4)} mm over ${dc.count} rows`);
+ok('--drop keeps the label byte on the same row as the geometry', labelRows === 0,
+  `${labelRows} of ${dc.count} rows carry another splat's FDI`);
+
+// ---- FDI 11 / 12 must carry the upper-jaw flag (the old range started at 13)
+const fdiIncisor = Buffer.alloc(N);
+for (let i = 0; i < N; i++) fdiIncisor[i] = i % 2 ? 11 : 12;
+const incPath = join(dir, 'fdi_incisors.bin');
+writeFileSync(incPath, fdiIncisor);
+run(['--in', plyPath, '--fdi', incPath, '--out', join(dir, 'incisors.dspk')]);
+const iBytes = readFileSync(join(dir, 'incisors.dspk'));
+const ic = decodeSplatCloud(iBytes.buffer.slice(iBytes.byteOffset, iBytes.byteOffset + iBytes.length));
+let incUpper = 0, incLower = 0;
+for (let k = 0; k < ic.count; k++) {
+  const fl = ic.misc[k * 4 + 3];
+  if (fl & 1) incUpper++;
+  if (fl & 2) incLower++;
+}
+ok('FDI 11/12 are flagged upper jaw (and only upper)', incUpper === ic.count && incLower === 0,
+  `${incUpper} upper, ${incLower} lower of ${ic.count}`);
 
 console.log(results.join('\n'));
 console.log(`\n${results.filter((r) => r.startsWith('PASS')).length}/${results.length} passed  (workdir ${dir})`);
