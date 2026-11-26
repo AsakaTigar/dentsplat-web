@@ -1281,6 +1281,57 @@ export default function App() {
       </div>
 
       <div className={'dtx-workspace' + (inspectorOpen ? '' : ' collapsed')}>
+        <aside className="dtx-scene" aria-label="场景树">
+          <div className="scene-head"><span>SCENE TREE</span><b>{isLocal ? 'LOCAL' : spec.code.replace('Case ', 'C')}</b></div>
+          <div className="scene-scroll">
+            <div className="scene-group">DATASET</div>
+            <div className="scene-root" title={isLocal ? customAssetName ?? '' : spec.title}>
+              <i className="scene-dot live" />
+              <b>{isLocal ? (customAssetName ?? 'LOCAL') : spec.shortTitle}</b>
+              <small>{report ? `${fmtInt(report.full.splats)} splats · ${fmtMB(report.full.bytes)} MB` : 'loading…'}</small>
+            </div>
+
+            <div className="scene-group">REPRESENTATIONS</div>
+            <button type="button" className={'scene-node' + (!isLocal && caseId === 'A2' ? ' on' : '')} onClick={() => switchCase('A2')}>
+              <i className="scene-dot brush" /><span><b>Brush 3DGS</b><small>{fmtInt(allScenes.sceneA_trained?.full.splats ?? 28691)} · SH1</small></span>
+            </button>
+            <button type="button" className={'scene-node' + (!isLocal && caseId === 'A' ? ' on' : '')} onClick={() => switchCase('A')}>
+              <i className="scene-dot sample" /><span><b>Surface Sampling</b><small>{fmtInt(allScenes.sceneA_ios?.full.splats ?? 59808)} · SH0</small></span>
+            </button>
+            <button type="button" className={'scene-node' + (!isLocal && (caseId === 'B' || caseId === 'C08' || caseId === 'C09') ? ' on' : '')} onClick={() => switchCase('B')}>
+              <i className="scene-dot cbct" /><span><b>CBCT Surfel</b><small>Case 03 · 111,000</small></span>
+            </button>
+            <button type="button" className={'scene-node' + (variant === 'full' && !split ? ' on' : '')} disabled={tenX} onClick={() => { setVariant('full'); setSplit(false); }}>
+              <i className="scene-branch" /><span><b>DSPK Full</b><small>{fmtInt(report?.full.splats ?? 0)} splats</small></span>
+            </button>
+            <button type="button" className={'scene-node' + (variant === 'pruned' && !split ? ' on' : '')} disabled={tenX} onClick={() => { setVariant('pruned'); setSplit(false); }}>
+              <i className="scene-branch" /><span><b>DSPK Pruned</b><small>{fmtInt(report?.pruned.splats ?? 0)} splats</small></span>
+            </button>
+            <button type="button" className={'scene-node' + (wire ? ' on' : '')} onClick={() => setWire((w) => !w)}>
+              <i className="scene-branch" /><span><b>Aligned Mesh Wire</b><small>{wire ? 'visible' : 'hidden'}</small></span>
+            </button>
+
+            <div className="scene-group">GAUSSIAN OVERLAYS</div>
+            <button type="button" className={'scene-node' + (railTab === 'lab' && labMode === 'centers' ? ' on' : '')} onClick={() => changeLabMode('centers')}>
+              <i className="scene-dot center" /><span><b>Centers</b><small>real μ</small></span>
+            </button>
+            <button type="button" className={'scene-node' + (railTab === 'lab' && labMode === 'ellipsoid' ? ' on' : '')} onClick={() => changeLabMode('ellipsoid')}>
+              <i className="scene-dot ellipsoid" /><span><b>Ellipsoids</b><small>{labSigma}σ covariance</small></span>
+            </button>
+            <button type="button" className={'scene-node' + (railTab === 'lab' && labMode === 'opacity' ? ' on' : '')} onClick={() => changeLabMode('opacity')}>
+              <i className="scene-dot opacity" /><span><b>Opacity Map</b><small>per-splat α</small></span>
+            </button>
+
+            <div className="scene-group">CLINICAL</div>
+            <button type="button" className={'scene-node' + (mprOn ? ' on' : '')} onClick={toggleMpr} disabled={isLocal}>
+              <i className="scene-branch" /><span><b>CBCT MPR</b><small>{mprOn ? 'Case 03 active' : 'axial / coronal / sagittal'}</small></span>
+            </button>
+            <button type="button" className="scene-node" onClick={focusCanal}>
+              <i className="scene-branch" /><span><b>IAN Canal Focus</b><small>inferior alveolar nerve</small></span>
+            </button>
+          </div>
+        </aside>
+
         <section
           className={'dtx-viewport' + (mprOn ? ' mpr-mode' : '') + (mode === 'measure' ? ' is-measure' : '') + (dragOver ? ' is-drag' : '')}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
