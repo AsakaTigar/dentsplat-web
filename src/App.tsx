@@ -346,6 +346,9 @@ export default function App() {
           scene = rep.scenes?.[spec.sceneKey];
           if (!scene) throw new Error(`report.json has no scene "${spec.sceneKey}"`);
         }
+        // A newer case may have been selected while these JSON fetches were in flight. Starting
+        // loadCase now would increment the viewer's sequence and abort that newer request.
+        if (dead) return;
         v.caseId = caseId;
         const defaults: Record<number, number> = {};
         for (const l of spec.layers) defaults[l.id] = l.alpha;
