@@ -4,11 +4,11 @@
   "unit": "mm",
   "coordinate_system": "glTF_Y_up",
   "source": {
-    "ply": "tools/out/v100_2080/web/3dgs/point_cloud_web.ply",
-    "ply_sha256": "0e81350759e76b34cb39636f40241d1d",
-    "ply_vertices": 250000,
+    "ply": "tools/out/real_train/gsplat_80k_norm/point_cloud_15000_web.ply",
+    "ply_sha256": "3b87ffbfd503c5eb53486ecd4dfaaca1",
+    "ply_vertices": 80000,
     "format": "format binary_little_endian 1.0",
-    "labels_manifest": "tools/out/v100_2080/web/3dgs/labels/labels_manifest.json",
+    "labels_manifest": "tools/out/real_train/gsplat_80k_norm/labels/labels_manifest.json",
     "order": "writer order of the trained PLY, no permutation",
     "spacing_mm": null,
     "appearance": {
@@ -25,174 +25,174 @@
       "fdi": 31,
       "arch": "lower",
       "at": [
-        -24.35,
-        8.31,
-        4.64
+        -24.22,
+        8.28,
+        4.61
       ],
-      "splats": 2859
+      "splats": 949
     },
     "FDI_32": {
       "fdi": 32,
       "arch": "lower",
       "at": [
-        -27.06,
-        7.14,
-        0.59
+        -26.88,
+        7.05,
+        0.6
       ],
-      "splats": 3459
+      "splats": 1169
     },
     "FDI_33": {
       "fdi": 33,
       "arch": "lower",
       "at": [
-        -23.42,
-        6.98,
-        -5.22
+        -23.36,
+        7.06,
+        -5.17
       ],
-      "splats": 3337
+      "splats": 1114
     },
     "FDI_34": {
       "fdi": 34,
       "arch": "lower",
       "at": [
-        -19.44,
-        6.12,
-        -10.62
+        -19.46,
+        6.17,
+        -10.61
       ],
-      "splats": 4518
+      "splats": 1487
     },
     "FDI_35": {
       "fdi": 35,
       "arch": "lower",
       "at": [
-        -11.42,
-        5.82,
-        -15.05
+        -11.28,
+        5.95,
+        -15.02
       ],
-      "splats": 7339
+      "splats": 2526
     },
     "FDI_36": {
       "fdi": 36,
       "arch": "lower",
       "at": [
-        -1.55,
-        5.74,
-        -19.34
+        -1.58,
+        5.82,
+        -19.44
       ],
-      "splats": 6906
+      "splats": 2359
     },
     "FDI_37": {
       "fdi": 37,
       "arch": "lower",
       "at": [
-        7.2,
-        6.36,
-        -24.23
+        7.14,
+        6.4,
+        -24.27
       ],
-      "splats": 6252
+      "splats": 2034
     },
     "FDI_41": {
       "fdi": 41,
       "arch": "lower",
       "at": [
-        -25,
-        7.49,
-        9.45
+        -24.98,
+        7.48,
+        9.48
       ],
-      "splats": 3419
+      "splats": 1132
     },
     "FDI_42": {
       "fdi": 42,
       "arch": "lower",
       "at": [
-        -23.14,
-        7.01,
-        14.55
+        -23.18,
+        7.1,
+        14.56
       ],
-      "splats": 3866
+      "splats": 1312
     },
     "FDI_43": {
       "fdi": 43,
       "arch": "lower",
       "at": [
-        -17.29,
-        6.68,
-        16.98
+        -17.24,
+        6.72,
+        16.97
       ],
-      "splats": 3468
+      "splats": 1185
     },
     "FDI_44": {
       "fdi": 44,
       "arch": "lower",
       "at": [
-        -11.49,
-        5.34,
-        20.84
+        -11.51,
+        5.41,
+        20.75
       ],
-      "splats": 5026
+      "splats": 1677
     },
     "FDI_45": {
       "fdi": 45,
       "arch": "lower",
       "at": [
-        -2.57,
-        5.07,
-        21.7
+        -2.62,
+        5.26,
+        21.52
       ],
-      "splats": 8003
+      "splats": 2836
     },
     "FDI_46": {
       "fdi": 46,
       "arch": "lower",
       "at": [
-        8.56,
-        5.19,
-        21.69
+        8.46,
+        5.29,
+        21.65
       ],
-      "splats": 7258
+      "splats": 2422
     },
     "FDI_47": {
       "fdi": 47,
       "arch": "lower",
       "at": [
-        18.76,
-        5.85,
-        20.8
+        18.84,
+        5.87,
+        20.78
       ],
-      "splats": 5444
+      "splats": 1870
     }
   },
   "conversion": {
     "out": "public/assets/sceneA_gsplat_web.dspk",
-    "converted_at": "2026-11-26T13:14:51.510Z",
-    "bytes": 5000808,
-    "splats": 250000,
+    "converted_at": "2026-11-26T20:09:20.000Z",
+    "bytes": 1600829,
+    "splats": 80000,
     "dropped": 0,
     "sh_degree": 0,
-    "bytes_per_splat": 20,
+    "bytes_per_splat": 20.01,
     "bbox_mm": [
       [
-        -29.15,
-        -10.67,
-        -32.41
+        -29.09,
+        -10.66,
+        -32.39
       ],
       [
-        29.14,
-        10.68,
-        32.4
+        29.12,
+        10.66,
+        32.38
       ]
     ],
     "encoded": {
       "scale_mm": [
         0,
-        11.59
+        9.545
       ],
       "alpha_byte": [
-        5,
-        190
+        0,
+        254
       ],
-      "distinct_colors": 67254,
-      "distinct_rotations": 7543,
+      "distinct_colors": 41946,
+      "distinct_rotations": 6782,
       "input_kind": "trained_3dgs"
     },
     "appearance": {
@@ -203,34 +203,34 @@
       "sh1": "none (SH degree 0)"
     },
     "fdi_histogram": {
-      "0": 178846,
-      "31": 2859,
-      "32": 3459,
-      "33": 3337,
-      "34": 4518,
-      "35": 7339,
-      "36": 6906,
-      "37": 6252,
-      "41": 3419,
-      "42": 3866,
-      "43": 3468,
-      "44": 5026,
-      "45": 8003,
-      "46": 7258,
-      "47": 5444
+      "0": 55928,
+      "31": 949,
+      "32": 1169,
+      "33": 1114,
+      "34": 1487,
+      "35": 2526,
+      "36": 2359,
+      "37": 2034,
+      "41": 1132,
+      "42": 1312,
+      "43": 1185,
+      "44": 1677,
+      "45": 2836,
+      "46": 2422,
+      "47": 1870
     },
     "layer_histogram": {
-      "0": 178846,
-      "1": 71154
+      "0": 55928,
+      "1": 24072
     },
     "alignment": {
-      "ply_vertices": 250000,
-      "fdi_rows": 250000,
-      "layer_rows": 250000,
+      "ply_vertices": 80000,
+      "fdi_rows": 80000,
+      "layer_rows": 80000,
       "manifest_count": null,
       "manifest_order": "writer order of the trained PLY, no permutation",
-      "ply_sha256": "0e81350759e76b34cb39636f40241d1d",
-      "manifest_ply_sha256": "0e81350759e76b34cb39636f40241d1d"
+      "ply_sha256": "3b87ffbfd503c5eb53486ecd4dfaaca1",
+      "manifest_ply_sha256": "3b87ffbfd503c5eb53486ecd4dfaaca1"
     }
   }
 }

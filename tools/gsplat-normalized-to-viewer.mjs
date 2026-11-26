@@ -60,7 +60,7 @@ for (const p of ['x', 'y', 'z', 'scale_0', 'scale_1', 'scale_2', 'rot_0', 'rot_1
 }
 
 const header = head.slice(0, headEnd).replace(marker,
-  `comment inverse gsplat normalization scale=${s}; then R_y(-90) into viewer frame; SH bands left unchanged for audit-only geometry\n${marker}`);
+  `comment inverse gsplat normalization scale=${s}; then R_y(-90) into viewer frame; l=1 SH rotated by the combined rotation\n${marker}`);
 const out = Buffer.allocUnsafe(header.length + n * rec);
 out.write(header, 0, 'latin1');
 const logS = Math.log(s);
@@ -77,6 +77,21 @@ for (let i = 0; i < n; i++) {
   const q = [b.readFloatLE(o + off.rot_0), b.readFloatLE(o + off.rot_1), b.readFloatLE(o + off.rot_2), b.readFloatLE(o + off.rot_3)];
   const r = mul(qc, q), qn = Math.hypot(...r) || 1;
   for (let k = 0; k < 4; k++) out.writeFloatLE(r[k] / qn, d + off[`rot_${k}`]);
+  // l=1 is a Cartesian vector v = (-c2, -c0, c1); rotate v by Q and map back. For the pure
+  // R_y(-90) case this reduces to (c0,c1,c2) -> (c0,-c2,c1), matching tools/ply-frame-fix.mjs.
+  if (off.f_rest_0 !== undefined) {
+    for (let c = 0; c < 3; c++) {
+      const i0 = off['f_rest_' + (c * 3)], i1 = off['f_rest_' + (c * 3 + 1)], i2 = off['f_rest_' + (c * 3 + 2)];
+      const c0 = b.readFloatLE(o + i0), c1 = b.readFloatLE(o + i1), c2 = b.readFloatLE(o + i2);
+      const vx = -c2, vy = -c0, vz = c1;
+      const nx = Q[0][0] * vx + Q[0][1] * vy + Q[0][2] * vz;
+      const ny = Q[1][0] * vx + Q[1][1] * vy + Q[1][2] * vz;
+      const nz = Q[2][0] * vx + Q[2][1] * vy + Q[2][2] * vz;
+      out.writeFloatLE(-ny, d + i0);
+      out.writeFloatLE(nz, d + i1);
+      out.writeFloatLE(-nx, d + i2);
+    }
+  }
 }
 writeFileSync(OUT, out);
 console.log(JSON.stringify({ in: IN, transform: TRANSFORM, out: OUT, splats: n, normalization_scale: s, combined_rotation: Q, combined_quaternion_wxyz: qc }));

@@ -924,8 +924,8 @@ export default function App() {
     const v = viewerRef.current;
     if (!v) return;
     const spec = method === 'gsplat'
-      ? { file: 'sceneA_gsplat_web.dspk', bytes: 5000808, splats: 250000, label: 'gsplat 3DGS' }
-      : { file: 'sceneA_2dgs_web.dspk', bytes: 1230525, splats: 61486, label: '2DGS' };
+      ? { file: 'sceneA_gsplat_web.dspk', bytes: 1600829, splats: 80000, label: 'gsplat 3DGS' }
+      : { file: 'sceneA_2dgs_web.dspk', bytes: 484775, splats: 24198, label: '2DGS' };
     setLoading(true); setErr(null);
     setQuadMode(false); setQuadItems([]); v.clearQuadCompare();
     setTenX(false); setSplit(false); setMprOn(false); setMethodCompare(false); setVariant('full');
@@ -986,8 +986,8 @@ export default function App() {
     try {
       v.caseId = 'QUAD';
       const items = await v.loadQuadComparison([
-        { name: 'gsplat 3DGS', url: `${import.meta.env.BASE_URL}assets/sceneA_gsplat_web.dspk`, bytes: 5000808 },
-        { name: '2DGS', url: `${import.meta.env.BASE_URL}assets/sceneA_2dgs_web.dspk`, bytes: 1230525 },
+        { name: 'gsplat 3DGS', url: `${import.meta.env.BASE_URL}assets/sceneA_gsplat_web.dspk`, bytes: 1600829 },
+        { name: '2DGS', url: `${import.meta.env.BASE_URL}assets/sceneA_2dgs_web.dspk`, bytes: 484775 },
         { name: 'Brush 3DGS', url: a2.fullUrl, bytes: allScenes.sceneA_trained?.full.bytes ?? 832835 },
         { name: 'Surface Sampling', url: a.fullUrl, bytes: allScenes.sceneA_ios?.full.bytes ?? 1196970 },
       ]);
@@ -2036,14 +2036,14 @@ export default function App() {
                   <button type="button" className="tbar-btn" onClick={() => switchCase('B')}>Case 03</button>
                 </div>
                 <div className="method-row ok">
-                  <div><b>Vanilla 3DGS</b><small>gsplat v1.4.0 MCMC · V100 · 15k · SH0 web export</small></div><span>AVAILABLE</span>
+                  <div><b>Vanilla 3DGS</b><small>gsplat 1.6.0 MCMC · RTX 5070 Ti · 15k · 80k cap · SH0 web export</small></div><span>AVAILABLE</span>
                   <button type="button" className="tbar-btn" onClick={() => void loadMethodDspk('gsplat')}>Load</button>
                 </div>
                 <div className="method-row">
                   <div><b>Mip-Splatting</b><small>抗混叠 / 多尺度渲染</small></div><span>NOT TRAINED</span>
                 </div>
                 <div className="method-row ok">
-                  <div><b>2DGS</b><small>官方 diff-surfel · 2080 Ti · 15k · SH0 web export</small></div><span>AVAILABLE</span>
+                  <div><b>2DGS</b><small>gsplat 1.6.0 surfel · RTX 5070 Ti · 15k · depth+normal+dist · SH0 web export</small></div><span>AVAILABLE</span>
                   <button type="button" className="tbar-btn" onClick={() => void loadMethodDspk('2dgs')}>Load</button>
                 </div>
                 <div className="method-row">
@@ -2059,7 +2059,7 @@ export default function App() {
               <button type="button" className="tbar-btn method-compare-btn" onClick={() => void startQuadCompare()}>
                 四表示同步对照：3DGS / 2DGS / Brush / Sampling
               </button>
-              <p className="source-note">四视口共用同一相机。3DGS 网页资产为全量 1,000,000 高斯中按不透明度选取的 250,000 个并截为 SH0；2DGS 为全量 61,486 个并截为 SH0。精确几何审计仍使用未抽样完整 PLY，不把网页子集指标冒充全量指标。</p>
+              <p className="source-note">四视口共用同一相机。3DGS 与 2DGS 网页资产均为本机 RTX 5070 Ti 训练的 15k 步完整输出，装箱时截为 SH0；精确几何审计使用同一批完整 PLY，不把网页截断后的外观当作训练指标。</p>
               <p className="source-note">Case 01 与 Case 10 来自同一 Poseidon3D 000125 口扫；左侧为 Brush 训练版（28,691 高斯），右侧为未训练采样基线（59,808 高斯）。两视口共用相机、坐标架与时间。</p>
               {methodCompare && <div className="method-live">METHOD COMPARISON ACTIVE · split camera locked · 左 Brush / 右 Sampling</div>}
 

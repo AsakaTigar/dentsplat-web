@@ -17,10 +17,10 @@ const TRAINED = 'public/assets/sceneA_trained_full.dspk';
 const SAMPLED = 'public/assets/sceneA_poseidon_full.dspk';
 const TRAINED_RAW = 'tools/out/case125/brush_run/caseA_15000.ply';
 const SAMPLED_RAW = 'tools/out/poseidon/poseidon125_full.ply';
-const GSPLAT_VIEWER = 'tools/out/v100_2080/3dgs/run/ply/point_cloud_15000_viewer.ply';
-const TWODGS_VIEWER = 'tools/out/v100_2080/2dgs/run/point_cloud/iteration_15000/point_cloud_viewer.ply';
-const GSPLAT_METRICS = 'tools/out/v100_2080/3dgs/metrics_curve.json';
-const TWODGS_METRICS = 'tools/out/v100_2080/2dgs/metrics_curve.json';
+const GSPLAT_VIEWER = 'tools/out/real_train/gsplat_80k_norm/point_cloud_15000_viewer.ply';
+const TWODGS_VIEWER = 'tools/out/real_train/2dgs_norm/point_cloud_15000_viewer.ply';
+const GSPLAT_METRICS = 'tools/out/real_train/gsplat_80k_norm/metrics_curve.json';
+const TWODGS_METRICS = 'tools/out/real_train/2dgs_norm/metrics_curve.json';
 const OUT = 'public/assets/geometry_metrics.json';
 const UP = 2, FWD = 0, SIDE = 1, SIGN = 1;
 
@@ -369,7 +369,35 @@ const out = {
     '2dgs-surfel': trainingSummary(twodgsCurve),
   },
   timeline,
-  caveat: 'Cloud→mesh is exact point-to-triangle distance; mesh→cloud is a 120k area-weighted surface sample, so real-data F-score@0.5mm still has a sampling floor. Normal consistency compares the ellipsoid minor axis against the closest triangle face normal. 2DGS PLY stores two trained tangent scales; the third viewer scale is a declared 1% thinness, not a learned thickness. gsplat PLY was mapped back through the exact COLMAP normalization transform before R_y(-90); SH bands are left unchanged in this audit-only geometry PLY.',
+  caveat: 'Cloud→mesh is exact point-to-triangle distance; mesh→cloud is a 120k area-weighted surface sample, so real-data F-score@0.5mm still has a sampling floor. Normal consistency compares the ellipsoid minor axis against the closest triangle face normal. 2DGS PLY stores two trained tangent scales; the third viewer scale is a declared 1% thinness, not a learned thickness. gsplat PLY was mapped back through the exact COLMAP normalization transform before R_y(-90); the l=1 SH vector was rotated by the same combined rotation.',
 };
 writeFileSync(OUT, JSON.stringify(out, null, 2));
+const gsplatGeom = audit(gsplatRaw), twodgsGeom = audit(twodgsRaw);
+const benchmark = {
+  schema: 'dentsplat-training-benchmark-v1',
+  generated_at: out.generated_at,
+  case: 'Poseidon3D 000125 mandible',
+  split: gsplatCurve.split,
+  hardware: 'NVIDIA RTX 5070 Ti, WSL2 Ubuntu 24.04, CUDA 12.8, torch 2.11.0+cu128, gsplat 1.6.0',
+  methods: {
+    'gsplat-3dgs-mcmc': {
+      label: 'gsplat MCMC 3DGS',
+      config: { max_steps: 15000, sh_degree: 3, cap_max: 80000, opacity_reg: 0.01, scale_reg: 0.01, init_opacity: 0.5 },
+      training: trainingSummary(gsplatCurve),
+      geometry: { cloud_to_mesh: gsplatGeom.cloud_to_mesh, mesh_to_cloud: gsplatGeom.mesh_to_cloud, fscore: gsplatGeom.fscore, normal_abs_dot: gsplatGeom.normal_abs_dot },
+    },
+    'gsplat-2dgs': {
+      label: 'gsplat 2DGS surfels',
+      config: { max_steps: 15000, sh_degree: 3, depth_loss: true, normal_loss: true, dist_loss: true },
+      training: trainingSummary(twodgsCurve),
+      geometry: { cloud_to_mesh: twodgsGeom.cloud_to_mesh, mesh_to_cloud: twodgsGeom.mesh_to_cloud, fscore: twodgsGeom.fscore, normal_abs_dot: twodgsGeom.normal_abs_dot },
+    },
+  },
+  cross_case: {
+    status: 'not_run',
+    reason: 'No maxillary or ProsthoObjects3D COLMAP dataset exists under E:\\dentsplat_work; the two runs above are the only same-split real reconstructions available.',
+  },
+  caveat: out.caveat,
+};
+writeFileSync('public/assets/training_benchmark.json', JSON.stringify(benchmark, null, 2));
 console.log(JSON.stringify(out, null, 2));
