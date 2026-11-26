@@ -641,3 +641,14 @@ input[type=range] { width: 100%; accent-color: var(--clinical); height: 15px; cu
   .dtx-workspace.collapsed { grid-template-columns: minmax(0, 1fr) 48px 0px; }
   .dtx-scene { display: none; }
 }
+.recon-checkpoints { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 3px; scrollbar-width: thin; }
+.recon-checkpoints button {
+  flex: 0 0 auto; display: grid; gap: 1px; padding: 5px 7px; min-width: 64px;
+  background: #171a20; border: 1px solid #272c36; border-radius: 4px; text-align: left;
+}
+.recon-checkpoints button:hover { border-color: var(--border-hi); background: #1d222b; }
+.recon-checkpoints button.on { border-color: var(--clinical); background: rgba(132, 204, 22, .1); }
+.recon-checkpoints button:disabled { opacity: .5; cursor: wait; }
+.recon-checkpoints b { color: #d8dee9; font: 10px/1.2 ui-monospace, Menlo, Consolas, monospace; }
+.recon-checkpoints small { color: #6f7889; font: 9px/1.25 ui-monospace, Menlo, Consolas, monospace; white-space: nowrap; }
+.recon-checkpoints button.on b { color: var(--clinical); }

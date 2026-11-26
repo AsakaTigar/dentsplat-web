@@ -12,7 +12,7 @@
 - **Gaussian Inspector**：点击单个高斯，读取 μ、σ、四元数、不透明度、DC 颜色、SH1 系数、协方差与特征轴；可实时编辑位置、尺度和不透明度，并导出当前高斯云为标准 3DGS PLY。
 - **FP32 PLY 导入**：浏览器直读 binary/ascii 3DGS PLY，位置/尺度/旋转/颜色/不透明度走 FP32 着色器路径，不先量化成 DSPK；PLY 不声明长度单位时界面以原始单位 `u` 展示。
 - **同源方法对照**：Case 01（Brush 3DGS）与 Case 10（0.35 mm Surface Sampling）共用相机分屏；网格几何审计同时给出 DSPK 与 FP32 两行，以分离传输量化与重建误差。
-- **重建产物时间轴**：列出真实存在的 120 个输入视角、采样基线、Brush 15,000 步结果和两个 DSPK 包；未导出的中间 checkpoint 与训练曲线明确标记为缺失。
+- **重建产物时间轴**：除已发布的最终资产外，使用同一 120 视角数据和 Brush 独立重训了一次，导出 1k / 2k / 3k / 5k / 10k / 15k 六个真实高斯 checkpoint（25,581 → 28,694 splats），可直接在网页加载对比；训练 loss 行未输出，因此不画示意曲线。
 - **压缩与研究对比**：10× 等字节 Uniform / Anatomy-Aware、Full 参考 PSNR/MAE、逐层误差、FDI 中心距变化，以及 160×140×128 CBCT MPR。
 - **临床辅助仍保留**：FDI 牙位、三轴剖切、测量、MPR、AI 报告审计只作为辅助视图，不再占据产品中心。
 
@@ -25,6 +25,7 @@
 | 几何审计（网格顶点样本） | Brush cloud→mesh mean **0.295 mm**，F@0.5 mm **84.5 / 96.5%**；Sampling **0.226 mm / 87.2 / 100.0%** |
 | FP32→DSPK 传输差 | cloud→mesh mean 差 **0.0000 mm**（Brush / Sampling 均为 4 位小数） |
 | 10× 同字节预算 | Uniform 22.28 dB overall；Anatomy 19.75 dB overall，但 L4 27.63→35.84 dB、FDI48–L4 clearance 0.724→0.427 mm |
+| Brush 独立重训时间轴 | 1k: 25,581 splats / 742,552 B → 15k: 28,694 splats / 832,830 B；6 个 DSPK checkpoint 可在 Reconstruction 面板加载 |
 | Case 05 标签诊断 | 1 mm 内 26.67%；FDI33 91.14% 对 FDI42/43 0%，bbox 差 0.08 mm、最佳 yaw 2.5°；结论是局部 Brush 表面偏差，不是坐标系错误 |
 
 几何审计的距离是到 95,324 个焊接网格顶点的点集近似，不是精确 point-to-triangle Chamfer；法线一致性使用协方差最小主轴作为估计法线。完整字段、源文件 SHA 与反例见 [`MEASUREMENTS.md`](MEASUREMENTS.md) 和 `public/assets/geometry_metrics.json`。
@@ -32,7 +33,7 @@
 ## 不证明什么
 
 - **没有 2DGS / Mip-Splatting / SuGaR / R²-Gaussian 训练结果**：Methods 页只把已有真实导出标为 AVAILABLE；切换网页显示模式不算算法实现。R²-Gaussian 需要 X 射线投影几何，当前 CBCT 分割体不能替代。
-- **没有中间训练 checkpoint**：仓库没有 Brush 中间步的高斯文件或非空训练日志，因此没有伪造的 loss/PSNR 曲线或 step 0/100/500 时间轴。
+- **时间轴来自独立重训**：已发布 Case 01 本身没有保存中间 checkpoint；网页里的 1k–15k 序列是一次独立 Brush 重训（最终 28,694 vs 已发布 28,691），两者不能当作同一条训练轨迹。Brush 未输出 loss/PSNR 行，所以没有伪造的曲线。
 - **SH 高阶尚未渲染**：导入器读取 SH degree，但 GPU 路径只评估 DC + l=1；SH3 文件不会被宣称成 SH3 渲染。
 - **单机单卡单浏览器**：RTX 5070 Ti / ANGLE-D3D11 / Chromium；低端集显、移动端和远程桌面未做性能结论。
 - **不是医疗器械**：测量、审计与 MPR 不构成诊断，`0.06 mm` 级数字是贴面中心距，不是根尖表面距离或神经损伤风险预测。

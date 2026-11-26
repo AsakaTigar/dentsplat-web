@@ -66,6 +66,17 @@ type GeometryAudit = {
   caveat: string;
 };
 
+type TimelineStep = {
+  step: number; file: string; bytes: number; splats: number; sha256: string;
+  source_ply: string; psnr_db: number | null; loss: number | null;
+};
+type TimelineManifest = {
+  schema: string; case: string;
+  training: { tool: string; views: number; steps: number; sh_degree: number; export_every: number; independent_rerun: boolean; note: string };
+  metrics_note: string;
+  steps: TimelineStep[];
+};
+
 type RailTab = 'findings' | 'lab' | 'methods' | 'recon' | 'layers' | 'slice' | 'audit' | 'source';
 
 const LAB_MODES: { id: LabMode; label: string; note: string }[] = [
@@ -221,6 +232,7 @@ export default function App() {
   const [localEpoch, setLocalEpoch] = useState(0);
   const isLocal = !!customAssetName;
   const isPlyLocal = !!customAssetName?.toLowerCase().endsWith('.ply');
+  const isTimeline = !!customAssetName?.startsWith('timeline:');
   const gaussUnit = isPlyLocal ? 'PLY u' : 'mm';
   const [labMode, setLabMode] = useState<LabMode>('rgb');
   const [labSigma, setLabSigma] = useState<1 | 2 | 3>(1);
@@ -236,6 +248,9 @@ export default function App() {
   const [caseQuery, setCaseQuery] = useState('');
   const [allScenes, setAllScenes] = useState<Record<string, SceneReport>>({});
   const [geometryAudit, setGeometryAudit] = useState<GeometryAudit | null>(null);
+  const [timeline, setTimeline] = useState<TimelineManifest | null>(null);
+  const [timelineStep, setTimelineStep] = useState<number | null>(null);
+  const [timelineBusy, setTimelineBusy] = useState(false);
 
   const switchCase = useCallback((id: string) => {
     setCaseId(id);
@@ -249,6 +264,7 @@ export default function App() {
     setGaussOriginal(null);
     setGaussIsolate(false);
     setPlyNote(null);
+    setTimelineStep(null);
     setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
     viewerRef.current?.clearAudit();
     viewerRef.current?.clearGaussianSelection();
@@ -476,7 +492,7 @@ export default function App() {
       const h = hashCase();
       if (CASES.some((c) => c.id === h) && h !== caseId) {
         setCaseId(h); setCustomAssetName(null); if (isLocal) setLocalEpoch((e) => e + 1); setTenX(false); setSplit(false); setMprOn(false);
-        setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null);
+        setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null); setTimelineStep(null);
         setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
         viewerRef.current?.clearAudit();
         viewerRef.current?.clearGaussianSelection();
@@ -511,6 +527,10 @@ export default function App() {
     fetch(`${import.meta.env.BASE_URL}assets/geometry_metrics.json`)
       .then((r) => (r.ok ? r.json() : null))
       .then((x) => { if (!dead && x?.schema === 'dentsplat-geometry-audit-v1') setGeometryAudit(x as GeometryAudit); })
+      .catch(() => {});
+    fetch(`${import.meta.env.BASE_URL}assets/timeline/timeline.json`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((x) => { if (!dead && x?.schema === 'dentsplat-timeline-v1') setTimeline(x as TimelineManifest); })
       .catch(() => {});
     return () => { dead = true; };
   }, []);
@@ -703,7 +723,7 @@ export default function App() {
     try {
       setLoading(true); setErr(null);
       setTenX(false); setSplit(false); setMprOn(false); setVariant('full'); setBench(null); setCompressionBench(null);
-      setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null);
+      setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null); setTimelineStep(null);
       setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
       setSelected(0); setHidden([]); setIsolate(false); setMeasures([]); setProbe(null); setActiveFindingId(null);
       const head = new DataView(await file.arrayBuffer());
@@ -797,6 +817,43 @@ export default function App() {
       setLoading(false);
     }
   }, [loadLocalPly]);
+
+  const loadTimelineStep = useCallback(async (step: TimelineStep) => {
+    const v = viewerRef.current;
+    if (!v || timelineBusy) return;
+    setTimelineBusy(true); setLoading(true); setErr(null);
+    setTenX(false); setSplit(false); setMprOn(false); setVariant('full'); setBench(null); setCompressionBench(null);
+    setMethodCompare(false); setGaussian(null); setGaussOriginal(null); setGaussIsolate(false);
+    v.clearGaussianSelection();
+    try {
+      const url = `${import.meta.env.BASE_URL}assets/${step.file}`;
+      v.caseId = 'TIMELINE';
+      await v.loadCase({
+        fullUrl: url, prunedUrl: url, proxyUrl: null,
+        fullBytes: step.bytes, prunedBytes: step.bytes,
+      });
+      setReport({
+        full: { splats: step.splats, bytes: step.bytes, mb: +(step.bytes / 1048576).toFixed(2), sh_degree: 1, bytes_per_splat: +(step.bytes / step.splats).toFixed(2) },
+        pruned: { splats: step.splats, bytes: step.bytes, mb: +(step.bytes / 1048576).toFixed(2), sh_degree: 1, bytes_per_splat: +(step.bytes / step.splats).toFixed(2) },
+        bytes_ratio: 1, proxy: { bytes: 0, kb: 0, nodes: 0, triangles: 0 }, compression_fidelity_mm: {}, metrics: {},
+      });
+      setMeta({ unit: 'mm', kind: 'timeline', teeth: {}, metrics: {} });
+      setAlphas({ 0: 1 });
+      setLocalLayerIds([0]);
+      setSelected(0); setHidden([]); setIsolate(false); setMeasures([]); setProbe(null); setActiveFindingId(null);
+      setCustomAssetName(`timeline:${step.step}`);
+      setTimelineStep(step.step);
+      setRailTab('recon'); setInspectorOpen(true); setPickerOpen(false);
+      setLabMode('rgb');
+      history.replaceState(null, '', '#TIMELINE');
+      setLoading(false);
+    } catch (e) {
+      setErr(`时间轴 checkpoint 加载失败: ${String(e)}`);
+      setLoading(false);
+    } finally {
+      setTimelineBusy(false);
+    }
+  }, [timelineBusy]);
 
   const changeLabMode = useCallback((mode: LabMode) => {
     setLabMode(mode);
@@ -1123,7 +1180,7 @@ export default function App() {
     );
   }, [findingFilter, findings]);
 
-  const caseBadge = customAssetName ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : '.DSPK'} · ${customAssetName}` : tenX ? '10× COMPRESSION ABLATION · CASE 03' : mprOn ? 'DTX MPR · CASE 03 · RAW CBCT' : spec.badge;
+  const caseBadge = isTimeline ? `TIMELINE · STEP ${timelineStep ?? '—'}` : customAssetName ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : '.DSPK'} · ${customAssetName}` : tenX ? '10× COMPRESSION ABLATION · CASE 03' : mprOn ? 'DTX MPR · CASE 03 · RAW CBCT' : spec.badge;
 
   // ---------------------------------------------------------------- render
 
@@ -1277,7 +1334,7 @@ export default function App() {
           ))}
         </div>
         <div className="dtx-spacer" />
-        <div className="subtab-info">{isLocal ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : 'DSPK'} · ${customAssetName}` : `${spec.code} · ${spec.title}`}</div>
+        <div className="subtab-info">{isTimeline ? `TIMELINE · step ${timelineStep ?? '—'} · ${report ? `${fmtInt(report.full.splats)} splats` : ''}` : isLocal ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : 'DSPK'} · ${customAssetName}` : `${spec.code} · ${spec.title}`}</div>
       </div>
 
       <div className={'dtx-workspace' + (inspectorOpen ? '' : ' collapsed')}>
@@ -1568,7 +1625,30 @@ export default function App() {
 
             <div className={'insp-pane' + (railTab === 'recon' ? ' active' : '')}>
               <div className="sec-head"><span>RECONSTRUCTION TIMELINE</span><b>Case 01 · real artifacts only</b></div>
-              <p className="method-intro">只展示仓库里真实存在、可重新加载的阶段产物。没有保存的中间 checkpoint 与训练曲线会明确标为缺失，不用示意曲线补齐。</p>
+              <p className="method-intro">只展示仓库里真实存在、可重新加载的阶段产物。没有保存的阶段与训练曲线会明确标为缺失，不用示意曲线补齐。</p>
+
+              <div className="sec-head"><span>BRUSH CHECKPOINTS · LIVE LOAD</span><b>{timeline ? `${timeline.steps.length} steps` : 'loading…'}</b></div>
+              {timeline ? (
+                <>
+                  <div className="recon-checkpoints">
+                    {timeline.steps.map((s) => (
+                      <button
+                        key={s.step}
+                        type="button"
+                        disabled={timelineBusy}
+                        className={timelineStep === s.step && customAssetName === `timeline:${s.step}` ? 'on' : ''}
+                        onClick={() => void loadTimelineStep(s)}
+                      >
+                        <b>{fmtInt(s.step)}</b>
+                        <small>{fmtInt(s.splats)} splats</small>
+                        <small>{fmtMB(s.bytes)} MB</small>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="source-note">{timeline.training.note} · {timeline.metrics_note}</p>
+                </>
+              ) : <p className="source-note">timeline.json 尚未加载。</p>}
+
               <ol className="recon-steps">
                 <li className="done">
                   <i>01</i>
@@ -1594,7 +1674,7 @@ export default function App() {
                 </li>
                 <li className="missing">
                   <i>!</i>
-                  <div><b>中间训练状态 / Loss / PSNR</b><span>训练器未导出 step checkpoints，原始训练日志为空；因此不提供伪造的中间高斯或损失曲线。</span></div>
+                  <div><b>Loss / PSNR 曲线</b><span>已通过独立重训导出 1k–15k 的真实高斯 checkpoint；但训练器没有输出可用的 loss 行，因此仍不提供伪造的损失曲线。</span></div>
                 </li>
               </ol>
               <div className="quick-row">
@@ -2017,11 +2097,13 @@ export default function App() {
                 <dt>Proxy</dt>
                 <dd>{isLocal ? 'None · splat-only picking' : report?.proxy?.triangles != null && report.proxy.kb != null ? `${(report.proxy.triangles / 1000).toFixed(1)}k tri · ${report.proxy.kb.toFixed(0)} KB` : '—'}</dd>
               </dl>
-              <p className="source-note">{isPlyLocal
-                ? 'FP32 PLY 本地预览：位置、尺度、旋转、颜色与不透明度直接来自 PLY 浮点字段，不经过 DSPK 8-bit 量化，也不继承牙位/解剖语义。'
-                : isLocal
-                  ? '独立本地预览：只使用 DSPK 内嵌几何与语义，不继承原病例 proxy、牙位元数据、MPR 或报告。单牙功能按文件实际 FDI 内容开放。'
-                  : spec.blurb}</p>
+              <p className="source-note">{isTimeline
+                ? `真实 Brush 重训 checkpoint · step ${timelineStep ?? '—'}。该独立重训用于展示训练过程；checkpoint 没有 FDI/层标签，也不继承已发布 Case 01 的 proxy 或报告。`
+                : isPlyLocal
+                  ? 'FP32 PLY 本地预览：位置、尺度、旋转、颜色与不透明度直接来自 PLY 浮点字段，不经过 DSPK 8-bit 量化，也不继承牙位/解剖语义。'
+                  : isLocal
+                    ? '独立本地预览：只使用 DSPK 内嵌几何与语义，不继承原病例 proxy、牙位元数据、MPR 或报告。单牙功能按文件实际 FDI 内容开放。'
+                    : spec.blurb}</p>
               <button type="button" className="tbar-btn primary" onClick={() => fileInputRef.current?.click()}>
                 选择本地 .ply / .dspk 进入 Lab
               </button>
