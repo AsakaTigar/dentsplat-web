@@ -2,8 +2,11 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { SplatLayer } from './SplatLayer.ts';
 import { FLAG, decodeSplatCloud, type SplatCloud } from './dspk.ts';
+import type { GaussianInspect, Vec3 } from './gaussian.ts';
 
 export type ClipAxis = 'x' | 'y' | 'z' | null;
+export type LabMode = 'rgb' | 'ellipsoid' | 'centers' | 'wire' | 'opacity' | 'scale' | 'normal' | 'depth';
+export type LabInfo = { mode: LabMode; available: number; rendered: number; truncated: boolean; triangles: number; points: number };
 
 export type ViewPreset = {
   id: string; label: string; sub?: string;
@@ -225,6 +228,7 @@ export class DentSplatViewer {
   /** Which case is loaded; set by App on every case switch, read by the HUD and the checks. */
   caseId = 'A2';
   onPick?: (hit: PickerHit) => void;
+  onSplatPick?: (index: number | null) => void;
   onStats?: (s: Stats) => void;
   onMeasure?: (m: { mm: number; a: THREE.Vector3; b: THREE.Vector3 } | null) => void;
   selectedTooth = 0;
@@ -245,6 +249,14 @@ export class DentSplatViewer {
   private measureGroup = new THREE.Group();
   private auditGroup = new THREE.Group();
   private gizmo = new THREE.Group();
+  private labGroup = new THREE.Group();
+  private inspectGroup = new THREE.Group();
+  labMode: LabMode = 'rgb';
+  labInfo: LabInfo = { mode: 'rgb', available: 0, rendered: 0, truncated: false, triangles: 0, points: 0 };
+  pickGaussians = false;
+  /** Isolate the selected Gaussian in the splat raster and the lab overlays. */
+  inspectIsolate = false;
+  inspectedIndex = -1;
   private wireRoot: THREE.Group | null = null;
   private disposed = false;
   showWire = false;
@@ -278,7 +290,7 @@ export class DentSplatViewer {
       const name = metal ? metal[1] : (named.length ? named : parts).sort((a, b) => b.length - a.length)[0];
       this.gpu = (name || raw).trim().slice(0, 40);
     }
-    this.scene.add(this.caseGroup, this.measureGroup, this.auditGroup, this.gizmo);
+    this.scene.add(this.caseGroup, this.measureGroup, this.auditGroup, this.gizmo, this.labGroup, this.inspectGroup);
     this.attachInput();
     this.resize();
     this.loop();
@@ -366,12 +378,36 @@ export class DentSplatViewer {
     }
   }
 
+  /** Commit an already-parsed FP32 PLY cloud without inventing a proxy or DSPK round-trip. */
+  loadCloud(cloud: SplatCloud, bytes: number) {
+    ++this.loadSeq;
+    this.loadAbort?.abort();
+    this.loadAbort = null;
+    this.disposeLayers();
+    this.layer = new SplatLayer(cloud, { opacityScale: 1 });
+    this.layerAlt = null;
+    this.variant = 'full';
+    this.splitCompare = false;
+    this.layerAlphas = {};
+    this.fullBytes = bytes;
+    this.prunedBytes = bytes;
+    this.caseGroup.add(this.layer.mesh);
+    this.applyUniforms();
+    this.forceSort = true;
+    this.labMode = 'rgb';
+    this.clearLab();
+    this.labGroup.visible = false;
+  }
+
   private disposeLayers() {
     const splatMeshes = new Set<THREE.Object3D>();
     if (this.layer) splatMeshes.add(this.layer.mesh);
     if (this.layerAlt) splatMeshes.add(this.layerAlt.mesh);
     for (const l of [this.layer, this.layerAlt]) l?.dispose();
     this.clearWire();
+    this.clearLab();
+    this.clearInspect();
+    this.labGroup.visible = false;
     this.showWire = false;
 
     // Everything case-owned is under caseGroup. SplatLayer.dispose() has already released the two
@@ -466,6 +502,11 @@ export class DentSplatViewer {
   }
 
   private tap(e: PointerEvent) {
+    if (this.pickGaussians && this.measureMode !== 'measure') {
+      const index = this.pickSplatIndex(e.clientX, e.clientY);
+      this.onSplatPick?.(index);
+      return;
+    }
     const hit = this.pick(e.clientX, e.clientY);
     if (this.measureMode === 'measure') {
       const p = hit?.point ?? this.pickSplatCenter(e.clientX, e.clientY);
@@ -528,6 +569,33 @@ export class DentSplatViewer {
       return { fdi, point: h.point.clone(), meshName: name };
     }
     return null;
+  }
+
+  /** Nearest visible Gaussian centre in screen space, with depth as the tie-breaker. */
+  pickSplatIndex(clientX: number, clientY: number): number | null {
+    const l = this.activeLayer();
+    if (!l) return null;
+    const r = this.canvas.getBoundingClientRect();
+    const px = clientX - r.left, py = clientY - r.top;
+    const v = new THREE.Vector3(), world = new THREE.Vector3();
+    let bestD = 12, bestDepth = Infinity, out: number | null = null;
+    const proj = new THREE.Matrix4().multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+    const planes = this.clipPlanes();
+    for (let i = 0; i < l.cloud.count; i++) {
+      const fdi = l.cloud.misc[i * 4 + 1], layer = l.cloud.misc[i * 4 + 2];
+      if (this.fdiHidden(fdi) || (this.layerAlphas[layer] ?? 1) <= 0.001) continue;
+      if (this.inspectIsolate && this.inspectedIndex >= 0 && i !== this.inspectedIndex) continue;
+      this.splatWorld(l, i, world);
+      if (!this.pointPassesClip(world, planes)) continue;
+      v.copy(world).applyMatrix4(proj);
+      if (v.z > 1 || v.z < -1) continue;
+      const sx = (v.x * 0.5 + 0.5) * r.width, sy = (-v.y * 0.5 + 0.5) * r.height;
+      const d = Math.hypot(sx - px, sy - py);
+      if (d < 12 && (v.z < bestDepth - 0.025 || (Math.abs(v.z - bestDepth) <= 0.025 && d < bestD))) {
+        bestD = d; bestDepth = v.z; out = i;
+      }
+    }
+    return out;
   }
 
   /** Fallback for local/no-proxy packets: nearest visible splat centre, with depth ordering. */
@@ -660,7 +728,9 @@ export class DentSplatViewer {
       l.u.uOutline.value = this.outline;
       l.u.uShowLesions.value = this.showLesions ? 1 : 0;
       l.u.uOpacityScale.value = this.opacity;
-      l.u.uVisMode.value = this.visMode;
+      l.u.uVisMode.value = this.labUniformMode();
+      l.u.uInspectIndex.value = this.inspectedIndex;
+      l.u.uInspectOnly.value = this.inspectIsolate ? 1 : 0;
       l.setClipPlanes(this.clipPlanes(), this.clip.band, this.clip.cap);
     }
     this.updateGizmo();
@@ -709,6 +779,9 @@ export class DentSplatViewer {
       for (const l of [this.layer, this.layerAlt]) l?.setHidden(hidden);
     }
     this.applyUniforms();
+    if (this.geometricMode() && (patch.clip || patch.jawGap !== undefined || patch.hiddenTeeth || patch.isolateTooth !== undefined)) {
+      this.setLabMode(this.labMode);
+    }
   }
 
   /**
@@ -791,7 +864,258 @@ export class DentSplatViewer {
 
   setVisMode(v: 0 | 1) {
     this.visMode = v;
-    for (const l of [this.layer, this.layerAlt]) if (l) l.u.uVisMode.value = v;
+    this.applyLabUniforms();
+  }
+
+  private labUniformMode(): number {
+    if (this.labMode === 'opacity') return 2;
+    if (this.labMode === 'scale') return 3;
+    if (this.labMode === 'normal') return 4;
+    if (this.labMode === 'depth') return 5;
+    return this.visMode;
+  }
+
+  private applyLabUniforms() {
+    const vm = this.labUniformMode();
+    for (const l of [this.layer, this.layerAlt]) if (l) l.u.uVisMode.value = vm;
+  }
+
+  private geometricMode(): boolean {
+    return this.labMode === 'ellipsoid' || this.labMode === 'centers' || this.labMode === 'wire';
+  }
+
+  private splatQuat(layer: SplatLayer, i: number, out: THREE.Quaternion): void {
+    const c = layer.cloud;
+    if (c.raw) {
+      out.set(c.raw.quats[i * 4], c.raw.quats[i * 4 + 1], c.raw.quats[i * 4 + 2], c.raw.quats[i * 4 + 3]);
+    } else {
+      out.set(
+        c.rot[i * 4] / 255 * 2 - 1, c.rot[i * 4 + 1] / 255 * 2 - 1,
+        c.rot[i * 4 + 2] / 255 * 2 - 1, c.rot[i * 4 + 3] / 255 * 2 - 1,
+      );
+    }
+    out.normalize();
+    if (this.jawGap > 0.001 && (c.misc[i * 4 + 3] & FLAG.lowerJaw)) {
+      const th = 2 * Math.asin(Math.min(0.8, this.jawGap / (2 * 66)));
+      const qJaw = new THREE.Quaternion(Math.sin(th / 2), 0, 0, Math.cos(th / 2));
+      out.premultiply(qJaw);
+    }
+  }
+
+  private splatSigma(layer: SplatLayer, i: number, out: THREE.Vector3): THREE.Vector3 {
+    const c = layer.cloud;
+    if (c.raw) {
+      return out.set(c.raw.scales[i * 3], c.raw.scales[i * 3 + 1], c.raw.scales[i * 3 + 2]);
+    }
+    const ls = c.scaleLogMax - c.scaleLogMin;
+    return out.set(
+      Math.exp(c.scaleLogMin + (c.scale[i * 3] / 255) * ls),
+      Math.exp(c.scaleLogMin + (c.scale[i * 3 + 1] / 255) * ls),
+      Math.exp(c.scaleLogMin + (c.scale[i * 3 + 2] / 255) * ls),
+    );
+  }
+
+  private splatAlpha(layer: SplatLayer, i: number): number {
+    const c = layer.cloud;
+    return c.raw ? c.raw.alphas[i] : c.misc[i * 4] / 255;
+  }
+
+  private splatColor(layer: SplatLayer, i: number, out: THREE.Color): THREE.Color {
+    const c = layer.cloud;
+    if (c.raw) return out.setRGB(c.raw.colors[i * 3], c.raw.colors[i * 3 + 1], c.raw.colors[i * 3 + 2]);
+    return out.setRGB(c.color[i * 3] / 255, c.color[i * 3 + 1] / 255, c.color[i * 3 + 2] / 255);
+  }
+
+  private visibleSplat(layer: SplatLayer, i: number, world: THREE.Vector3, planes: THREE.Vector4[]): boolean {
+    const c = layer.cloud;
+    const fdi = c.misc[i * 4 + 1], ly = c.misc[i * 4 + 2];
+    if (this.fdiHidden(fdi) || (this.layerAlphas[ly] ?? 1) <= 0.001) return false;
+    if (this.inspectIsolate && this.inspectedIndex >= 0 && i !== this.inspectedIndex) return false;
+    this.splatWorld(layer, i, world);
+    return this.pointPassesClip(world, planes);
+  }
+
+  clearLab() {
+    for (const o of [...this.labGroup.children]) {
+      this.labGroup.remove(o);
+      disposeObject(o);
+    }
+    this.labInfo = { mode: this.labMode, available: this.activeLayer()?.cloud.count ?? 0, rendered: 0, truncated: false, triangles: 0, points: 0 };
+  }
+
+  /** Build the current geometry representation from the actual centres, quaternions and scales. */
+  setLabMode(mode: LabMode): LabInfo {
+    this.labMode = mode;
+    this.clearLab();
+    this.labGroup.visible = this.geometricMode();
+    for (const l of [this.layer, this.layerAlt]) l?.mesh && (l.mesh.visible = !this.geometricMode());
+    this.applyLabUniforms();
+    const l = this.activeLayer();
+    if (!l) return this.labInfo;
+    if (!this.geometricMode()) {
+      this.labInfo = { mode, available: l.cloud.count, rendered: 0, truncated: false, triangles: 0, points: 0 };
+      this.forceSort = true;
+      return this.labInfo;
+    }
+
+    const planes = this.clipPlanes();
+    const world = new THREE.Vector3();
+    const cap = mode === 'ellipsoid' ? 30000 : mode === 'wire' ? 20000 : Infinity;
+    const stride = Number.isFinite(cap) ? Math.max(1, Math.ceil(l.cloud.count / cap)) : 1;
+    const keep: number[] = [];
+    for (let i = 0; i < l.cloud.count; i += stride) {
+      if (this.visibleSplat(l, i, world, planes)) keep.push(i);
+    }
+    this.labInfo = {
+      mode, available: l.cloud.count, rendered: keep.length,
+      truncated: stride > 1,
+      triangles: 0, points: 0,
+    };
+
+    if (mode === 'centers') {
+      const pos = new Float32Array(keep.length * 3), col = new Float32Array(keep.length * 3);
+      const c = new THREE.Color();
+      for (let k = 0; k < keep.length; k++) {
+        const i = keep[k];
+        this.splatWorld(l, i, world);
+        pos[k * 3] = world.x; pos[k * 3 + 1] = world.y; pos[k * 3 + 2] = world.z;
+        this.splatColor(l, i, c);
+        col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      const m = new THREE.PointsMaterial({
+        size: 0.32, sizeAttenuation: true, vertexColors: true, transparent: true,
+        opacity: 0.95, depthTest: true, depthWrite: false,
+      });
+      const points = new THREE.Points(g, m);
+      points.frustumCulled = false;
+      points.renderOrder = 20;
+      this.labGroup.add(points);
+      this.labInfo.points = keep.length;
+      return this.labInfo;
+    }
+
+    const geo = new THREE.IcosahedronGeometry(1, mode === 'ellipsoid' ? 1 : 0);
+    const mat = mode === 'wire'
+      ? new THREE.MeshBasicMaterial({ color: 0x7dd3fc, wireframe: true, transparent: true, opacity: 0.52, depthWrite: false })
+      : new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.26, depthWrite: false, side: THREE.DoubleSide });
+    const mesh = new THREE.InstancedMesh(geo, mat, Math.max(1, keep.length));
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const mtx = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
+    const c = new THREE.Color();
+    for (let k = 0; k < keep.length; k++) {
+      const i = keep[k];
+      this.splatWorld(l, i, p);
+      this.splatQuat(l, i, q);
+      this.splatSigma(l, i, s);
+      mtx.compose(p, q, s);
+      mesh.setMatrixAt(k, mtx);
+      if (mode === 'ellipsoid') {
+        this.splatColor(l, i, c).multiplyScalar(1.15);
+        mesh.setColorAt(k, c);
+      }
+    }
+    mesh.count = keep.length;
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.frustumCulled = false;
+    mesh.renderOrder = 20;
+    this.labGroup.add(mesh);
+    const tris = (geo.index ? geo.index.count : geo.attributes.position.count) / 3;
+    this.labInfo.triangles = Math.round(tris * keep.length);
+    return this.labInfo;
+  }
+
+  private clearInspect() {
+    for (const o of [...this.inspectGroup.children]) {
+      this.inspectGroup.remove(o);
+      disposeObject(o);
+    }
+    for (const l of [this.layer, this.layerAlt]) l?.setInspect(-1, false);
+    this.inspectedIndex = -1;
+    this.inspectIsolate = false;
+  }
+
+  private drawInspectMarker(layer: SplatLayer, i: number, state: GaussianInspect) {
+    for (const o of [...this.inspectGroup.children]) {
+      this.inspectGroup.remove(o);
+      disposeObject(o);
+    }
+    const p = new THREE.Vector3(...state.center);
+    const q = new THREE.Quaternion(...state.quat);
+    const s = new THREE.Vector3(...state.scales);
+    const g = new THREE.IcosahedronGeometry(1, 1);
+    const wire = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, depthTest: false, transparent: true, opacity: 0.95 }));
+    wire.position.copy(p); wire.quaternion.copy(q); wire.scale.copy(s).multiplyScalar(1.08);
+    wire.renderOrder = 970;
+    this.inspectGroup.add(wire);
+    const axisColors = [0xef4444, 0x22c55e, 0x3b82f6];
+    for (let k = 0; k < 3; k++) {
+      const dir = new THREE.Vector3(...state.axes.directions[k]);
+      const len = Math.max(0.05, state.axes.sigmas[k] * 2.5);
+      const line = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([p.clone().sub(dir.clone().multiplyScalar(len)), p.clone().add(dir.clone().multiplyScalar(len))]),
+        new THREE.LineBasicMaterial({ color: axisColors[k], depthTest: false, transparent: true, opacity: 0.9 }),
+      );
+      line.renderOrder = 971;
+      this.inspectGroup.add(line);
+    }
+    const label = this.makeLabel(`#${i}`);
+    label.position.copy(p).add(new THREE.Vector3(0, Math.max(1.5, s.x * 4), 0));
+    label.renderOrder = 1000;
+    this.inspectGroup.add(label);
+  }
+
+  selectGaussian(index: number, opts: { focus?: boolean; isolate?: boolean } = {}): GaussianInspect | null {
+    const layer = this.primaryLayer();
+    if (!layer) return null;
+    const state = layer.inspect(index);
+    if (!state) return null;
+    this.inspectedIndex = index;
+    this.inspectIsolate = opts.isolate ?? this.inspectIsolate;
+    for (const l of [this.layer, this.layerAlt]) l?.setInspect(index, this.inspectIsolate);
+    this.drawInspectMarker(layer, index, state);
+    if (this.geometricMode()) this.setLabMode(this.labMode);
+    if (opts.focus) {
+      this.autoRotate = false;
+      const r = Math.max(28, Math.min(90, Math.max(...state.scales) * 12 + 18));
+      this.goal = { theta: this.theta, phi: this.phi, radius: r, target: new THREE.Vector3(...state.center) };
+    }
+    return state;
+  }
+
+  setGaussianScale(index: number, scales: Vec3): GaussianInspect | null {
+    const layer = this.primaryLayer();
+    const actual = layer?.setSplatScale(index, scales);
+    if (!layer || !actual) return null;
+    const state = layer.inspect(index);
+    if (state) this.drawInspectMarker(layer, index, state);
+    if (this.geometricMode()) this.setLabMode(this.labMode);
+    return state;
+  }
+
+  setGaussianOpacity(index: number, alpha: number): GaussianInspect | null {
+    const layer = this.primaryLayer();
+    const actual = layer?.setSplatOpacity(index, alpha);
+    if (!layer || actual == null) return null;
+    const state = layer.inspect(index);
+    if (state) this.drawInspectMarker(layer, index, state);
+    return state;
+  }
+
+  setGaussianIsolate(on: boolean) {
+    this.inspectIsolate = on;
+    for (const l of [this.layer, this.layerAlt]) l?.setInspect(this.inspectedIndex, on);
+    if (this.geometricMode()) this.setLabMode(this.labMode);
+    else this.forceSort = true;
+  }
+
+  clearGaussianSelection() {
+    this.clearInspect();
+    if (this.geometricMode()) this.setLabMode(this.labMode);
+    else this.forceSort = true;
   }
 
   setWireframe(on: boolean) {
@@ -984,18 +1308,20 @@ export class DentSplatViewer {
   fullBytes = 0; prunedBytes = 0;
 
   private renderOne(only: SplatLayer | null) {
+    const showSplat = !this.geometricMode();
     if (only) {
       const a = this.layer!, b = this.layerAlt!;
-      a.mesh.visible = a === only; b.mesh.visible = b === only;
+      a.mesh.visible = showSplat && a === only;
+      b.mesh.visible = showSplat && b === only;
       this.renderer.render(this.scene, this.camera);
-      a.mesh.visible = true; b.mesh.visible = true;
+      a.mesh.visible = showSplat; b.mesh.visible = showSplat;
     } else {
       const l = this.activeLayer();
-      if (this.layer) this.layer.mesh.visible = l === this.layer;
-      if (this.layerAlt) this.layerAlt.mesh.visible = l === this.layerAlt;
+      if (this.layer) this.layer.mesh.visible = showSplat && l === this.layer;
+      if (this.layerAlt) this.layerAlt.mesh.visible = showSplat && l === this.layerAlt;
       this.renderer.render(this.scene, this.camera);
-      if (this.layer) this.layer.mesh.visible = true;
-      if (this.layerAlt) this.layerAlt.mesh.visible = true;
+      if (this.layer) this.layer.mesh.visible = showSplat;
+      if (this.layerAlt) this.layerAlt.mesh.visible = showSplat;
     }
   }
 

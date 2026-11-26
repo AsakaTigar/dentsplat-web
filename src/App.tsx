@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type * as THREE from 'three';
 import { DentSplatViewer } from './engine/Viewer.ts';
-import type { BenchResult, ClearanceAudit, ClipAxis, CompressionBenchResult, PickerHit, ProbeResult, Stats, ViewPreset } from './engine/Viewer.ts';
+import type { BenchResult, ClearanceAudit, ClipAxis, CompressionBenchResult, LabInfo, LabMode, PickerHit, ProbeResult, Stats, ViewPreset } from './engine/Viewer.ts';
+import type { GaussianInspect, Vec3 } from './engine/gaussian.ts';
+import { parseGaussianPly } from './engine/ply.ts';
 import { CASES, AUDIT_BASIS, LESION_LABEL } from './data/cases.ts';
 import type { CaseSpec, CaseCohort, LayerSpec } from './data/cases.ts';
 import { LAYER_RGB } from './engine/dspk.ts';
 import Odontogram from './ui/Odontogram.tsx';
 import MprQuadView from './ui/MprQuadView.tsx';
+import GaussianPlot from './ui/GaussianPlot.tsx';
 import type { Mm3 } from './ui/MprQuadView.tsx';
 import type { ToothMeta } from './ui/Odontogram.tsx';
 
@@ -18,6 +21,8 @@ type SceneReport = {
   proxy: { bytes: number; kb: number; nodes: number; triangles: number };
   compression_fidelity_mm: Record<string, number | string>;
   metrics: Record<string, number | number[]>;
+  training?: { tool?: string; steps?: number; views?: number; sh_degree?: number; labels?: string };
+  source_note?: string;
 };
 type AblationPacket = Report & {
   file: string; sha256: string; method: string;
@@ -45,7 +50,18 @@ type MetaFile = {
   metrics?: Record<string, number | number[]>;
 };
 
-type RailTab = 'findings' | 'layers' | 'slice' | 'audit' | 'source';
+type RailTab = 'findings' | 'lab' | 'methods' | 'recon' | 'layers' | 'slice' | 'audit' | 'source';
+
+const LAB_MODES: { id: LabMode; label: string; note: string }[] = [
+  { id: 'rgb', label: 'RGB', note: 'EWA 高斯光栅化最终图像' },
+  { id: 'ellipsoid', label: 'Ellipsoids', note: '真实协方差 1σ 椭球表面' },
+  { id: 'centers', label: 'Centers', note: '高斯中心点云' },
+  { id: 'wire', label: 'Wireframe', note: '1σ 椭球线框' },
+  { id: 'opacity', label: 'Opacity', note: '逐高斯不透明度图' },
+  { id: 'scale', label: 'Scale', note: '逐高斯尺度图' },
+  { id: 'normal', label: 'Normal', note: '椭球最小主轴近似法线' },
+  { id: 'depth', label: 'Depth', note: '相机空间深度图' },
+];
 
 type EvidenceFinding = {
   id: string;
@@ -115,6 +131,7 @@ function Icon({ name }: { name: string }) {
     case 'audit': return <svg {...props}><path d="M12 3l7 4v5c0 4-3 7-7 9-4-2-7-5-7-9V7z" /><path d="M9 12l2 2 4-4" /></svg>;
     case 'heat': return <svg {...props}><path d="M12 3v10M12 17v4M3 12h10M17 12h4" /><circle cx="12" cy="12" r="3" /></svg>;
     case 'bench': return <svg {...props}><path d="M4 19h16M7 15v-4M12 15V7M17 15v-6" /></svg>;
+    case 'gaussian': return <svg {...props}><ellipse cx="12" cy="12" rx="9" ry="5.2" transform="rotate(-28 12 12)" /><ellipse cx="12" cy="12" rx="4.8" ry="9" transform="rotate(-28 12 12)" /><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none" /></svg>;
     case 'camera': return <svg {...props}><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13.5" r="3" /></svg>;
     case 'upload': return <svg {...props}><path d="M12 16V4M7 9l5-5 5 5M4 20h16" /></svg>;
     case 'reset': return <svg {...props}><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><polyline points="3 3 3 8 8 8" /></svg>;
@@ -159,6 +176,7 @@ export default function App() {
   const [alphas, setAlphas] = useState<Record<number, number>>({});
   const [variant, setVariant] = useState<'full' | 'pruned'>('full');
   const [split, setSplit] = useState(false);
+  const [methodCompare, setMethodCompare] = useState(false);
   const [tenX, setTenX] = useState(false);
   const [heatmap, setHeatmap] = useState(false);
   const [mprOn, setMprOn] = useState(false);
@@ -186,6 +204,14 @@ export default function App() {
   const [localLayerIds, setLocalLayerIds] = useState<number[]>([]);
   const [localEpoch, setLocalEpoch] = useState(0);
   const isLocal = !!customAssetName;
+  const isPlyLocal = !!customAssetName?.toLowerCase().endsWith('.ply');
+  const gaussUnit = isPlyLocal ? 'PLY u' : 'mm';
+  const [labMode, setLabMode] = useState<LabMode>('rgb');
+  const [labInfo, setLabInfo] = useState<LabInfo | null>(null);
+  const [gaussian, setGaussian] = useState<GaussianInspect | null>(null);
+  const [gaussOriginal, setGaussOriginal] = useState<GaussianInspect | null>(null);
+  const [gaussIsolate, setGaussIsolate] = useState(false);
+  const [plyNote, setPlyNote] = useState<string | null>(null);
 
   // 10-case cohort selector (right inspector)
   const [cohort, setCohort] = useState<'all' | CaseCohort>('all');
@@ -199,9 +225,15 @@ export default function App() {
     if (isLocal) setLocalEpoch((e) => e + 1);
     setTenX(false);
     setSplit(false);
+    setMethodCompare(false);
     setMprOn(false);
+    setGaussian(null);
+    setGaussOriginal(null);
+    setGaussIsolate(false);
+    setPlyNote(null);
     setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
     viewerRef.current?.clearAudit();
+    viewerRef.current?.clearGaussianSelection();
     history.replaceState(null, '', `#${id}`);
   }, [isLocal]);
 
@@ -220,6 +252,19 @@ export default function App() {
       skipSelectedCursor.current = true;
       setCursorMm(mm);
       if (hit.fdi) setSelected(hit.fdi);
+    };
+    v.onSplatPick = (index: number | null) => {
+      if (index == null) {
+        v.clearGaussianSelection();
+        setGaussian(null);
+        setGaussOriginal(null);
+        return;
+      }
+      const info = v.selectGaussian(index);
+      setGaussian(info);
+      setGaussOriginal(info);
+      setRailTab('lab');
+      setInspectorOpen(true);
     };
     viewerRef.current = v;
 
@@ -284,6 +329,13 @@ export default function App() {
       },
       measurePts: () => v.measurePts.map((p) => [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)]),
       pickAt: (clientX: number, clientY: number) => v.pick(clientX, clientY),
+      pickSplatAt: (clientX: number, clientY: number) => v.pickSplatIndex(clientX, clientY),
+      lab: (mode: LabMode) => v.setLabMode(mode),
+      labInfo: () => v.labInfo,
+      selectGaussian: (index: number, focus = false) => v.selectGaussian(index, { focus }),
+      gaussian: () => (v.inspectedIndex >= 0 ? v.primaryLayer()?.inspect(v.inspectedIndex) ?? null : null),
+      editGaussianScale: (index: number, scales: Vec3) => v.setGaussianScale(index, scales),
+      editGaussianOpacity: (index: number, alpha: number) => v.setGaussianOpacity(index, alpha),
       screen: () => {
         const r = v.canvasSize();
         return { w: r[0], h: r[1] };
@@ -328,10 +380,22 @@ export default function App() {
           fetch(spec.metaUrl).then((r) => r.json()),
         ]);
         const useTenX = tenX && caseId === 'B';
+        const useMethodCompare = methodCompare && caseId === 'A2';
         const ablation = rep.compression_ablation as CompressionAblation | undefined;
         let scene: SceneReport;
         let fullUrl = spec.fullUrl, prunedUrl = spec.prunedUrl;
-        if (useTenX) {
+        if (useMethodCompare) {
+          const trained = rep.scenes?.sceneA_trained as SceneReport | undefined;
+          const sampled = rep.scenes?.sceneA_ios as SceneReport | undefined;
+          const sampleCase = CASES.find((c) => c.id === 'A');
+          if (!trained || !sampled || !sampleCase) throw new Error('report.json lacks the same-source sampled baseline');
+          scene = {
+            ...trained, pruned: sampled.full,
+            bytes_ratio: +(trained.full.bytes / Math.max(1, sampled.full.bytes)).toFixed(2),
+          };
+          fullUrl = spec.fullUrl;
+          prunedUrl = sampleCase.fullUrl;
+        } else if (useTenX) {
           if (!ablation?.uniform || !ablation?.anatomy) throw new Error('report.json has no 10x compression ablation');
           const source = rep.scenes?.sceneB_cbct as SceneReport | undefined;
           if (!source) throw new Error('report.json has no source scene "sceneB_cbct"');
@@ -363,7 +427,8 @@ export default function App() {
         setMeta(mf as MetaFile);
         setAlphas(defaults);
         setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
-        if (useTenX) { setSplit(true); setVariant('full'); }
+        if (useTenX || useMethodCompare) { setSplit(true); setVariant('full'); }
+        if (useMethodCompare) setRailTab('methods');
         // Reset jaw / clipping on every switch: single-jaw scans have no hinge.
         setJaw(0); setClipAxis(null); setClipOffset(0);
         setSelected(0); setActiveFindingId(null); setProbe(null); setHidden([]); setIsolate(false); setMeasures([]);
@@ -383,7 +448,7 @@ export default function App() {
       }
     })();
     return () => { dead = true; };
-  }, [caseId, spec, tenX, localEpoch]);
+  }, [caseId, spec, tenX, methodCompare, localEpoch]);
 
   // Back/forward + manual hash edits switch cases without a reload.
   useEffect(() => {
@@ -391,8 +456,10 @@ export default function App() {
       const h = hashCase();
       if (CASES.some((c) => c.id === h) && h !== caseId) {
         setCaseId(h); setCustomAssetName(null); if (isLocal) setLocalEpoch((e) => e + 1); setTenX(false); setSplit(false); setMprOn(false);
+        setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null);
         setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
         viewerRef.current?.clearAudit();
+        viewerRef.current?.clearGaussianSelection();
       }
     };
     window.addEventListener('hashchange', onHash);
@@ -400,6 +467,23 @@ export default function App() {
   }, [caseId, isLocal]);
 
   // ---------------------------------------------------------------- state -> engine
+
+  useEffect(() => {
+    const v = viewerRef.current;
+    if (!v || !report) return;
+    setLabInfo(v.setLabMode(labMode));
+  }, [labMode, report, tenX, localEpoch]);
+
+  useEffect(() => {
+    const v = viewerRef.current;
+    if (v) v.pickGaussians = railTab === 'lab';
+    if (railTab === 'lab') setPickerOpen(false);
+    else setLabMode('rgb');
+  }, [railTab, labMode]);
+
+  useEffect(() => {
+    viewerRef.current?.setGaussianIsolate(gaussIsolate);
+  }, [gaussIsolate]);
 
   useEffect(() => { viewerRef.current?.setLayerAlphaMap(alphas); }, [alphas, caseId]);
   useEffect(() => {
@@ -411,6 +495,7 @@ export default function App() {
     });
   }, [!isLocal, spec.hasJaw, jaw, opacity, showLesions, hidden, isolate, clipAxis, clipOffset, clipBand, cap, flip]);
   useEffect(() => { viewerRef.current?.setVariant(variant, split); }, [variant, split]);
+  useEffect(() => { if (methodCompare && !split) setSplit(true); }, [methodCompare, split]);
   useEffect(() => { viewerRef.current?.setVisMode(heatmap ? 1 : 0); }, [heatmap, caseId, tenX]);
   useEffect(() => { viewerRef.current?.setWireframe(wire); }, [wire]);
   useEffect(() => { if (viewerRef.current) viewerRef.current.measureMode = mode; }, [mode]);
@@ -509,6 +594,8 @@ export default function App() {
 
   const toggleTenX = useCallback(() => {
     if (isLocal) return;
+    setLabMode('rgb'); setMethodCompare(false); setGaussian(null); setGaussOriginal(null); setGaussIsolate(false);
+    viewerRef.current?.clearGaussianSelection();
     if (caseId !== 'B') {
       switchCase('B');
       setTenX(true); setSplit(true); setVariant('full'); setBench(null); setCompressionBench(null);
@@ -526,6 +613,8 @@ export default function App() {
     const next = !mprOn;
     if (next) {
       if (caseId !== 'B') switchCase('B');
+      setLabMode('rgb'); setMethodCompare(false); setGaussian(null); setGaussOriginal(null); setGaussIsolate(false);
+      viewerRef.current?.clearGaussianSelection();
       setTenX(false); setSplit(false); setVariant('full'); setBench(null); setCompressionBench(null);
       setCursorMm([0, 0, 0]);
     }
@@ -583,6 +672,7 @@ export default function App() {
     try {
       setLoading(true); setErr(null);
       setTenX(false); setSplit(false); setMprOn(false); setVariant('full'); setBench(null); setCompressionBench(null);
+      setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null);
       setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
       setSelected(0); setHidden([]); setIsolate(false); setMeasures([]); setProbe(null); setActiveFindingId(null);
       const head = new DataView(await file.arrayBuffer());
@@ -619,6 +709,110 @@ export default function App() {
     }
   }, []);
 
+  const loadLocalPly = useCallback(async (file: File) => {
+    const v = viewerRef.current;
+    if (!v) return;
+    try {
+      setLoading(true); setErr(null);
+      setTenX(false); setSplit(false); setMprOn(false); setVariant('full'); setBench(null); setCompressionBench(null);
+      setGaussian(null); setGaussOriginal(null); setGaussIsolate(false);
+      setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
+      setSelected(0); setHidden([]); setIsolate(false); setMeasures([]); setProbe(null); setActiveFindingId(null);
+      const buf = await file.arrayBuffer();
+      const { cloud, info } = parseGaussianPly(buf, file.name);
+      v.caseId = 'LOCAL';
+      v.loadCloud(cloud, file.size);
+      const perSplat = +(file.size / Math.max(1, cloud.count)).toFixed(2);
+      setReport({
+        full: { splats: cloud.count, bytes: file.size, mb: +(file.size / 1048576).toFixed(2), sh_degree: info.shDegree, bytes_per_splat: perSplat },
+        pruned: { splats: cloud.count, bytes: file.size, mb: +(file.size / 1048576).toFixed(2), sh_degree: info.shDegree, bytes_per_splat: perSplat },
+        bytes_ratio: 1, proxy: { bytes: 0, kb: 0, nodes: 0, triangles: 0 }, compression_fidelity_mm: {}, metrics: {},
+      });
+      setMeta({
+        unit: String(cloud.meta.unit ?? 'unknown'), kind: 'local-ply', teeth: {}, metrics: {},
+        bbox_min: [...cloud.bboxMin], bbox_max: [...cloud.bboxMax],
+      });
+      setAlphas({ 5: 1 });
+      setLocalLayerIds([5]);
+      setPlyNote(`${info.gaussianFields ? 'FP32 3DGS PLY' : 'Point PLY'} · ${info.format} · SH${info.shDegree} · ${info.fields.length} 字段 · 无 FDI/解剖语义`);
+      setCustomAssetName(file.name);
+      setLabMode('centers');
+      setRailTab('lab');
+      setInspectorOpen(true);
+      history.replaceState(null, '', '#LOCAL');
+      setLoading(false);
+    } catch (e) {
+      setErr(`本地 PLY 加载失败: ${String(e)}`);
+      setLoading(false);
+    }
+  }, []);
+
+  const loadLocalFile = useCallback(async (file: File) => {
+    const n = file.name.toLowerCase();
+    if (n.endsWith('.ply')) return loadLocalPly(file);
+    return loadLocalDspk(file);
+  }, [loadLocalPly, loadLocalDspk]);
+
+  const loadSamplePly = useCallback(async () => {
+    try {
+      setLoading(true);
+      const buf = await fetch(`${import.meta.env.BASE_URL}assets/sample_case05_fp32.ply`).then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.arrayBuffer();
+      });
+      await loadLocalPly(new File([buf], 'sample_case05_fp32.ply'));
+    } catch (e) {
+      setErr(`示例 PLY 加载失败: ${String(e)}`);
+      setLoading(false);
+    }
+  }, [loadLocalPly]);
+
+  const changeLabMode = useCallback((mode: LabMode) => {
+    setLabMode(mode);
+    if (mode !== 'rgb') {
+      setMethodCompare(false);
+      setRailTab('lab');
+      setInspectorOpen(true);
+    }
+  }, []);
+
+  const startMethodCompare = useCallback(() => {
+    const v = viewerRef.current;
+    v?.clearGaussianSelection();
+    setGaussian(null); setGaussOriginal(null); setGaussIsolate(false);
+    setLabMode('rgb');
+    if (caseId !== 'A2') switchCase('A2');
+    setMethodCompare(true);
+    setSplit(true);
+    setRailTab('methods');
+    setInspectorOpen(true);
+    setPickerOpen(false);
+  }, [caseId, switchCase]);
+
+  const editGaussScale = useCallback((axis: 0 | 1 | 2, value: number) => {
+    const v = viewerRef.current;
+    if (!v || !gaussian) return;
+    const next = [...gaussian.scales] as Vec3;
+    next[axis] = value;
+    const info = v.setGaussianScale(gaussian.index, next);
+    if (info) setGaussian(info);
+  }, [gaussian]);
+
+  const editGaussOpacity = useCallback((value: number) => {
+    const v = viewerRef.current;
+    if (!v || !gaussian) return;
+    const info = v.setGaussianOpacity(gaussian.index, value);
+    if (info) setGaussian(info);
+  }, [gaussian]);
+
+  const resetGaussian = useCallback(() => {
+    const v = viewerRef.current;
+    if (!v || !gaussian || !gaussOriginal) return;
+    v.setGaussianScale(gaussian.index, gaussOriginal.scales);
+    const info = v.setGaussianOpacity(gaussian.index, gaussOriginal.alpha);
+    if (info) setGaussian(info);
+  }, [gaussian, gaussOriginal]);
+
   const shoot = useCallback(() => {
     const data = viewerRef.current?.snapshot();
     if (!data) return;
@@ -639,6 +833,17 @@ export default function App() {
       selected_fdi: selected,
       cursor_mm: cursorMm,
       view: { variant, split, ten_x: tenX, heatmap, jaw_mm: jaw, clip: { axis: clipAxis, offset: clipOffset, band: clipBand, cap, flip } },
+      lab: {
+        mode: labMode,
+        render_info: labInfo,
+        ply_note: plyNote,
+        gaussian: gaussian ? {
+          index: gaussian.index, precision: gaussian.precision, fdi: gaussian.fdi, layer: gaussian.layer,
+          center_mm: gaussian.center, scales_mm: gaussian.scales, quaternion_xyzw: gaussian.quat,
+          opacity: gaussian.alpha, sh_degree: gaussian.shDegree, covariance_mm2: gaussian.covariance,
+          principal_sigmas_mm: gaussian.axes.sigmas, principal_directions: gaussian.axes.directions,
+        } : null,
+      },
       mpr: { enabled: mprOn, mask_visible: mprMask, note: mprOn ? 'Case 0095 lightweight 8-bit preview; not diagnostic-resolution' : null },
       measurements_mm: measures,
       measurement_points_mm: v?.measurePts.map((p) => [+p.x.toFixed(3), +p.y.toFixed(3), +p.z.toFixed(3)]) ?? [],
@@ -655,7 +860,7 @@ export default function App() {
     const url = URL.createObjectURL(blob), a = document.createElement('a');
     a.href = url; a.download = `dentsplat_review_${isLocal ? 'LOCAL' : caseId}_FDI${selected || 'all'}_${Date.now()}.json`; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }, [ablation, auditClaims, cap, caseId, clipAxis, clipBand, clipOffset, compressionBench, cursorMm, customAssetName, flip, heatmap, isLocal, jaw, measures, mprMask, mprOn, selected, spec, split, tenX, variant]);
+  }, [ablation, auditClaims, cap, caseId, clipAxis, clipBand, clipOffset, compressionBench, cursorMm, customAssetName, flip, gaussOriginal, gaussian, heatmap, isLocal, jaw, labInfo, labMode, measures, mprMask, mprOn, plyNote, selected, spec, split, tenX, variant]);
 
   const toggleHide = useCallback((fdi: number) => {
     setHidden((h) => (h.includes(fdi) ? h.filter((x) => x !== fdi) : [...h, fdi]));
@@ -860,7 +1065,7 @@ export default function App() {
     );
   }, [findingFilter, findings]);
 
-  const caseBadge = customAssetName ? `LOCAL .DSPK · ${customAssetName}` : tenX ? '10× COMPRESSION ABLATION · CASE 03' : mprOn ? 'DTX MPR · CASE 03 · RAW CBCT' : spec.badge;
+  const caseBadge = customAssetName ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : '.DSPK'} · ${customAssetName}` : tenX ? '10× COMPRESSION ABLATION · CASE 03' : mprOn ? 'DTX MPR · CASE 03 · RAW CBCT' : spec.badge;
 
   // ---------------------------------------------------------------- render
 
@@ -869,13 +1074,16 @@ export default function App() {
       <header className="dtx-menubar">
         <div className="dtx-brand">
           <span className="dtx-mark" />
-          <b>DentSplat</b>
-          <em>Evidence-Grounded 3D Dental AI Workspace</em>
+          <b>DentSplat Lab</b>
+          <em>Dental Gaussian Splatting Lab</em>
         </div>
 
-        <nav className="dtx-workflows" aria-label="临床工作流阶段">
+        <nav className="dtx-workflows" aria-label="Gaussian Splatting 工作区">
+          <button type="button" className={railTab === 'lab' ? 'on' : ''} onClick={() => { setRailTab('lab'); setInspectorOpen(true); if (labMode === 'rgb') changeLabMode('centers'); }}>Gaussian Lab</button>
+          <button type="button" className={railTab === 'recon' ? 'on' : ''} onClick={() => { setRailTab('recon'); setInspectorOpen(true); setPickerOpen(false); }}>Reconstruction</button>
+          <button type="button" className={railTab === 'methods' ? 'on' : ''} onClick={() => { setRailTab('methods'); setInspectorOpen(true); setPickerOpen(false); }}>Methods</button>
           <button type="button" className={railTab === 'findings' && mode === 'pick' ? 'on' : ''} onClick={() => { setMode('pick'); setRailTab('findings'); setInspectorOpen(true); }}>Diagnose</button>
-          <button type="button" className={mode === 'measure' ? 'on' : ''} onClick={() => setMode(mode === 'measure' ? 'pick' : 'measure')}>Measure</button>
+          <button type="button" className={mode === 'measure' ? 'on' : ''} onClick={() => { setMode(mode === 'measure' ? 'pick' : 'measure'); setRailTab('findings'); setInspectorOpen(true); }}>Measure</button>
           <button type="button" className={railTab === 'slice' ? 'on' : ''} onClick={() => { setRailTab('slice'); setInspectorOpen(true); }}>Slice &amp; Cap</button>
           <button type="button" className={railTab === 'layers' ? 'on' : ''} onClick={() => { setRailTab('layers'); setInspectorOpen(true); }}>3D Anatomy</button>
           <button type="button" className={railTab === 'audit' ? 'on' : ''} onClick={() => { setRailTab('audit'); setInspectorOpen(true); }}>Evidence Audit</button>
@@ -918,13 +1126,13 @@ export default function App() {
         <i className="rib-div" />
 
         <div className="rib-group">
-          <button type="button" className={'rib-btn' + (variant === 'full' && !split ? ' on' : '')} disabled={tenX} onClick={() => { setVariant('full'); setSplit(false); }}>
+          <button type="button" className={'rib-btn' + (variant === 'full' && !split ? ' on' : '')} disabled={tenX || methodCompare} onClick={() => { setVariant('full'); setSplit(false); }}>
             <Icon name="layers" /><span>Full 完整</span>
           </button>
-          <button type="button" className={'rib-btn' + (variant === 'pruned' && !split ? ' on' : '')} disabled={tenX} onClick={() => { setVariant('pruned'); setSplit(false); }}>
+          <button type="button" className={'rib-btn' + (variant === 'pruned' && !split ? ' on' : '')} disabled={tenX || methodCompare} onClick={() => { setVariant('pruned'); setSplit(false); }}>
             <Icon name="layers" /><span>Pruned 剪枝</span>
           </button>
-          <button type="button" className={'rib-btn' + (split ? ' on' : '')} disabled={tenX} onClick={() => setSplit((s) => !s)}>
+          <button type="button" className={'rib-btn' + (split ? ' on' : '')} disabled={tenX || methodCompare} onClick={() => setSplit((s) => !s)}>
             <Icon name="split" /><span>同屏对比</span>
           </button>
           <button
@@ -968,17 +1176,17 @@ export default function App() {
           <button type="button" className="rib-btn" onClick={saveReview} title="保存病例、牙位、切片坐标、测量与审计结果为 JSON">
             <Icon name="audit" /><span>保存记录</span>
           </button>
-          <button type="button" className="rib-btn" onClick={() => fileInputRef.current?.click()} title="本地加载 .dspk 文件（Research Mode，零上传）">
-            <Icon name="upload" /><span>载入 .DSPK</span>
+          <button type="button" className="rib-btn" onClick={() => fileInputRef.current?.click()} title="本地加载 FP32 .ply 或 .dspk 文件（Research Mode，零上传）">
+            <Icon name="upload" /><span>载入 PLY/DSPK</span>
           </button>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".dspk"
+            accept=".dspk,.ply"
             hidden
             onChange={(e) => {
               const f = e.target.files?.[0];
-              if (f) void loadLocalDspk(f);
+              if (f) void loadLocalFile(f);
               e.target.value = '';
             }}
           />
@@ -1011,7 +1219,7 @@ export default function App() {
           ))}
         </div>
         <div className="dtx-spacer" />
-        <div className="subtab-info">{isLocal ? `LOCAL DSPK · ${customAssetName}` : `${spec.code} · ${spec.title}`}</div>
+        <div className="subtab-info">{isLocal ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : 'DSPK'} · ${customAssetName}` : `${spec.code} · ${spec.title}`}</div>
       </div>
 
       <div className={'dtx-workspace' + (inspectorOpen ? '' : ' collapsed')}>
@@ -1023,7 +1231,7 @@ export default function App() {
             e.preventDefault();
             setDragOver(false);
             const f = e.dataTransfer.files?.[0];
-            if (f) void loadLocalDspk(f);
+            if (f) void loadLocalFile(f);
           }}
         >
           <div className="viewer-cell" ref={stageRef}>
@@ -1052,6 +1260,29 @@ export default function App() {
             </div>
           </div>
 
+          {(railTab === 'lab' || labMode !== 'rgb') && (
+            <div className="lab-modebar" aria-label="Gaussian 渲染模式">
+              <b>GAUSSIAN LAB</b>
+              {LAB_MODES.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  title={m.note}
+                  className={labMode === m.id ? 'on' : ''}
+                  onClick={() => changeLabMode(m.id)}
+                >
+                  {m.label}
+                </button>
+              ))}
+              {labInfo && labInfo.rendered > 0 && (
+                <span className="lab-sample">
+                  {labInfo.mode === 'centers' ? 'points' : 'tris'} {fmtInt(labInfo.rendered)}/{fmtInt(labInfo.available)}
+                  {labInfo.truncated ? ' · sampled' : ''}
+                </span>
+              )}
+            </div>
+          )}
+
           <canvas id="gl" ref={canvasRef} />
 
           <div className="vp-corner-bl">
@@ -1077,17 +1308,21 @@ export default function App() {
             <>
               <div className="split-rule" />
               <span className="split-tag l">
-                {tenX ? `UNIFORM 10× · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)` : `FULL · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)`}
+                {methodCompare
+                  ? `BRUSH 3DGS · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)`
+                  : tenX ? `UNIFORM 10× · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)` : `FULL · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)`}
               </span>
               <span className="split-tag r">
-                {tenX ? `ANATOMY-AWARE 10× · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)` : `PRUNED (${ratio.toFixed(2)}×) · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)`}
+                {methodCompare
+                  ? `SURFACE SAMPLING · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)`
+                  : tenX ? `ANATOMY-AWARE 10× · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)` : `PRUNED (${ratio.toFixed(2)}×) · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)`}
               </span>
             </>
           )}
 
           {dragOver && (
             <div className="drop-mask">
-              <div>松开鼠标，立即在本地浏览器加载 <code>.dspk</code> 高斯模型（数据不离本机）</div>
+              <div>松开鼠标，立即在本地浏览器加载 <code>.ply</code> / <code>.dspk</code> 高斯模型（数据不离本机）</div>
             </div>
           )}
 
@@ -1117,6 +1352,9 @@ export default function App() {
 
         <aside className="dtx-rail" aria-label="检视面板切换">
           {([
+            ['lab', 'gaussian', 'Gaussian'],
+            ['recon', 'source', 'Recon'],
+            ['methods', 'bench', 'Methods'],
             ['findings', 'findings', 'Findings'],
             ['layers', 'layers', 'Layers'],
             ['slice', 'slice', 'Slice'],
@@ -1206,6 +1444,176 @@ export default function App() {
                   </div>
                 </>
               )}
+            </div>
+
+            <div className={'insp-pane' + (railTab === 'recon' ? ' active' : '')}>
+              <div className="sec-head"><span>RECONSTRUCTION TIMELINE</span><b>Case 01 · real artifacts only</b></div>
+              <p className="method-intro">只展示仓库里真实存在、可重新加载的阶段产物。没有保存的中间 checkpoint 与训练曲线会明确标为缺失，不用示意曲线补齐。</p>
+              <ol className="recon-steps">
+                <li className="done">
+                  <i>01</i>
+                  <div><b>{allScenes.sceneA_trained?.training?.views ?? 120} 个 Blender 视角</b><span>Poseidon3D 000125 口扫网格 → Cycles 渲染，作为训练输入。</span></div>
+                </li>
+                <li className="done">
+                  <i>02</i>
+                  <div><b>Surface Sampling · {fmtInt(allScenes.sceneA_ios?.full.splats ?? 59808)} splats</b><span>0.35 mm 同源采样基线，SH0，未经优化。</span></div>
+                  <button type="button" className="tbar-btn" onClick={() => switchCase('A')}>加载</button>
+                </li>
+                <li className="done">
+                  <i>03</i>
+                  <div><b>{allScenes.sceneA_trained?.training?.tool ?? 'Brush v0.3.0'} · {fmtInt(allScenes.sceneA_trained?.training?.steps ?? 15000)} steps</b><span>{fmtInt(allScenes.sceneA_trained?.full.splats ?? 28691)} 个各向异性高斯 · SH{allScenes.sceneA_trained?.full.sh_degree ?? 1} · 标签迁移 99.5% &lt; 1 mm。</span></div>
+                  <button type="button" className="tbar-btn" onClick={() => switchCase('A2')}>加载</button>
+                </li>
+                <li className="done">
+                  <i>04</i>
+                  <div><b>DSPK Full · {fmtInt(allScenes.sceneA_trained?.full.splats ?? 28691)} splats</b><span>{allScenes.sceneA_trained ? `${fmtMB(allScenes.sceneA_trained.full.bytes)} MB · ${allScenes.sceneA_trained.full.bytes_per_splat} B/splat` : '—'}</span></div>
+                </li>
+                <li className="done">
+                  <i>05</i>
+                  <div><b>DSPK Pruned · {fmtInt(allScenes.sceneA_trained?.pruned.splats ?? 9564)} splats</b><span>{allScenes.sceneA_trained ? `${fmtMB(allScenes.sceneA_trained.pruned.bytes)} MB · ${allScenes.sceneA_trained.bytes_ratio.toFixed(2)}× smaller` : '—'}</span></div>
+                </li>
+                <li className="missing">
+                  <i>!</i>
+                  <div><b>中间训练状态 / Loss / PSNR</b><span>训练器未导出 step checkpoints，原始训练日志为空；因此不提供伪造的中间高斯或损失曲线。</span></div>
+                </li>
+              </ol>
+              <div className="quick-row">
+                <button type="button" className="tbar-btn primary" onClick={startMethodCompare}>采样 ↔ 训练双视口</button>
+                <button type="button" className="tbar-btn" onClick={() => changeLabMode('ellipsoid')}>查看 1σ 椭球</button>
+              </div>
+              <p className="source-note">时间轴描述的是 Case 01 的真实产物链：输入视角、未训练采样、Brush 训练结果与两个 DSPK 传输包。它不声称还原每一步优化过程。</p>
+            </div>
+
+            <div className={'insp-pane' + (railTab === 'methods' ? ' active' : '')}>
+              <div className="sec-head"><span>METHOD REGISTRY</span><b>evidence, not labels</b></div>
+              <p className="method-intro">只有存在真实训练/导出资产的方法才标记为 AVAILABLE。切换网页显示模式不会被算作 2DGS、Mip-Splatting 或 R²-Gaussian 的实现。</p>
+              <div className="method-list">
+                <div className="method-row ok">
+                  <div><b>Surface Sampling</b><small>0.35 mm 表面采样 · SH0</small></div>
+                  <span>AVAILABLE</span>
+                  <button type="button" className="tbar-btn" onClick={() => switchCase('A')}>Case 10</button>
+                </div>
+                <div className="method-row ok">
+                  <div><b>Brush 3DGS</b><small>15,000 步 · 各向异性 3DGS · SH1</small></div>
+                  <span>AVAILABLE</span>
+                  <button type="button" className="tbar-btn" onClick={() => switchCase('A2')}>Case 01</button>
+                </div>
+                <div className="method-row ok">
+                  <div><b>CBCT Oriented Surfel</b><small>分割体 → marching-cubes oriented surfels</small></div>
+                  <span>AVAILABLE</span>
+                  <button type="button" className="tbar-btn" onClick={() => switchCase('B')}>Case 03</button>
+                </div>
+                <div className="method-row">
+                  <div><b>Vanilla 3DGS</b><small>官方实现独立训练对照</small></div><span>NOT TRAINED</span>
+                </div>
+                <div className="method-row">
+                  <div><b>Mip-Splatting</b><small>抗混叠 / 多尺度渲染</small></div><span>NOT TRAINED</span>
+                </div>
+                <div className="method-row">
+                  <div><b>2DGS</b><small>定向二维高斯圆盘 + 法线约束</small></div><span>NOT TRAINED</span>
+                </div>
+                <div className="method-row">
+                  <div><b>SuGaR</b><small>表面对齐高斯与网格提取</small></div><span>NOT TRAINED</span>
+                </div>
+                <div className="method-row">
+                  <div><b>R²-Gaussian</b><small>X-ray 投影几何重建</small></div><span>UNAVAILABLE</span>
+                </div>
+              </div>
+              <button type="button" className="tbar-btn primary method-compare-btn" onClick={startMethodCompare}>
+                同源双视口：Surface Sampling ↔ Brush 3DGS
+              </button>
+              <p className="source-note">Case 01 与 Case 10 来自同一 Poseidon3D 000125 口扫；左侧为 Brush 训练版（28,691 高斯），右侧为未训练采样基线（59,808 高斯）。两视口共用相机、坐标架与时间。</p>
+              {methodCompare && <div className="method-live">METHOD COMPARISON ACTIVE · split camera locked · 左 Brush / 右 Sampling</div>}
+              <div className="method-caveat">R²-Gaussian 需要 X 射线投影及成像几何，当前 CBCT 分割体数据不能替代；项目不提供伪造的跨方法结果。</div>
+            </div>
+
+            <div className={'insp-pane' + (railTab === 'lab' ? ' active' : '')}>
+              <div className="sec-head">
+                <span>GAUSSIAN INSPECTOR</span>
+                <b>{gaussian ? `#${gaussian.index}` : 'CLICK A GAUSSIAN'}</b>
+              </div>
+              {!gaussian ? (
+                <div className="lab-empty">
+                  <p>当前模式：<b>{LAB_MODES.find((m) => m.id === labMode)?.label ?? labMode}</b></p>
+                  <p>在视口点击任意高斯中心，读取它的 μ、σ、四元数、不透明度、协方差与 SH 系数，并可直接拖动参数观察椭球变化。</p>
+                  <p className="muted">椭球模式按真实 3×3 协方差构建；法线模式显示椭球最小主轴，不是网格表面法线。</p>
+                </div>
+              ) : (
+                <>
+                  <div className="gauss-identity">
+                    <span className={`gauss-precision ${gaussian.precision === 'fp32' ? 'raw' : ''}`}>{gaussian.precision === 'fp32' ? 'FP32 RAW' : 'DSPK 8-BIT'}</span>
+                    <span>FDI #{gaussian.fdi || '—'}</span>
+                    <span>{LOCAL_LAYER_NAMES[gaussian.layer] ?? `Layer ${gaussian.layer}`}</span>
+                    <span>SH{gaussian.shDegree}</span>
+                  </div>
+                  <dl className="kv-mini gauss-kv">
+                    <dt>Position μ</dt><dd>{gaussian.center.map((n) => n.toFixed(3)).join(', ')} {gaussUnit}</dd>
+                    <dt>Scale σ</dt><dd>{gaussian.scales.map((n) => n.toFixed(4)).join(', ')} {gaussUnit}</dd>
+                    <dt>Quaternion</dt><dd>W {gaussian.quat[3].toFixed(3)} · X {gaussian.quat[0].toFixed(3)} · Y {gaussian.quat[1].toFixed(3)} · Z {gaussian.quat[2].toFixed(3)}</dd>
+                    <dt>Opacity</dt><dd>{gaussian.alpha.toFixed(3)}</dd>
+                    <dt>RGB DC</dt><dd>{gaussian.color.map((n) => n.toFixed(2)).join(' / ')}</dd>
+                  </dl>
+
+                  <div className="sec-head"><span>G(t) · PRINCIPAL AXES</span><b>{gaussian.axes.sigmas.map((s) => s.toFixed(3)).join(' / ')} {gaussUnit}</b></div>
+                  <GaussianPlot sigmas={gaussian.axes.sigmas} unit={gaussUnit} />
+                  {gaussian.shDegree > 1 && (
+                    <p className="source-note">该文件含 SH{gaussian.shDegree} 字段；当前浏览器导入器只保留并渲染 DC + l=1 系数，l≥2 未载入，不能据此宣称 SH{gaussian.shDegree} 渲染。</p>
+                  )}
+
+                  <div className="sec-head"><span>LIVE EDIT</span><b>writes this Gaussian</b></div>
+                  {([0, 1, 2] as const).map((axis) => (
+                    <div className="ctrl-item" key={axis}>
+                      <div className="ctrl-label">
+                        <span><i className={`axis-dot a${axis}`} />σ {['X', 'Y', 'Z'][axis]}</span>
+                        <b>{gaussian.scales[axis].toFixed(4)} {gaussUnit}</b>
+                      </div>
+                      <input
+                        type="range" min={0.002} max={2} step={0.001}
+                        value={Math.min(2, Math.max(0.002, gaussian.scales[axis]))}
+                        onChange={(e) => editGaussScale(axis, Number(e.target.value))}
+                      />
+                    </div>
+                  ))}
+                  <div className="ctrl-item">
+                    <div className="ctrl-label"><span>Opacity α</span><b>{gaussian.alpha.toFixed(3)}</b></div>
+                    <input type="range" min={0} max={1} step={0.005} value={gaussian.alpha} onChange={(e) => editGaussOpacity(Number(e.target.value))} />
+                  </div>
+
+                  <div className="sec-head"><span>COVARIANCE Σ ({isPlyLocal ? 'u²' : 'mm²'})</span></div>
+                  <div className="cov-grid">
+                    {[0, 1, 2].map((r) => [0, 1, 2].map((c) => (
+                      <span key={`${r}-${c}`} className={r === c ? 'diag' : ''}>{gaussian.covariance[r * 3 + c].toExponential(2)}</span>
+                    )))}
+                  </div>
+                  <div className="eig-list">
+                    {gaussian.axes.sigmas.map((s, i) => (
+                      <span key={i}><i className={`axis-dot a${i}`} />λ{i + 1} = {s.toFixed(4)} {gaussUnit}</span>
+                    ))}
+                  </div>
+
+                  {gaussian.sh1 && (
+                    <details className="sh-details">
+                      <summary>SH1 coefficients ({gaussian.sh1.length})</summary>
+                      <code>{gaussian.sh1.map((v) => v.toFixed(3)).join(', ')}</code>
+                    </details>
+                  )}
+
+                  <div className="quick-row gauss-actions">
+                    <button type="button" className="tbar-btn" onClick={() => viewerRef.current?.selectGaussian(gaussian.index, { focus: true })}>聚焦</button>
+                    <button type="button" className={'tbar-btn' + (gaussIsolate ? ' on' : '')} onClick={() => setGaussIsolate((x) => !x)}>{gaussIsolate ? '退出隔离' : '隔离此高斯'}</button>
+                    <button type="button" className="tbar-btn" onClick={resetGaussian} disabled={!gaussOriginal}>重置</button>
+                  </div>
+                  <p className="source-note">
+                    DSPK 编辑受 8-bit log-scale 量化限制，界面显示的是写回后的实际值；FP32 PLY 保留原始浮点。
+                    {isPlyLocal && ' PLY 不声明长度单位，界面以原始 PLY 单位 (u) 显示，未自动换算为 mm。'}
+                  </p>
+                </>
+              )}
+              {plyNote && <p className="source-note ply-note">{plyNote}</p>}
+              <div className="lab-footnote">
+                <b>{LAB_MODES.find((m) => m.id === labMode)?.label}</b> · {LAB_MODES.find((m) => m.id === labMode)?.note}
+                {labInfo?.truncated && <span> · 几何模式为可复现抽样，栏内显示真实渲染数量</span>}
+              </div>
             </div>
 
             <div className={'insp-pane' + (railTab === 'findings' ? ' active' : '')}>
@@ -1436,13 +1844,16 @@ export default function App() {
                 <dt>Proxy</dt>
                 <dd>{isLocal ? 'None · splat-only picking' : report?.proxy?.triangles != null && report.proxy.kb != null ? `${(report.proxy.triangles / 1000).toFixed(1)}k tri · ${report.proxy.kb.toFixed(0)} KB` : '—'}</dd>
               </dl>
-              <p className="source-note">{isLocal
-                ? '独立本地预览：只使用 DSPK 内嵌几何与语义，不继承原病例 proxy、牙位元数据、MPR 或报告。单牙功能按文件实际 FDI 内容开放。'
-                : spec.blurb}</p>
+              <p className="source-note">{isPlyLocal
+                ? 'FP32 PLY 本地预览：位置、尺度、旋转、颜色与不透明度直接来自 PLY 浮点字段，不经过 DSPK 8-bit 量化，也不继承牙位/解剖语义。'
+                : isLocal
+                  ? '独立本地预览：只使用 DSPK 内嵌几何与语义，不继承原病例 proxy、牙位元数据、MPR 或报告。单牙功能按文件实际 FDI 内容开放。'
+                  : spec.blurb}</p>
               <button type="button" className="tbar-btn primary" onClick={() => fileInputRef.current?.click()}>
-                选择本地 .dspk 进入 Research Mode
+                选择本地 .ply / .dspk 进入 Lab
               </button>
-              <p className="source-note">支持将本地训练的 <code>.dspk</code> 文件直接拖入左侧 3D 视口渲染，数据仅在浏览器内存解码，不上传服务器。</p>
+              <button type="button" className="tbar-btn" onClick={loadSamplePly}>加载示例 FP32 PLY（Case 05, Brush）</button>
+              <p className="source-note">支持 binary/ascii 3DGS <code>.ply</code> 与量化 <code>.dspk</code>；文件仅在浏览器内存解码，不上传服务器。PLY 坐标架不做隐式重定向，若旋转异常请先核对训练器导出坐标。</p>
             </div>
           </div>
         </aside>

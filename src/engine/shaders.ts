@@ -15,11 +15,19 @@ precision highp float;
 precision highp int;
 
 attribute vec3 aCenter;      // mm, world space (occlusal plane = y0, maxilla +y, lips +z)
+attribute vec4 aMisc;        // alpha, fdi, layerId, flags
+
+#ifdef RAW_PLY
+attribute vec4 aRotF;        // FP32 quaternion x,y,z,w
+attribute vec4 aScaleAlphaF; // FP32 sigma x,y,z (mm) + opacity
+attribute vec3 aColorF;      // FP32 linear colour
+attribute mat3 aSH1F;        // FP32 l=1 bands, column = channel: (y, z, x)
+#else
 attribute vec4 aRot;         // snorm quaternion x,y,z,w
 attribute vec3 aScale;       // 0..255 log-scale
 attribute vec3 aColor;       // 0..255 linear DC colour
-attribute vec4 aMisc;        // alpha, fdi, layerId, flags
 attribute mat3 aSH1;         // quantised l=1 bands, column = channel: (y, z, x)
+#endif
 
 // NB: modelMatrix / modelViewMatrix / projectionMatrix / viewMatrix / normalMatrix /
 // cameraPosition / position / normal / uv are injected by three's GLSL3 prefix. Redeclaring
@@ -45,13 +53,24 @@ uniform int uCapEnable;
 uniform float uLayerAlpha[9];
 uniform vec3 uCapTint;
 uniform int uDebug;
-uniform int uVisMode;       // 0 normal anatomy, 1 clinical-importance heat map
+uniform int uVisMode;       // 0 RGB, 1 heat, 2 opacity, 3 scale, 4 estimated normal, 5 depth
+uniform int uInspectIndex;
+uniform int uInspectOnly;
 
 out vec2 vQuadCoord;
 out vec3 vColor;
 out float vAlpha;
 out float vSel;
 out float vLesion;
+out float vInspect;
+out float vDepthNorm;
+
+vec3 diagnosticRamp(float t) {
+  t = clamp(t, 0.0, 1.0);
+  vec3 c = mix(vec3(0.04, 0.12, 0.55), vec3(0.05, 0.75, 0.92), smoothstep(0.0, 0.34, t));
+  c = mix(c, vec3(0.98, 0.84, 0.15), smoothstep(0.34, 0.68, t));
+  return mix(c, vec3(0.92, 0.13, 0.06), smoothstep(0.68, 1.0, t));
+}
 
 const float SH_C1 = 0.4886025119683723;
 
@@ -74,12 +93,18 @@ void main() {
   int fdi = int(aMisc.y + 0.5);
   int layerId = int(aMisc.z + 0.5);
   int flags = int(aMisc.w + 0.5);
+  int splatId = gl_VertexID >> 2;
   vQuadCoord = vec2(0.0);
   vColor = vec3(0.0);
   vAlpha = 0.0;
   vSel = 0.0;
   vLesion = 0.0;
+  vInspect = (uInspectIndex >= 0 && splatId == uInspectIndex) ? 1.0 : 0.0;
+  vDepthNorm = 0.0;
 
+  if (uInspectOnly == 1 && uInspectIndex >= 0 && splatId != uInspectIndex) {
+    gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return;
+  }
   if (fdi > 0 && toothHidden(fdi)) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
 
   vec3 pos = aCenter;
@@ -123,8 +148,15 @@ void main() {
   // aRot is uploaded as a Uint8 attribute with normalized=true, so the GPU hands us [0,1]; the
   // container stores q*0.5+0.5. Without the 2x-1 remap every splat's basis is rotated by ~120 deg,
   // which is invisible on isotropic point-cloud splats and catastrophic on anisotropic ones.
+#ifdef RAW_PLY
+  vec4 qq = normalize(aRotF);
+  vec3 s = max(aScaleAlphaF.xyz, vec3(1e-5));
+  float baseAlpha = clamp(aScaleAlphaF.w, 0.0, 1.0);
+#else
   vec4 qq = normalize(aRot * 2.0 - 1.0);
   vec3 s = exp(uScaleRange.x + (aScale / 255.0) * uScaleRange.y);
+  float baseAlpha = aMisc.x / 255.0;
+#endif
   mat3 R = jawRot * quatToMat3(qq);
   mat3 M = R * mat3(s.x, 0.0, 0.0, 0.0, s.y, 0.0, 0.0, 0.0, s.z);
   // a section-capped splat is flattened onto the plane so the cut reads as a solid disc
@@ -199,9 +231,17 @@ void main() {
   vQuadCoord = corner * ext;
 
   // --- shading -----------------------------------------------------------------
+#ifdef RAW_PLY
+  vec3 col = aColorF;
+#else
   vec3 col = aColor / 255.0;
+#endif
   if (uSheen > 0.0) {
+#ifdef RAW_PLY
+    mat3 sh = aSH1F;                            // FP32 l=1, columns R/G/B (y, z, x)
+#else
     mat3 sh = aSH1 * uSH1Scale;                 // columns: R, G, B band coefficients (y, z, x)
+#endif
     float shEnergy = abs(sh[0].x) + abs(sh[0].y) + abs(sh[0].z)
                    + abs(sh[1].x) + abs(sh[1].y) + abs(sh[1].z)
                    + abs(sh[2].x) + abs(sh[2].y) + abs(sh[2].z);
@@ -228,9 +268,24 @@ void main() {
       : layerId == 7 ? vec3(0.04, 0.58, 0.88)
       : vec3(0.22, 0.82, 0.55);
     col = mix(col, heat, 0.88);
+  } else if (uVisMode == 2) {
+    col = vec3(baseAlpha);
+  } else if (uVisMode == 3) {
+    float avgSigma = (s.x + s.y + s.z) / 3.0;
+    float t = (log(max(avgSigma, 1e-5)) - uScaleRange.x) / max(uScaleRange.y, 1e-4);
+    col = diagnosticRamp(t);
+  } else if (uVisMode == 4) {
+    // Estimated normal: the minor axis of the covariance ellipsoid, not a mesh face normal.
+    vec3 axis = (s.x <= s.y && s.x <= s.z) ? R[0] : ((s.y <= s.z) ? R[1] : R[2]);
+    vec3 nrm = normalize(V * axis);
+    col = 0.5 + 0.5 * nrm;
+  } else if (uVisMode == 5) {
+    float t = clamp((-cam.z - 20.0) / 240.0, 0.0, 1.0);
+    col = diagnosticRamp(t);
+    vDepthNorm = t;
   }
   vColor = max(col, vec3(0.0)) * uExposure;
-  vAlpha = (aMisc.x / 255.0) * uLayerAlpha[min(layerId, 8)];
+  vAlpha = baseAlpha * uLayerAlpha[min(layerId, 8)];
   vSel = (fdi == uSelectedTooth && uSelectedTooth > 0) ? 1.0 : 0.0;
   if (fdi == uPulseTooth && uPulseTooth > 0) vSel = max(vSel, uPulse);
   vLesion = (flags & 4) != 0 ? 1.0 : 0.0;
@@ -245,6 +300,8 @@ in vec3 vColor;
 in float vAlpha;
 in float vSel;
 in float vLesion;
+in float vInspect;
+in float vDepthNorm;
 
 uniform vec3 uHighlight;
 uniform vec3 uLesionColor;
@@ -260,7 +317,12 @@ void main() {
   float a = vAlpha * exp(-0.5 * r2) * uOpacityScale;
   if (a < 0.0035) discard;
   vec3 col = vColor;
-  if (vSel > 0.0) {
+  if (vInspect > 0.0) {
+    float edge = smoothstep(0.35, 1.45, sqrt(r2));
+    col = mix(col, uHighlight, 0.42);
+    col += uHighlight * edge * 1.15;
+    a = max(a, 0.55);
+  } else if (vSel > 0.0) {
     float edge = smoothstep(0.45, 1.35, sqrt(r2));
     col = mix(col, uHighlight, 0.22 * vSel);
     col += uHighlight * edge * vSel * uOutline;

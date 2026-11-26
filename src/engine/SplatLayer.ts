@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { SPLAT_FRAGMENT, SPLAT_VERTEX } from './shaders.ts';
 import { LAYER, type SplatCloud } from './dspk.ts';
+import { principalAxes, covarianceOf, type GaussianInspect, type GaussianState, type Vec3 } from './gaussian.ts';
 
 const BINS = 1 << 14;
 
@@ -64,6 +65,7 @@ export class SplatLayer {
 
   constructor(public cloud: SplatCloud, opts: { opacityScale?: number } = {}) {
     const n = cloud.count;
+    const raw = cloud.raw;
     this.centers = new Float32Array(n * 3);
     const aCenter = new Float32Array(n * 4 * 3);
     const aRot = new Uint8Array(n * 4 * 4);
@@ -71,13 +73,17 @@ export class SplatLayer {
     const aColor = new Uint8Array(n * 4 * 3);
     const aMisc = new Uint8Array(n * 4 * 4);
     const aSH1 = new Int8Array(n * 4 * 9);
+    const aRotF = raw ? new Float32Array(n * 4 * 4) : null;
+    const aScaleAlphaF = raw ? new Float32Array(n * 4 * 4) : null;
+    const aColorF = raw ? new Float32Array(n * 4 * 3) : null;
+    const aSH1F = raw?.sh1 ? new Float32Array(n * 4 * 9) : null;
 
     const { bboxMin, bboxMax, pos, rot, scale, color, misc, hasSH1, sh1 } = cloud;
     const span = [bboxMax[0] - bboxMin[0], bboxMax[1] - bboxMin[1], bboxMax[2] - bboxMin[2]];
     for (let i = 0; i < n; i++) {
-      const cx = bboxMin[0] + (pos[i * 3] / 65535) * span[0];
-      const cy = bboxMin[1] + (pos[i * 3 + 1] / 65535) * span[1];
-      const cz = bboxMin[2] + (pos[i * 3 + 2] / 65535) * span[2];
+      const cx = raw ? raw.centers[i * 3] : bboxMin[0] + (pos[i * 3] / 65535) * span[0];
+      const cy = raw ? raw.centers[i * 3 + 1] : bboxMin[1] + (pos[i * 3 + 1] / 65535) * span[1];
+      const cz = raw ? raw.centers[i * 3 + 2] : bboxMin[2] + (pos[i * 3 + 2] / 65535) * span[2];
       this.centers[i * 3] = cx; this.centers[i * 3 + 1] = cy; this.centers[i * 3 + 2] = cz;
       const v = i * 4;
       for (let k = 0; k < 4; k++) {
@@ -87,21 +93,35 @@ export class SplatLayer {
         for (let c = 0; c < 3; c++) {
           aScale[(v + k) * 3 + c] = scale[i * 3 + c];
           aColor[(v + k) * 3 + c] = color[i * 3 + c];
+          if (aScaleAlphaF && raw) aScaleAlphaF[(v + k) * 4 + c] = raw.scales[i * 3 + c];
+          if (aColorF && raw) aColorF[(v + k) * 3 + c] = raw.colors[i * 3 + c];
         }
+        if (aRotF && raw) {
+          for (let c = 0; c < 4; c++) aRotF[(v + k) * 4 + c] = raw.quats[i * 4 + c];
+        }
+        if (aScaleAlphaF && raw) aScaleAlphaF[(v + k) * 4 + 3] = raw.alphas[i];
         for (let c = 0; c < 4; c++) aMisc[(v + k) * 4 + c] = misc[i * 4 + c];
         if (hasSH1 && sh1) for (let c = 0; c < 9; c++) aSH1[(v + k) * 9 + c] = sh1[i * 9 + c];
+        if (aSH1F && raw?.sh1) for (let c = 0; c < 9; c++) aSH1F[(v + k) * 9 + c] = raw.sh1[i * 9 + c];
       }
     }
 
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('aCenter', new THREE.BufferAttribute(aCenter, 3));
-    geo.setAttribute('aRot', new THREE.BufferAttribute(aRot, 4, true));
-    geo.setAttribute('aScale', new THREE.BufferAttribute(aScale, 3));
-    geo.setAttribute('aColor', new THREE.BufferAttribute(aColor, 3));
     geo.setAttribute('aMisc', new THREE.BufferAttribute(aMisc, 4));
-    // mat3 in the shader = 3 attribute locations of vec3 over the same 9-byte record, so the
-    // vertex count stays n*4 like every other plane (itemSize 3 here would silently give count n*12)
-    geo.setAttribute('aSH1', new THREE.BufferAttribute(aSH1, 9));
+    if (raw) {
+      geo.setAttribute('aRotF', new THREE.BufferAttribute(aRotF!, 4));
+      geo.setAttribute('aScaleAlphaF', new THREE.BufferAttribute(aScaleAlphaF!, 4));
+      geo.setAttribute('aColorF', new THREE.BufferAttribute(aColorF!, 3));
+      if (aSH1F) geo.setAttribute('aSH1F', new THREE.BufferAttribute(aSH1F, 9));
+    } else {
+      geo.setAttribute('aRot', new THREE.BufferAttribute(aRot, 4, true));
+      geo.setAttribute('aScale', new THREE.BufferAttribute(aScale, 3));
+      geo.setAttribute('aColor', new THREE.BufferAttribute(aColor, 3));
+      // mat3 in the shader = 3 attribute locations of vec3 over the same 9-byte record, so the
+      // vertex count stays n*4 like every other plane (itemSize 3 here would silently give count n*12)
+      geo.setAttribute('aSH1', new THREE.BufferAttribute(aSH1, 9));
+    }
 
     const index = new Uint32Array(n * 6);
     this.indexAttr = new THREE.BufferAttribute(index, 1);
@@ -111,6 +131,7 @@ export class SplatLayer {
 
     this.material = new THREE.ShaderMaterial({
       glslVersion: THREE.GLSL3,
+      defines: raw ? { RAW_PLY: 1 } : {},
       vertexShader: SPLAT_VERTEX,
       fragmentShader: SPLAT_FRAGMENT,
       transparent: true,
@@ -152,6 +173,8 @@ export class SplatLayer {
         uVisMode: { value: 0 },
         uOutline: { value: 0.9 },
         uShowLesions: { value: 1 },
+        uInspectIndex: { value: -1 },
+        uInspectOnly: { value: 0 },
       },
     });
 
@@ -199,6 +222,99 @@ export class SplatLayer {
   setPulse(fdi: number, pulse: number) {
     this.u.uPulseTooth.value = fdi;
     this.u.uPulse.value = pulse;
+  }
+
+  stateOf(i: number): GaussianState | null {
+    if (i < 0 || i >= this.cloud.count) return null;
+    const c = this.cloud, raw = c.raw;
+    const center: Vec3 = [this.centers[i * 3], this.centers[i * 3 + 1], this.centers[i * 3 + 2]];
+    let quat: [number, number, number, number];
+    let scales: Vec3;
+    let alpha: number;
+    let color: Vec3;
+    if (raw) {
+      quat = [raw.quats[i * 4], raw.quats[i * 4 + 1], raw.quats[i * 4 + 2], raw.quats[i * 4 + 3]];
+      scales = [raw.scales[i * 3], raw.scales[i * 3 + 1], raw.scales[i * 3 + 2]];
+      alpha = raw.alphas[i];
+      color = [raw.colors[i * 3], raw.colors[i * 3 + 1], raw.colors[i * 3 + 2]];
+    } else {
+      quat = [
+        c.rot[i * 4] / 255 * 2 - 1, c.rot[i * 4 + 1] / 255 * 2 - 1,
+        c.rot[i * 4 + 2] / 255 * 2 - 1, c.rot[i * 4 + 3] / 255 * 2 - 1,
+      ];
+      const ls = c.scaleLogMax - c.scaleLogMin;
+      scales = [0, 1, 2].map((k) => Math.exp(c.scaleLogMin + (c.scale[i * 3 + k] / 255) * ls)) as Vec3;
+      alpha = c.misc[i * 4] / 255;
+      color = [c.color[i * 3] / 255, c.color[i * 3 + 1] / 255, c.color[i * 3 + 2] / 255];
+    }
+    const qn = Math.hypot(...quat) || 1;
+    quat = quat.map((q) => q / qn) as [number, number, number, number];
+    const sh1 = raw?.sh1
+      ? Array.from(raw.sh1.subarray(i * 9, i * 9 + 9))
+      : c.sh1 ? Array.from(c.sh1.subarray(i * 9, i * 9 + 9), (v) => v / 64) : null;
+    return {
+      index: i, center, scales, quat, alpha, color,
+      fdi: c.misc[i * 4 + 1], layer: c.misc[i * 4 + 2],
+      sh1, shDegree: raw?.shDegree ?? (c.hasSH1 ? 1 : 0),
+      precision: raw ? 'fp32' : 'dspk-8bit',
+    };
+  }
+
+  inspect(i: number): GaussianInspect | null {
+    const s = this.stateOf(i);
+    if (!s) return null;
+    return {
+      ...s,
+      covariance: covarianceOf(s.scales, s.quat),
+      axes: principalAxes(s.scales, s.quat),
+    };
+  }
+
+  setSplatScale(i: number, scales: Vec3): Vec3 | null {
+    if (i < 0 || i >= this.cloud.count) return null;
+    const next = scales.map((s) => Math.min(5, Math.max(1e-4, s))) as Vec3;
+    const c = this.cloud;
+    if (c.raw) {
+      for (let k = 0; k < 3; k++) c.raw.scales[i * 3 + k] = next[k];
+      const f = this.geometry.getAttribute('aScaleAlphaF') as THREE.BufferAttribute;
+      const arr = f.array as Float32Array;
+      for (let k = 0; k < 4; k++) for (let a = 0; a < 3; a++) arr[(i * 4 + k) * 4 + a] = next[k];
+      f.needsUpdate = true;
+      return next;
+    }
+    const ls = Math.max(1e-6, c.scaleLogMax - c.scaleLogMin);
+    const bytes = next.map((s) => Math.min(255, Math.max(0, Math.round((Math.log(s) - c.scaleLogMin) / ls * 255))));
+    const actual = bytes.map((b) => Math.exp(c.scaleLogMin + b / 255 * ls)) as Vec3;
+    for (let k = 0; k < 3; k++) c.scale[i * 3 + k] = bytes[k];
+    const attr = this.geometry.getAttribute('aScale') as THREE.BufferAttribute;
+    const arr = attr.array as Uint8Array;
+    for (let k = 0; k < 4; k++) for (let a = 0; a < 3; a++) arr[(i * 4 + k) * 3 + a] = bytes[a];
+    attr.needsUpdate = true;
+    return actual;
+  }
+
+  setSplatOpacity(i: number, alpha: number): number | null {
+    if (i < 0 || i >= this.cloud.count) return null;
+    const a = Math.min(1, Math.max(0, alpha));
+    const c = this.cloud;
+    if (c.raw) {
+      c.raw.alphas[i] = a;
+      const f = this.geometry.getAttribute('aScaleAlphaF') as THREE.BufferAttribute;
+      for (let k = 0; k < 4; k++) (f.array as Float32Array)[(i * 4 + k) * 4 + 3] = a;
+      f.needsUpdate = true;
+    }
+    const byte = Math.round(a * 255);
+    c.misc[i * 4] = byte;
+    const attr = this.geometry.getAttribute('aMisc') as THREE.BufferAttribute;
+    const arr = attr.array as Uint8Array;
+    for (let k = 0; k < 4; k++) arr[(i * 4 + k) * 4] = byte;
+    attr.needsUpdate = true;
+    return c.raw ? a : byte / 255;
+  }
+
+  setInspect(i: number, only = false) {
+    this.u.uInspectIndex.value = i;
+    this.u.uInspectOnly.value = only ? 1 : 0;
   }
 
   /** Re-sort only when the camera basis actually changed. */

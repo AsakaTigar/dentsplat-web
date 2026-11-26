@@ -76,6 +76,19 @@ export type SplatMeta = {
   [k: string]: unknown;
 };
 
+/** Float attributes retained only when the source itself is float (an imported 3DGS PLY).
+ *  DSPK packets leave this undefined: decoding their bytes into floats would invent precision. */
+export type RawSplatData = {
+  centers: Float32Array;
+  quats: Float32Array;
+  scales: Float32Array;
+  colors: Float32Array;
+  alphas: Float32Array;
+  sh1: Float32Array | null;
+  shDegree: number;
+  sourceFormat: string;
+};
+
 export type SplatCloud = {
   count: number;
   bboxMin: [number, number, number];
@@ -90,6 +103,7 @@ export type SplatCloud = {
   misc: Uint8Array;
   sh1: Int8Array | null;
   meta: SplatMeta;
+  raw?: RawSplatData;
 };
 
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
@@ -197,21 +211,23 @@ export function splatCenter(c: SplatCloud, i: number, out: [number, number, numb
 }
 
 /** Build a SplatCloud from float arrays (used by the generator and by ply2dspk). */
+type FloatInput = Float32Array | Float64Array | number[];
+
 export function buildCloud(input: {
-  centers: Float64Array | number[];
-  quats: Float64Array | number[];
-  scales: Float64Array | number[];
-  colors: Float64Array | number[];
-  alphas: Float64Array | number[];
+  centers: FloatInput;
+  quats: FloatInput;
+  scales: FloatInput;
+  colors: FloatInput;
+  alphas: FloatInput;
   toothIds: Uint8Array | number[];
   layerIds: Uint8Array | number[];
   flags: Uint8Array | number[];
-  sh1?: Float64Array | number[];
+  sh1?: FloatInput;
   meta?: SplatMeta;
   scaleRange?: [number, number];
 }): SplatCloud {
   const n = input.alphas.length;
-  const g = (a: Float64Array | number[] | Uint8Array, i: number) => a[i] as number;
+  const g = (a: FloatInput | Uint8Array, i: number) => a[i] as number;
   let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
   for (let i = 0; i < n; i++) {
     const x = g(input.centers, i * 3), y = g(input.centers, i * 3 + 1), z = g(input.centers, i * 3 + 2);
