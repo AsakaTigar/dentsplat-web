@@ -1123,6 +1123,16 @@ export class DentSplatViewer {
     else this.forceSort = true;
   }
 
+  exportPly(): { buffer: ArrayBuffer; name: string; precision: 'fp32' | 'dspk-8bit' } | null {
+    const layer = this.primaryLayer();
+    if (!layer) return null;
+    return {
+      buffer: layer.exportPly(),
+      name: `dentsplat_${this.caseId}_${layer.cloud.count}_${layer.cloud.raw ? 'fp32' : 'dspk'}.ply`,
+      precision: layer.cloud.raw ? 'fp32' : 'dspk-8bit',
+    };
+  }
+
   clearGaussianSelection() {
     this.clearInspect();
     if (this.geometricMode()) this.setLabMode(this.labMode);

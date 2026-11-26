@@ -859,6 +859,16 @@ export default function App() {
     a.click();
   }, [caseId]);
 
+  const exportPly = useCallback(() => {
+    const x = viewerRef.current?.exportPly();
+    if (!x) return;
+    const blob = new Blob([x.buffer], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = x.name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, []);
+
   const saveReview = useCallback(() => {
     const v = viewerRef.current;
     const record = {
@@ -1692,6 +1702,7 @@ export default function App() {
                     <button type="button" className="tbar-btn" onClick={() => viewerRef.current?.selectGaussian(gaussian.index, { focus: true })}>聚焦</button>
                     <button type="button" className={'tbar-btn' + (gaussIsolate ? ' on' : '')} onClick={() => setGaussIsolate((x) => !x)}>{gaussIsolate ? '退出隔离' : '隔离此高斯'}</button>
                     <button type="button" className="tbar-btn" onClick={resetGaussian} disabled={!gaussOriginal}>重置</button>
+                    <button type="button" className="tbar-btn" onClick={exportPly}>导出 PLY</button>
                   </div>
                   <p className="source-note">
                     DSPK 编辑受 16-bit 位置与 8-bit log-scale 量化限制，界面显示的是写回后的实际值；FP32 PLY 保留原始浮点。

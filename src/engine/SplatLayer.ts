@@ -338,6 +338,61 @@ export class SplatLayer {
     this.u.uInspectOnly.value = only ? 1 : 0;
   }
 
+  /** Binary 3DGS PLY with the current (possibly edited) values. */
+  exportPly(): ArrayBuffer {
+    const n = this.cloud.count, c = this.cloud, raw = c.raw;
+    const header = [
+      'ply', 'format binary_little_endian 1.0',
+      `comment DentSplat Lab export · ${raw ? 'FP32 source attributes' : 'DSPK quantized attributes'}`,
+      `element vertex ${n}`,
+      ...['f_dc_0', 'f_dc_1', 'f_dc_2'],
+      ...Array.from({ length: 9 }, (_, i) => `f_rest_${i}`),
+      'opacity',
+      ...['rot_0', 'rot_1', 'rot_2', 'rot_3'],
+      ...['scale_0', 'scale_1', 'scale_2'],
+      ...['x', 'y', 'z'],
+    ];
+    const head = `${header.slice(0, 4).join('\n')}\n${header.slice(4).map((x) => `property float ${x}`).join('\n')}\nend_header\n`;
+    const headBytes = new TextEncoder().encode(head);
+    const stride = 23 * 4;
+    const out = new ArrayBuffer(headBytes.length + n * stride);
+    new Uint8Array(out).set(headBytes);
+    const dv = new DataView(out);
+    const SH_C0 = 0.28209479177387814;
+    const ls = Math.max(1e-6, c.scaleLogMax - c.scaleLogMin);
+    for (let i = 0; i < n; i++) {
+      let o = headBytes.length + i * stride;
+      const r = raw;
+      const col = r ? [r.colors[i * 3], r.colors[i * 3 + 1], r.colors[i * 3 + 2]]
+        : [c.color[i * 3] / 255, c.color[i * 3 + 1] / 255, c.color[i * 3 + 2] / 255];
+      for (let k = 0; k < 3; k++) { dv.setFloat32(o, (col[k] - 0.5) / SH_C0, true); o += 4; }
+      for (let k = 0; k < 9; k++) {
+        const v = r?.sh1 ? r.sh1[i * 9 + k] : c.sh1 ? c.sh1[i * 9 + k] / 64 : 0;
+        dv.setFloat32(o, v, true); o += 4;
+      }
+      const a = Math.min(1 - 1e-6, Math.max(1e-6, r ? r.alphas[i] : c.misc[i * 4] / 255));
+      dv.setFloat32(o, Math.log(a / (1 - a)), true); o += 4;
+      let qx: number, qy: number, qz: number, qw: number;
+      if (r) {
+        qx = r.quats[i * 4]; qy = r.quats[i * 4 + 1]; qz = r.quats[i * 4 + 2]; qw = r.quats[i * 4 + 3];
+      } else {
+        qx = c.rot[i * 4] / 255 * 2 - 1; qy = c.rot[i * 4 + 1] / 255 * 2 - 1;
+        qz = c.rot[i * 4 + 2] / 255 * 2 - 1; qw = c.rot[i * 4 + 3] / 255 * 2 - 1;
+      }
+      const qn = Math.hypot(qx, qy, qz, qw) || 1;
+      dv.setFloat32(o, qw / qn, true); dv.setFloat32(o + 4, qx / qn, true);
+      dv.setFloat32(o + 8, qy / qn, true); dv.setFloat32(o + 12, qz / qn, true); o += 16;
+      for (let k = 0; k < 3; k++) {
+        const s = r ? r.scales[i * 3 + k] : Math.exp(c.scaleLogMin + c.scale[i * 3 + k] / 255 * ls);
+        dv.setFloat32(o, Math.log(Math.max(1e-6, s)), true); o += 4;
+      }
+      dv.setFloat32(o, this.centers[i * 3], true);
+      dv.setFloat32(o + 4, this.centers[i * 3 + 1], true);
+      dv.setFloat32(o + 8, this.centers[i * 3 + 2], true);
+    }
+    return out;
+  }
+
   /** Re-sort only when the camera basis actually changed. */
   update(view: THREE.Matrix4, viewportPx: THREE.Vector2, force = false) {
     this.u.uViewportPx.value.copy(viewportPx);
