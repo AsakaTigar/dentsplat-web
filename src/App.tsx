@@ -59,10 +59,23 @@ type GeometryMethod = {
   fscore: { threshold_mm: number; precision: number; recall: number };
   normal_abs_dot: { mean: number; p50: number; p10: number } | null;
   raw_ply?: GeometryMethod;
+  training?: {
+    method: string;
+    split: { protocol: string; train_images: number; test_images: number };
+    steps: number[];
+    curve: {
+      step: number; source_step: number; train_loss: number | null;
+      test_psnr: number; test_ssim: number; test_lpips: number;
+      num_gaussians: number; train_sec: number;
+    }[];
+    final_test_psnr: number; final_test_ssim: number; final_test_lpips: number;
+    train_sec: number; num_gaussians: number;
+  };
 };
 type GeometryAudit = {
   source_mesh: { triangles: number; vertices: number; sample_note: string };
-  methods: { brush_3dgs: GeometryMethod; surface_sampling: GeometryMethod };
+  methods: { brush_3dgs: GeometryMethod; surface_sampling: GeometryMethod; gsplat_3dgs?: GeometryMethod; surfel_2dgs?: GeometryMethod };
+  training_curves?: Record<string, NonNullable<GeometryMethod['training']>>;
   timeline?: {
     step: number; count: number;
     cloud_to_mesh: { mean_mm: number; p95_mm: number };
@@ -561,7 +574,7 @@ export default function App() {
     let dead = false;
     fetch(`${import.meta.env.BASE_URL}assets/geometry_metrics.json`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((x) => { if (!dead && x?.schema === 'dentsplat-geometry-audit-v1') setGeometryAudit(x as GeometryAudit); })
+      .then((x) => { if (!dead && (x?.schema === 'dentsplat-geometry-audit-v1' || x?.schema === 'dentsplat-geometry-audit-v2')) setGeometryAudit(x as GeometryAudit); })
       .catch(() => {});
     fetch(`${import.meta.env.BASE_URL}assets/timeline/timeline.json`)
       .then((r) => (r.ok ? r.json() : null))
@@ -905,12 +918,63 @@ export default function App() {
     }
   }, [diskBaseline]);
 
+  const loadMethodDspk = useCallback(async (method: 'gsplat' | '2dgs') => {
+    const v = viewerRef.current;
+    if (!v) return;
+    const spec = method === 'gsplat'
+      ? { file: 'sceneA_gsplat_web.dspk', bytes: 5000808, splats: 250000, label: 'gsplat 3DGS' }
+      : { file: 'sceneA_2dgs_web.dspk', bytes: 1230525, splats: 61486, label: '2DGS' };
+    setLoading(true); setErr(null);
+    setQuadMode(false); setQuadItems([]); v.clearQuadCompare();
+    setTenX(false); setSplit(false); setMprOn(false); setMethodCompare(false); setVariant('full');
+    setBench(null); setCompressionBench(null);
+    setTimelineStep(null); setTimelineCompare(false); setTimelinePlay(false);
+    setGaussian(null); setGaussOriginal(null); setAlphaMix(null);
+    v.clearGaussianSelection();
+    try {
+      const url = `${import.meta.env.BASE_URL}assets/${spec.file}`;
+      v.caseId = method === 'gsplat' ? 'METHOD_3DGS' : 'METHOD_2DGS';
+      await v.loadCase({ fullUrl: url, prunedUrl: url, proxyUrl: null, fullBytes: spec.bytes, prunedBytes: spec.bytes });
+      const cloud = v.layer?.cloud;
+      const layerCounts: Record<number, number> = {};
+      const sums: Record<number, [number, number, number, number]> = {};
+      for (let i = 0; i < (cloud?.count ?? 0); i++) {
+        const f = cloud!.misc[i * 4 + 1], ly = cloud!.misc[i * 4 + 2];
+        layerCounts[ly] = (layerCounts[ly] ?? 0) + 1;
+        if (!f) continue;
+        const s = sums[f] ?? (sums[f] = [0, 0, 0, 0]);
+        s[0] += v.layer!.centers[i * 3]; s[1] += v.layer!.centers[i * 3 + 1]; s[2] += v.layer!.centers[i * 3 + 2]; s[3]++;
+      }
+      const teeth: Record<string, ToothMeta> = {};
+      for (const [fs, s] of Object.entries(sums)) {
+        const f = Number(fs), q = Math.floor(f / 10);
+        teeth[`FDI_${f}`] = { fdi: f, arch: f < 30 ? 'upper' : 'lower', side: q === 1 || q === 4 ? 'Right (右)' : 'Left (左)', pos: f % 10, at: [s[0] / s[3], s[1] / s[3], s[2] / s[3]], centroid_mm: [s[0] / s[3], s[1] / s[3], s[2] / s[3]] };
+      }
+      setReport({
+        full: { splats: spec.splats, bytes: spec.bytes, mb: +(spec.bytes / 1048576).toFixed(2), sh_degree: 0, bytes_per_splat: 20 },
+        pruned: { splats: spec.splats, bytes: spec.bytes, mb: +(spec.bytes / 1048576).toFixed(2), sh_degree: 0, bytes_per_splat: 20 },
+        bytes_ratio: 1, proxy: { bytes: 0, kb: 0, nodes: 0, triangles: 0 }, compression_fidelity_mm: {}, metrics: {},
+      });
+      setMeta({ unit: 'mm', kind: `method:${method}`, teeth, metrics: {}, bbox_min: cloud ? [...cloud.bboxMin] : undefined, bbox_max: cloud ? [...cloud.bboxMax] : undefined });
+      setLocalLayerIds(Object.keys(layerCounts).map(Number).sort((a, b) => a - b));
+      setAlphas(Object.fromEntries(Object.keys(layerCounts).map((k) => [Number(k), 1])));
+      setSelected(0); setHidden([]); setIsolate(false); setMeasures([]); setProbe(null); setActiveFindingId(null);
+      setCustomAssetName(`method:${method}`);
+      setRailTab('methods'); setInspectorOpen(true); setPickerOpen(false);
+      setLabMode('rgb');
+      history.replaceState(null, '', `#METHOD_${method.toUpperCase()}`);
+      setLoading(false);
+    } catch (e) {
+      setErr(`${spec.label} 加载失败: ${String(e)}`);
+      setLoading(false);
+    }
+  }, []);
+
   const startQuadCompare = useCallback(async () => {
     const v = viewerRef.current;
-    if (!v || !timeline || !diskBaseline) return;
+    if (!v) return;
     const a2 = CASES.find((c) => c.id === 'A2'), a = CASES.find((c) => c.id === 'A');
-    const step0 = timeline.steps.find((s) => s.step === 0);
-    if (!a2 || !a || !step0) return;
+    if (!a2 || !a) return;
     setLoading(true); setErr(null);
     setQuadMode(false); setQuadItems([]);
     setTenX(false); setSplit(false); setMprOn(false); setMethodCompare(false);
@@ -920,10 +984,10 @@ export default function App() {
     try {
       v.caseId = 'QUAD';
       const items = await v.loadQuadComparison([
-        { name: 'COLMAP sparse points', url: `${import.meta.env.BASE_URL}assets/${step0.file}`, bytes: step0.bytes },
+        { name: 'gsplat 3DGS', url: `${import.meta.env.BASE_URL}assets/sceneA_gsplat_web.dspk`, bytes: 5000808 },
+        { name: '2DGS', url: `${import.meta.env.BASE_URL}assets/sceneA_2dgs_web.dspk`, bytes: 1230525 },
         { name: 'Brush 3DGS', url: a2.fullUrl, bytes: allScenes.sceneA_trained?.full.bytes ?? 832835 },
         { name: 'Surface Sampling', url: a.fullUrl, bytes: allScenes.sceneA_ios?.full.bytes ?? 1196970 },
-        { name: 'Surface-Aligned Disks', url: `${import.meta.env.BASE_URL}assets/${diskBaseline.file}`, bytes: diskBaseline.bytes },
       ]);
       if (!items) return;
       setQuadItems(items);
@@ -939,7 +1003,7 @@ export default function App() {
       setErr(`四表示对照加载失败: ${String(e)}`);
       setLoading(false);
     }
-  }, [allScenes, diskBaseline, timeline]);
+  }, [allScenes]);
 
   const exitQuadCompare = useCallback(() => {
     viewerRef.current?.clearQuadCompare();
@@ -1955,14 +2019,16 @@ export default function App() {
                   <span>AVAILABLE</span>
                   <button type="button" className="tbar-btn" onClick={() => switchCase('B')}>Case 03</button>
                 </div>
-                <div className="method-row">
-                  <div><b>Vanilla 3DGS</b><small>官方实现独立训练对照</small></div><span>NOT TRAINED</span>
+                <div className="method-row ok">
+                  <div><b>Vanilla 3DGS</b><small>gsplat v1.4.0 MCMC · V100 · 15k · SH0 web export</small></div><span>AVAILABLE</span>
+                  <button type="button" className="tbar-btn" onClick={() => void loadMethodDspk('gsplat')}>Load</button>
                 </div>
                 <div className="method-row">
                   <div><b>Mip-Splatting</b><small>抗混叠 / 多尺度渲染</small></div><span>NOT TRAINED</span>
                 </div>
-                <div className="method-row">
-                  <div><b>2DGS</b><small>定向二维高斯圆盘 + 法线约束</small></div><span>NOT TRAINED</span>
+                <div className="method-row ok">
+                  <div><b>2DGS</b><small>官方 diff-surfel · 2080 Ti · 15k · SH0 web export</small></div><span>AVAILABLE</span>
+                  <button type="button" className="tbar-btn" onClick={() => void loadMethodDspk('2dgs')}>Load</button>
                 </div>
                 <div className="method-row">
                   <div><b>SuGaR</b><small>表面对齐高斯与网格提取</small></div><span>NOT TRAINED</span>
@@ -1974,10 +2040,10 @@ export default function App() {
               <button type="button" className="tbar-btn primary method-compare-btn" onClick={startMethodCompare}>
                 同源双视口：Surface Sampling ↔ Brush 3DGS
               </button>
-              <button type="button" className="tbar-btn method-compare-btn" onClick={() => void startQuadCompare()} disabled={!timeline || !diskBaseline}>
-                四表示同步对照：COLMAP / Brush / Sampling / Disks
+              <button type="button" className="tbar-btn method-compare-btn" onClick={() => void startQuadCompare()}>
+                四表示同步对照：3DGS / 2DGS / Brush / Sampling
               </button>
-              <p className="source-note">四视口共用同一相机，资产来自同一 Poseidon3D 000125 扫描；COLMAP 点、Brush、采样与磁盘基线都是真实产物或可复算基线，不包含未训练的 2DGS/Mip-Splatting。</p>
+              <p className="source-note">四视口共用同一相机。3DGS 网页资产为全量 1,000,000 高斯中按不透明度选取的 250,000 个并截为 SH0；2DGS 为全量 61,486 个并截为 SH0。精确几何审计仍使用未抽样完整 PLY，不把网页子集指标冒充全量指标。</p>
               <p className="source-note">Case 01 与 Case 10 来自同一 Poseidon3D 000125 口扫；左侧为 Brush 训练版（28,691 高斯），右侧为未训练采样基线（59,808 高斯）。两视口共用相机、坐标架与时间。</p>
               {methodCompare && <div className="method-live">METHOD COMPARISON ACTIVE · split camera locked · 左 Brush / 右 Sampling</div>}
 
@@ -1991,6 +2057,8 @@ export default function App() {
                       ['Brush · FP32', geometryAudit.methods.brush_3dgs.raw_ply],
                       ['Sampling · DSPK', geometryAudit.methods.surface_sampling],
                       ['Sampling · FP32', geometryAudit.methods.surface_sampling.raw_ply],
+                      ['gsplat 3DGS · full PLY', geometryAudit.methods.gsplat_3dgs],
+                      ['2DGS · full PLY', geometryAudit.methods.surfel_2dgs],
                     ] as [string, GeometryMethod | undefined][]).filter((r): r is [string, GeometryMethod] => !!r[1]).map(([name, m]) => (
                       <div className="ga-row" key={name}>
                         <b>{name}</b>
@@ -2008,6 +2076,38 @@ export default function App() {
                   </p>
                 </>
               ) : <p className="source-note">geometry_metrics.json 尚未加载或不可用。</p>}
+
+              {geometryAudit?.training_curves && (
+                <div className="training-curves">
+                  <div className="sec-head"><span>REAL TRAINING CURVES</span><b>105 train / 15 test</b></div>
+                  {Object.entries(geometryAudit.training_curves).map(([key, t]) => (
+                    <div className="tc-method" key={key}>
+                      <div className="tc-head">
+                        <b>{key === '3dgs-gsplat-mcmc' ? 'gsplat 3DGS · MCMC' : '2DGS · surfel'}</b>
+                        <span>{t.train_sec.toFixed(1)} s · {fmtInt(t.num_gaussians)} Gaussians</span>
+                      </div>
+                      <div className="tc-bars" aria-label="held-out PSNR curve">
+                        {t.curve.map((p) => (
+                          <span key={p.step} title={`${p.step}: ${p.test_psnr.toFixed(3)} dB`} style={{ width: `${Math.max(8, (p.test_psnr - 30) * 10)}%` }} />
+                        ))}
+                      </div>
+                      <div className="tc-grid">
+                        {t.curve.map((p) => (
+                          <div className="tc-row" key={p.step}>
+                            <b>{p.step / 1000}k</b>
+                            <span>loss {p.train_loss === null ? '—' : p.train_loss.toFixed(5)}</span>
+                            <span>PSNR {p.test_psnr.toFixed(2)}</span>
+                            <span>SSIM {p.test_ssim.toFixed(4)}</span>
+                            <span>LPIPS {p.test_lpips.toFixed(4)}</span>
+                            <span>{fmtInt(p.num_gaussians)} GS</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <p className="source-note">两条曲线使用同一 COLMAP 文件名排序后的每第 8 张留出集；3DGS 最终点位于 step 14999，按 15k 标注。LPIPS 均为 torchmetrics VGG 口径。</p>
+                </div>
+              )}
 
               <div className="method-caveat">R²-Gaussian 需要 X 射线投影及成像几何，当前 CBCT 分割体数据不能替代；项目不提供伪造的跨方法结果。</div>
             </div>

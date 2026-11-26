@@ -1,6 +1,6 @@
 {
-  "schema": "dentsplat-geometry-audit-v1",
-  "generated_at": "2026-11-26T09:21:56.094Z",
+  "schema": "dentsplat-geometry-audit-v2",
+  "generated_at": "2026-11-26T13:08:27.548Z",
   "source_mesh": {
     "path": "D:/Aodou/.cache/tmp/poseidon/c125/000125_MODEL_mandible.stl",
     "obj_cache": "D:/Aodou/.cache/tmp/poseidon/obj/000125_lower.obj",
@@ -118,6 +118,306 @@
         },
         "normal_abs_dot": null
       }
+    },
+    "gsplat_3dgs": {
+      "file": "tools/out/v100_2080/3dgs/run/ply/point_cloud_15000_viewer.ply",
+      "frame": "inverse gsplat normalization then R_y(-90) into viewer frame",
+      "count": 1000000,
+      "cloud_to_mesh": {
+        "mean_mm": 0.4591,
+        "p50_mm": 0.1611,
+        "p95_mm": 1.978,
+        "max_mm": 6.3143
+      },
+      "mesh_to_cloud": {
+        "mean_mm": 0.3719,
+        "p50_mm": 0.2083,
+        "p95_mm": 1.3679,
+        "max_mm": 2.7504
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.7397,
+        "recall": 0.7951
+      },
+      "normal_abs_dot": {
+        "mean": 0.6248,
+        "p50": 0.6964,
+        "p10": 0.1479
+      },
+      "training": {
+        "method": "3dgs-gsplat-mcmc",
+        "split": {
+          "protocol": "test_every=8",
+          "train_images": 105,
+          "test_images": 15
+        },
+        "steps": [
+          1000,
+          3000,
+          7000,
+          15000
+        ],
+        "curve": [
+          {
+            "step": 1000,
+            "source_step": 1000,
+            "train_loss": 0.007735771592706442,
+            "test_psnr": 33.899932861328125,
+            "test_ssim": 0.9757903218269348,
+            "test_lpips": 0.056008581072092056,
+            "num_gaussians": 31906,
+            "train_sec": 835.739
+          },
+          {
+            "step": 3000,
+            "source_step": 3000,
+            "train_loss": 0.008543020114302635,
+            "test_psnr": 35.291046142578125,
+            "test_ssim": 0.9798372983932495,
+            "test_lpips": 0.04357270151376724,
+            "num_gaussians": 84640,
+            "train_sec": 835.739
+          },
+          {
+            "step": 7000,
+            "source_step": 7000,
+            "train_loss": 0.004267100710421801,
+            "test_psnr": 37.342098236083984,
+            "test_ssim": 0.9840362071990967,
+            "test_lpips": 0.03051166981458664,
+            "num_gaussians": 595810,
+            "train_sec": 835.739
+          },
+          {
+            "step": 15000,
+            "source_step": 14999,
+            "train_loss": 0.0030769919976592064,
+            "test_psnr": 38.60348129272461,
+            "test_ssim": 0.9847392439842224,
+            "test_lpips": 0.02867603860795498,
+            "num_gaussians": 1000000,
+            "train_sec": 835.739
+          }
+        ],
+        "final_test_psnr": 38.60348129272461,
+        "final_test_ssim": 0.9847392439842224,
+        "final_test_lpips": 0.02867603860795498,
+        "train_sec": 835.739,
+        "num_gaussians": 1000000
+      }
+    },
+    "surfel_2dgs": {
+      "file": "tools/out/v100_2080/2dgs/run/point_cloud/iteration_15000/point_cloud_viewer.ply",
+      "frame": "R_y(-90) into viewer frame; two trained tangent scales plus declared 1% viewer-only thickness",
+      "count": 61486,
+      "cloud_to_mesh": {
+        "mean_mm": 0.4506,
+        "p50_mm": 0.2427,
+        "p95_mm": 1.6528,
+        "max_mm": 5.3973
+      },
+      "mesh_to_cloud": {
+        "mean_mm": 0.4567,
+        "p50_mm": 0.3368,
+        "p95_mm": 1.2716,
+        "max_mm": 2.0308
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.7231,
+        "recall": 0.7106
+      },
+      "normal_abs_dot": {
+        "mean": 0.5441,
+        "p50": 0.5581,
+        "p10": 0.1054
+      },
+      "training": {
+        "method": "2dgs-surfel",
+        "split": {
+          "protocol": "test_every=8",
+          "train_images": 105,
+          "test_images": 15
+        },
+        "steps": [
+          1000,
+          3000,
+          7000,
+          15000
+        ],
+        "curve": [
+          {
+            "step": 1000,
+            "source_step": 1000,
+            "train_loss": 0.0060149915516376495,
+            "test_psnr": 33.80372225443522,
+            "test_ssim": 0.9745264848073324,
+            "test_lpips": 0.12907046029965083,
+            "num_gaussians": 27643,
+            "train_sec": 456.494
+          },
+          {
+            "step": 3000,
+            "source_step": 3000,
+            "train_loss": 0.008484889753162861,
+            "test_psnr": 35.48578770955404,
+            "test_ssim": 0.9799779733022054,
+            "test_lpips": 0.11243972033262253,
+            "num_gaussians": 49152,
+            "train_sec": 456.494
+          },
+          {
+            "step": 7000,
+            "source_step": 7000,
+            "train_loss": 0.004127140622586012,
+            "test_psnr": 37.87927322387695,
+            "test_ssim": 0.9839306712150574,
+            "test_lpips": 0.10225607852141062,
+            "num_gaussians": 68908,
+            "train_sec": 456.494
+          },
+          {
+            "step": 15000,
+            "source_step": 15000,
+            "train_loss": 0.002578167710453272,
+            "test_psnr": 38.83238627115885,
+            "test_ssim": 0.9851367831230163,
+            "test_lpips": 0.09745026628176372,
+            "num_gaussians": 61486,
+            "train_sec": 456.494
+          }
+        ],
+        "final_test_psnr": 38.83238627115885,
+        "final_test_ssim": 0.9851367831230163,
+        "final_test_lpips": 0.09745026628176372,
+        "train_sec": 456.494,
+        "num_gaussians": 61486
+      }
+    }
+  },
+  "training_curves": {
+    "3dgs-gsplat-mcmc": {
+      "method": "3dgs-gsplat-mcmc",
+      "split": {
+        "protocol": "test_every=8",
+        "train_images": 105,
+        "test_images": 15
+      },
+      "steps": [
+        1000,
+        3000,
+        7000,
+        15000
+      ],
+      "curve": [
+        {
+          "step": 1000,
+          "source_step": 1000,
+          "train_loss": 0.007735771592706442,
+          "test_psnr": 33.899932861328125,
+          "test_ssim": 0.9757903218269348,
+          "test_lpips": 0.056008581072092056,
+          "num_gaussians": 31906,
+          "train_sec": 835.739
+        },
+        {
+          "step": 3000,
+          "source_step": 3000,
+          "train_loss": 0.008543020114302635,
+          "test_psnr": 35.291046142578125,
+          "test_ssim": 0.9798372983932495,
+          "test_lpips": 0.04357270151376724,
+          "num_gaussians": 84640,
+          "train_sec": 835.739
+        },
+        {
+          "step": 7000,
+          "source_step": 7000,
+          "train_loss": 0.004267100710421801,
+          "test_psnr": 37.342098236083984,
+          "test_ssim": 0.9840362071990967,
+          "test_lpips": 0.03051166981458664,
+          "num_gaussians": 595810,
+          "train_sec": 835.739
+        },
+        {
+          "step": 15000,
+          "source_step": 14999,
+          "train_loss": 0.0030769919976592064,
+          "test_psnr": 38.60348129272461,
+          "test_ssim": 0.9847392439842224,
+          "test_lpips": 0.02867603860795498,
+          "num_gaussians": 1000000,
+          "train_sec": 835.739
+        }
+      ],
+      "final_test_psnr": 38.60348129272461,
+      "final_test_ssim": 0.9847392439842224,
+      "final_test_lpips": 0.02867603860795498,
+      "train_sec": 835.739,
+      "num_gaussians": 1000000
+    },
+    "2dgs-surfel": {
+      "method": "2dgs-surfel",
+      "split": {
+        "protocol": "test_every=8",
+        "train_images": 105,
+        "test_images": 15
+      },
+      "steps": [
+        1000,
+        3000,
+        7000,
+        15000
+      ],
+      "curve": [
+        {
+          "step": 1000,
+          "source_step": 1000,
+          "train_loss": 0.0060149915516376495,
+          "test_psnr": 33.80372225443522,
+          "test_ssim": 0.9745264848073324,
+          "test_lpips": 0.12907046029965083,
+          "num_gaussians": 27643,
+          "train_sec": 456.494
+        },
+        {
+          "step": 3000,
+          "source_step": 3000,
+          "train_loss": 0.008484889753162861,
+          "test_psnr": 35.48578770955404,
+          "test_ssim": 0.9799779733022054,
+          "test_lpips": 0.11243972033262253,
+          "num_gaussians": 49152,
+          "train_sec": 456.494
+        },
+        {
+          "step": 7000,
+          "source_step": 7000,
+          "train_loss": 0.004127140622586012,
+          "test_psnr": 37.87927322387695,
+          "test_ssim": 0.9839306712150574,
+          "test_lpips": 0.10225607852141062,
+          "num_gaussians": 68908,
+          "train_sec": 456.494
+        },
+        {
+          "step": 15000,
+          "source_step": 15000,
+          "train_loss": 0.002578167710453272,
+          "test_psnr": 38.83238627115885,
+          "test_ssim": 0.9851367831230163,
+          "test_lpips": 0.09745026628176372,
+          "num_gaussians": 61486,
+          "train_sec": 456.494
+        }
+      ],
+      "final_test_psnr": 38.83238627115885,
+      "final_test_ssim": 0.9851367831230163,
+      "final_test_lpips": 0.09745026628176372,
+      "train_sec": 456.494,
+      "num_gaussians": 61486
     }
   },
   "timeline": [
@@ -242,5 +542,5 @@
       }
     }
   ],
-  "caveat": "Cloud→mesh is exact point-to-triangle distance; mesh→cloud is a 120k area-weighted surface sample, so real-data F-score@0.5mm still has a sampling floor. Normal consistency compares the ellipsoid minor axis against the closest triangle face normal. DSPK and raw FP32 rows share the same queries, so their difference isolates transport precision rather than reconstruction quality."
+  "caveat": "Cloud→mesh is exact point-to-triangle distance; mesh→cloud is a 120k area-weighted surface sample, so real-data F-score@0.5mm still has a sampling floor. Normal consistency compares the ellipsoid minor axis against the closest triangle face normal. 2DGS PLY stores two trained tangent scales; the third viewer scale is a declared 1% thinness, not a learned thickness. gsplat PLY was mapped back through the exact COLMAP normalization transform before R_y(-90); SH bands are left unchanged in this audit-only geometry PLY."
 }

@@ -17,6 +17,10 @@ const TRAINED = 'public/assets/sceneA_trained_full.dspk';
 const SAMPLED = 'public/assets/sceneA_poseidon_full.dspk';
 const TRAINED_RAW = 'tools/out/case125/brush_run/caseA_15000.ply';
 const SAMPLED_RAW = 'tools/out/poseidon/poseidon125_full.ply';
+const GSPLAT_VIEWER = 'tools/out/v100_2080/3dgs/run/ply/point_cloud_15000_viewer.ply';
+const TWODGS_VIEWER = 'tools/out/v100_2080/2dgs/run/point_cloud/iteration_15000/point_cloud_viewer.ply';
+const GSPLAT_METRICS = 'tools/out/v100_2080/3dgs/metrics_curve.json';
+const TWODGS_METRICS = 'tools/out/v100_2080/2dgs/metrics_curve.json';
 const OUT = 'public/assets/geometry_metrics.json';
 const UP = 2, FWD = 0, SIDE = 1, SIGN = 1;
 
@@ -301,12 +305,13 @@ function audit(cloud) {
     m2c.push(hit.d);
   }
   const sum = (a) => a.reduce((x, y) => x + y, 0);
+  const maxOf = (a) => a.reduce((x, y) => Math.max(x, y), 0);
   const pct = (a, p) => { const b = [...a].sort((x, y) => x - y); return +b[Math.min(b.length - 1, Math.floor(p * b.length))].toFixed(4); };
   const frac = (a, t) => +(a.filter((x) => x <= t).length / a.length).toFixed(4);
   return {
     count: cloud.count,
-    cloud_to_mesh: { mean_mm: +(sum(c2m) / c2m.length).toFixed(4), p50_mm: pct(c2m, 0.5), p95_mm: pct(c2m, 0.95), max_mm: +Math.max(...c2m).toFixed(4) },
-    mesh_to_cloud: { mean_mm: +(sum(m2c) / m2c.length).toFixed(4), p50_mm: pct(m2c, 0.5), p95_mm: pct(m2c, 0.95), max_mm: +Math.max(...m2c).toFixed(4) },
+    cloud_to_mesh: { mean_mm: +(sum(c2m) / c2m.length).toFixed(4), p50_mm: pct(c2m, 0.5), p95_mm: pct(c2m, 0.95), max_mm: +maxOf(c2m).toFixed(4) },
+    mesh_to_cloud: { mean_mm: +(sum(m2c) / m2c.length).toFixed(4), p50_mm: pct(m2c, 0.5), p95_mm: pct(m2c, 0.95), max_mm: +maxOf(m2c).toFixed(4) },
     fscore: { threshold_mm: 0.5, precision: frac(c2m, 0.5), recall: frac(m2c, 0.5) },
     normal_abs_dot: normals.length
       ? { mean: +(sum(normals) / normals.length).toFixed(4), p50: pct(normals, 0.5), p10: pct(normals, 0.1) }
@@ -318,13 +323,31 @@ const trained = readDspk(TRAINED);
 const sampled = readDspk(SAMPLED);
 const trainedRaw = readPlyCloud(TRAINED_RAW, true);
 const sampledRaw = readPlyCloud(SAMPLED_RAW, false);
+const gsplatRaw = readPlyCloud(GSPLAT_VIEWER, false);
+const twodgsRaw = readPlyCloud(TWODGS_VIEWER, false);
+const gsplatCurve = JSON.parse(readFileSync(GSPLAT_METRICS, 'utf8'));
+const twodgsCurve = JSON.parse(readFileSync(TWODGS_METRICS, 'utf8'));
+const trainingSummary = (curve) => {
+  const final = curve.curve[curve.curve.length - 1];
+  return {
+    method: curve.method,
+    split: curve.split,
+    steps: curve.steps,
+    curve: curve.curve,
+    final_test_psnr: final.test_psnr,
+    final_test_ssim: final.test_ssim,
+    final_test_lpips: final.test_lpips,
+    train_sec: final.train_sec,
+    num_gaussians: final.num_gaussians,
+  };
+};
 const timeline = [1000, 2000, 3000, 5000, 10000, 15000].map((step) => {
   const c = readDspk(`public/assets/timeline/sceneA_step${step}.dspk`);
   const a = audit(c);
   return { step, count: c.count, cloud_to_mesh: a.cloud_to_mesh, fscore: a.fscore, normal_abs_dot: a.normal_abs_dot };
 });
 const out = {
-  schema: 'dentsplat-geometry-audit-v1',
+  schema: 'dentsplat-geometry-audit-v2',
   generated_at: new Date().toISOString(),
   source_mesh: {
     path: MESH_SOURCE,
@@ -338,9 +361,15 @@ const out = {
   methods: {
     brush_3dgs: { file: TRAINED, ...audit(trained), raw_ply: { file: TRAINED_RAW, frame: 'R_y(-90) into viewer frame', ...audit(trainedRaw) } },
     surface_sampling: { file: SAMPLED, ...audit(sampled), raw_ply: { file: SAMPLED_RAW, frame: 'already in viewer frame', ...audit(sampledRaw) } },
+    gsplat_3dgs: { file: GSPLAT_VIEWER, frame: 'inverse gsplat normalization then R_y(-90) into viewer frame', ...audit(gsplatRaw), training: trainingSummary(gsplatCurve) },
+    surfel_2dgs: { file: TWODGS_VIEWER, frame: 'R_y(-90) into viewer frame; two trained tangent scales plus declared 1% viewer-only thickness', ...audit(twodgsRaw), training: trainingSummary(twodgsCurve) },
+  },
+  training_curves: {
+    '3dgs-gsplat-mcmc': trainingSummary(gsplatCurve),
+    '2dgs-surfel': trainingSummary(twodgsCurve),
   },
   timeline,
-  caveat: 'Cloud→mesh is exact point-to-triangle distance; mesh→cloud is a 120k area-weighted surface sample, so real-data F-score@0.5mm still has a sampling floor. Normal consistency compares the ellipsoid minor axis against the closest triangle face normal. DSPK and raw FP32 rows share the same queries, so their difference isolates transport precision rather than reconstruction quality.',
+  caveat: 'Cloud→mesh is exact point-to-triangle distance; mesh→cloud is a 120k area-weighted surface sample, so real-data F-score@0.5mm still has a sampling floor. Normal consistency compares the ellipsoid minor axis against the closest triangle face normal. 2DGS PLY stores two trained tangent scales; the third viewer scale is a declared 1% thinness, not a learned thickness. gsplat PLY was mapped back through the exact COLMAP normalization transform before R_y(-90); SH bands are left unchanged in this audit-only geometry PLY.',
 };
 writeFileSync(OUT, JSON.stringify(out, null, 2));
 console.log(JSON.stringify(out, null, 2));

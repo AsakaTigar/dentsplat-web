@@ -1,0 +1,236 @@
+{
+  "name": "sceneA_gsplat_web.dspk",
+  "kind": "ios",
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "source": {
+    "ply": "tools/out/v100_2080/web/3dgs/point_cloud_web.ply",
+    "ply_sha256": "0e81350759e76b34cb39636f40241d1d",
+    "ply_vertices": 250000,
+    "format": "format binary_little_endian 1.0",
+    "labels_manifest": "tools/out/v100_2080/web/3dgs/labels/labels_manifest.json",
+    "order": "writer order of the trained PLY, no permutation",
+    "spacing_mm": null,
+    "appearance": {
+      "color": "f_dc_ bands (trained SH0)",
+      "alpha": "sigmoid(opacity)",
+      "scale": "exp(scale_ bands)",
+      "rotation": "rot_ bands (w,x,y,z -> x,y,z,w)",
+      "sh1": "none (SH degree 0)"
+    }
+  },
+  "provenance": "trained 3DGS splats + side-car semantics via tools/ply2dspk.ts",
+  "teeth": {
+    "FDI_31": {
+      "fdi": 31,
+      "arch": "lower",
+      "at": [
+        -24.35,
+        8.31,
+        4.64
+      ],
+      "splats": 2859
+    },
+    "FDI_32": {
+      "fdi": 32,
+      "arch": "lower",
+      "at": [
+        -27.06,
+        7.14,
+        0.59
+      ],
+      "splats": 3459
+    },
+    "FDI_33": {
+      "fdi": 33,
+      "arch": "lower",
+      "at": [
+        -23.42,
+        6.98,
+        -5.22
+      ],
+      "splats": 3337
+    },
+    "FDI_34": {
+      "fdi": 34,
+      "arch": "lower",
+      "at": [
+        -19.44,
+        6.12,
+        -10.62
+      ],
+      "splats": 4518
+    },
+    "FDI_35": {
+      "fdi": 35,
+      "arch": "lower",
+      "at": [
+        -11.42,
+        5.82,
+        -15.05
+      ],
+      "splats": 7339
+    },
+    "FDI_36": {
+      "fdi": 36,
+      "arch": "lower",
+      "at": [
+        -1.55,
+        5.74,
+        -19.34
+      ],
+      "splats": 6906
+    },
+    "FDI_37": {
+      "fdi": 37,
+      "arch": "lower",
+      "at": [
+        7.2,
+        6.36,
+        -24.23
+      ],
+      "splats": 6252
+    },
+    "FDI_41": {
+      "fdi": 41,
+      "arch": "lower",
+      "at": [
+        -25,
+        7.49,
+        9.45
+      ],
+      "splats": 3419
+    },
+    "FDI_42": {
+      "fdi": 42,
+      "arch": "lower",
+      "at": [
+        -23.14,
+        7.01,
+        14.55
+      ],
+      "splats": 3866
+    },
+    "FDI_43": {
+      "fdi": 43,
+      "arch": "lower",
+      "at": [
+        -17.29,
+        6.68,
+        16.98
+      ],
+      "splats": 3468
+    },
+    "FDI_44": {
+      "fdi": 44,
+      "arch": "lower",
+      "at": [
+        -11.49,
+        5.34,
+        20.84
+      ],
+      "splats": 5026
+    },
+    "FDI_45": {
+      "fdi": 45,
+      "arch": "lower",
+      "at": [
+        -2.57,
+        5.07,
+        21.7
+      ],
+      "splats": 8003
+    },
+    "FDI_46": {
+      "fdi": 46,
+      "arch": "lower",
+      "at": [
+        8.56,
+        5.19,
+        21.69
+      ],
+      "splats": 7258
+    },
+    "FDI_47": {
+      "fdi": 47,
+      "arch": "lower",
+      "at": [
+        18.76,
+        5.85,
+        20.8
+      ],
+      "splats": 5444
+    }
+  },
+  "conversion": {
+    "out": "public/assets/sceneA_gsplat_web.dspk",
+    "converted_at": "2026-11-26T13:14:51.510Z",
+    "bytes": 5000808,
+    "splats": 250000,
+    "dropped": 0,
+    "sh_degree": 0,
+    "bytes_per_splat": 20,
+    "bbox_mm": [
+      [
+        -29.15,
+        -10.67,
+        -32.41
+      ],
+      [
+        29.14,
+        10.68,
+        32.4
+      ]
+    ],
+    "encoded": {
+      "scale_mm": [
+        0,
+        11.59
+      ],
+      "alpha_byte": [
+        5,
+        190
+      ],
+      "distinct_colors": 67254,
+      "distinct_rotations": 7543,
+      "input_kind": "trained_3dgs"
+    },
+    "appearance": {
+      "color": "f_dc_ bands (trained SH0)",
+      "alpha": "sigmoid(opacity)",
+      "scale": "exp(scale_ bands)",
+      "rotation": "rot_ bands (w,x,y,z -> x,y,z,w)",
+      "sh1": "none (SH degree 0)"
+    },
+    "fdi_histogram": {
+      "0": 178846,
+      "31": 2859,
+      "32": 3459,
+      "33": 3337,
+      "34": 4518,
+      "35": 7339,
+      "36": 6906,
+      "37": 6252,
+      "41": 3419,
+      "42": 3866,
+      "43": 3468,
+      "44": 5026,
+      "45": 8003,
+      "46": 7258,
+      "47": 5444
+    },
+    "layer_histogram": {
+      "0": 178846,
+      "1": 71154
+    },
+    "alignment": {
+      "ply_vertices": 250000,
+      "fdi_rows": 250000,
+      "layer_rows": 250000,
+      "manifest_count": null,
+      "manifest_order": "writer order of the trained PLY, no permutation",
+      "ply_sha256": "0e81350759e76b34cb39636f40241d1d",
+      "manifest_ply_sha256": "0e81350759e76b34cb39636f40241d1d"
+    }
+  }
+}
