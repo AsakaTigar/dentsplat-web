@@ -662,3 +662,5 @@ input[type=range] { width: 100%; accent-color: var(--clinical); height: 15px; cu
 .timeline-metrics b { color: #7f8a9d; font: 9px/1.2 ui-monospace, Menlo, Consolas, monospace; font-weight: 500; }
 .timeline-metrics em { color: #d8dee9; font: 10px/1.2 ui-monospace, Menlo, Consolas, monospace; font-style: normal; }
 .timeline-warning { border-left: 2px solid var(--amber); padding-left: 7px; color: #d6b17a; }
+.timeline-toggle { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #9aa3b4; cursor: pointer; }
+.timeline-toggle input { accent-color: var(--clinical); }

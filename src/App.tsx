@@ -256,6 +256,7 @@ export default function App() {
   const [geometryAudit, setGeometryAudit] = useState<GeometryAudit | null>(null);
   const [timeline, setTimeline] = useState<TimelineManifest | null>(null);
   const [timelineStep, setTimelineStep] = useState<number | null>(null);
+  const [timelineCompare, setTimelineCompare] = useState(false);
   const [timelineBusy, setTimelineBusy] = useState(false);
 
   const switchCase = useCallback((id: string) => {
@@ -271,6 +272,7 @@ export default function App() {
     setGaussIsolate(false);
     setPlyNote(null);
     setTimelineStep(null);
+    setTimelineCompare(false);
     setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
     viewerRef.current?.clearAudit();
     viewerRef.current?.clearGaussianSelection();
@@ -498,7 +500,7 @@ export default function App() {
       const h = hashCase();
       if (CASES.some((c) => c.id === h) && h !== caseId) {
         setCaseId(h); setCustomAssetName(null); if (isLocal) setLocalEpoch((e) => e + 1); setTenX(false); setSplit(false); setMprOn(false);
-        setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null); setTimelineStep(null);
+        setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null); setTimelineStep(null); setTimelineCompare(false);
         setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
         viewerRef.current?.clearAudit();
         viewerRef.current?.clearGaussianSelection();
@@ -729,7 +731,7 @@ export default function App() {
     try {
       setLoading(true); setErr(null);
       setTenX(false); setSplit(false); setMprOn(false); setVariant('full'); setBench(null); setCompressionBench(null);
-      setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null); setTimelineStep(null);
+      setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null); setTimelineStep(null); setTimelineCompare(false);
       setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
       setSelected(0); setHidden([]); setIsolate(false); setMeasures([]); setProbe(null); setActiveFindingId(null);
       const head = new DataView(await file.arrayBuffer());
@@ -824,30 +826,43 @@ export default function App() {
     }
   }, [loadLocalPly]);
 
-  const loadTimelineStep = useCallback(async (step: TimelineStep) => {
+  const loadTimelineStep = useCallback(async (step: TimelineStep, compareFinal = timelineCompare) => {
     const v = viewerRef.current;
     if (!v || timelineBusy) return;
     setTimelineBusy(true); setLoading(true); setErr(null);
-    setTenX(false); setSplit(false); setMprOn(false); setVariant('full'); setBench(null); setCompressionBench(null);
+    setTenX(false); setMprOn(false); setVariant('full'); setBench(null); setCompressionBench(null);
     setMethodCompare(false); setGaussian(null); setGaussOriginal(null); setGaussIsolate(false);
     v.clearGaussianSelection();
     try {
       const url = `${import.meta.env.BASE_URL}assets/${step.file}`;
+      const final = allScenes.sceneA_trained?.full;
+      const finalSplats = final?.splats ?? 28691;
+      const finalBytes = final?.bytes ?? 832835;
+      const finalUrl = `${import.meta.env.BASE_URL}assets/sceneA_trained_full.dspk`;
+      const base = {
+        mb: +(step.bytes / 1048576).toFixed(2), sh_degree: 1,
+        bytes_per_splat: +(step.bytes / step.splats).toFixed(2),
+      };
       v.caseId = 'TIMELINE';
       await v.loadCase({
-        fullUrl: url, prunedUrl: url, proxyUrl: null,
-        fullBytes: step.bytes, prunedBytes: step.bytes,
+        fullUrl: url, prunedUrl: compareFinal ? finalUrl : url, proxyUrl: null,
+        fullBytes: step.bytes, prunedBytes: compareFinal ? finalBytes : step.bytes,
       });
       setReport({
-        full: { splats: step.splats, bytes: step.bytes, mb: +(step.bytes / 1048576).toFixed(2), sh_degree: 1, bytes_per_splat: +(step.bytes / step.splats).toFixed(2) },
-        pruned: { splats: step.splats, bytes: step.bytes, mb: +(step.bytes / 1048576).toFixed(2), sh_degree: 1, bytes_per_splat: +(step.bytes / step.splats).toFixed(2) },
-        bytes_ratio: 1, proxy: { bytes: 0, kb: 0, nodes: 0, triangles: 0 }, compression_fidelity_mm: {}, metrics: {},
+        full: { splats: step.splats, bytes: step.bytes, ...base },
+        pruned: compareFinal
+          ? { splats: finalSplats, bytes: finalBytes, mb: +(finalBytes / 1048576).toFixed(2), sh_degree: 1, bytes_per_splat: 29 }
+          : { splats: step.splats, bytes: step.bytes, ...base },
+        bytes_ratio: compareFinal ? +(step.bytes / finalBytes).toFixed(2) : 1,
+        proxy: { bytes: 0, kb: 0, nodes: 0, triangles: 0 }, compression_fidelity_mm: {}, metrics: {},
       });
+      setSplit(compareFinal);
+      setTimelineCompare(compareFinal);
       setMeta({ unit: 'mm', kind: 'timeline', teeth: {}, metrics: {} });
       setAlphas({ 0: 1 });
       setLocalLayerIds([0]);
       setSelected(0); setHidden([]); setIsolate(false); setMeasures([]); setProbe(null); setActiveFindingId(null);
-      setCustomAssetName(`timeline:${step.step}`);
+      setCustomAssetName(`timeline:${step.step}${compareFinal ? ':vs-final' : ''}`);
       setTimelineStep(step.step);
       setRailTab('recon'); setInspectorOpen(true); setPickerOpen(false);
       setLabMode('rgb');
@@ -859,7 +874,7 @@ export default function App() {
     } finally {
       setTimelineBusy(false);
     }
-  }, [timelineBusy]);
+  }, [allScenes, timelineBusy, timelineCompare]);
 
   const changeLabMode = useCallback((mode: LabMode) => {
     setLabMode(mode);
@@ -1491,14 +1506,18 @@ export default function App() {
             <>
               <div className="split-rule" />
               <span className="split-tag l">
-                {methodCompare
-                  ? `BRUSH 3DGS · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)`
-                  : tenX ? `UNIFORM 10× · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)` : `FULL · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)`}
+                {isTimeline && timelineCompare
+                  ? `BRUSH CHECKPOINT ${timelineStep ?? '—'} · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)`
+                  : methodCompare
+                    ? `BRUSH 3DGS · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)`
+                    : tenX ? `UNIFORM 10× · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)` : `FULL · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)`}
               </span>
               <span className="split-tag r">
-                {methodCompare
-                  ? `SURFACE SAMPLING · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)`
-                  : tenX ? `ANATOMY-AWARE 10× · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)` : `PRUNED (${ratio.toFixed(2)}×) · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)`}
+                {isTimeline && timelineCompare
+                  ? `PUBLISHED FINAL · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)`
+                  : methodCompare
+                    ? `SURFACE SAMPLING · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)`
+                    : tenX ? `ANATOMY-AWARE 10× · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)` : `PRUNED (${ratio.toFixed(2)}×) · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)`}
               </span>
             </>
           )}
@@ -1642,7 +1661,7 @@ export default function App() {
                         key={s.step}
                         type="button"
                         disabled={timelineBusy}
-                        className={timelineStep === s.step && customAssetName === `timeline:${s.step}` ? 'on' : ''}
+                        className={timelineStep === s.step && (customAssetName === `timeline:${s.step}` || customAssetName === `timeline:${s.step}:vs-final`) ? 'on' : ''}
                         onClick={() => void loadTimelineStep(s)}
                       >
                         <b>{fmtInt(s.step)}</b>
@@ -1652,6 +1671,19 @@ export default function App() {
                     ))}
                   </div>
                   <p className="source-note">{timeline.training.note} · {timeline.metrics_note}</p>
+                  <label className="timeline-toggle">
+                    <input
+                      type="checkbox"
+                      checked={timelineCompare}
+                      onChange={(e) => {
+                        const next = e.target.checked;
+                        setTimelineCompare(next);
+                        const active = timeline.steps.find((s) => s.step === timelineStep);
+                        if (active && timelineStep != null) void loadTimelineStep(active, next);
+                      }}
+                    />
+                    与已发布最终模型双视口（左 checkpoint / 右 final）
+                  </label>
                   <div className="count-curve" aria-label="Gaussian count by checkpoint">
                     {(() => {
                       const max = Math.max(...timeline.steps.map((s) => s.splats));
