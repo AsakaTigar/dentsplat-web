@@ -1253,6 +1253,15 @@ async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) 
     return state;
   }
 
+  setGaussianColor(index: number, color: Vec3): GaussianInspect | null {
+    const layer = this.primaryLayer();
+    const actual = layer?.setSplatColor(index, color);
+    if (!layer || !actual) return null;
+    const state = layer.inspect(index);
+    if (state) this.drawInspectMarker(layer, index, state);
+    return state;
+  }
+
   setGaussianRotation(index: number, quat: [number, number, number, number]): GaussianInspect | null {
     const layer = this.primaryLayer();
     const actual = layer?.setSplatRotation(index, quat);

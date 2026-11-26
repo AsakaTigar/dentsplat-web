@@ -311,6 +311,25 @@ export class SplatLayer {
     return actual;
   }
 
+  setSplatColor(i: number, color: Vec3): Vec3 | null {
+    if (i < 0 || i >= this.cloud.count) return null;
+    const next = color.map((v) => Math.min(1, Math.max(0, v))) as Vec3;
+    const c = this.cloud;
+    if (c.raw) {
+      for (let k = 0; k < 3; k++) c.raw.colors[i * 3 + k] = next[k];
+      const f = this.geometry.getAttribute('aColorF') as THREE.BufferAttribute;
+      for (let v = 0; v < 4; v++) for (let k = 0; k < 3; k++) (f.array as Float32Array)[(i * 4 + v) * 3 + k] = next[k];
+      f.needsUpdate = true;
+      return next;
+    }
+    const bytes = next.map((v) => Math.round(v * 255));
+    for (let k = 0; k < 3; k++) c.color[i * 3 + k] = bytes[k];
+    const f = this.geometry.getAttribute('aColor') as THREE.BufferAttribute;
+    for (let v = 0; v < 4; v++) for (let k = 0; k < 3; k++) (f.array as Uint8Array)[(i * 4 + v) * 3 + k] = bytes[k];
+    f.needsUpdate = true;
+    return next;
+  }
+
   setSplatRotation(i: number, quat: Quat): Quat | null {
     if (i < 0 || i >= this.cloud.count) return null;
     const qn = Math.hypot(...quat) || 1;

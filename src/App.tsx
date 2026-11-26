@@ -396,6 +396,7 @@ export default function App() {
       selectGaussian: (index: number, focus = false) => v.selectGaussian(index, { focus }),
       gaussian: () => (v.inspectedIndex >= 0 ? v.primaryLayer()?.inspect(v.inspectedIndex) ?? null : null),
       editGaussianPosition: (index: number, center: Vec3) => v.setGaussianPosition(index, center),
+      editGaussianColor: (index: number, color: Vec3) => v.setGaussianColor(index, color),
       editGaussianRotation: (index: number, quat: [number, number, number, number]) => v.setGaussianRotation(index, quat),
       editGaussianScale: (index: number, scales: Vec3) => v.setGaussianScale(index, scales),
       editGaussianOpacity: (index: number, alpha: number) => v.setGaussianOpacity(index, alpha),
@@ -1069,12 +1070,22 @@ export default function App() {
     if (info) setGaussian(info);
   }, [gaussian]);
 
+  const editGaussColor = useCallback((axis: 0 | 1 | 2, value: number) => {
+    const v = viewerRef.current;
+    if (!v || !gaussian) return;
+    const next = [...gaussian.color] as Vec3;
+    next[axis] = value;
+    const info = v.setGaussianColor(gaussian.index, next);
+    if (info) setGaussian(info);
+  }, [gaussian]);
+
   const resetGaussian = useCallback(() => {
     const v = viewerRef.current;
     if (!v || !gaussian || !gaussOriginal) return;
     v.setGaussianPosition(gaussian.index, gaussOriginal.center);
     v.setGaussianRotation(gaussian.index, gaussOriginal.quat);
     v.setGaussianScale(gaussian.index, gaussOriginal.scales);
+    v.setGaussianColor(gaussian.index, gaussOriginal.color);
     const info = v.setGaussianOpacity(gaussian.index, gaussOriginal.alpha);
     if (info) setGaussian(info);
   }, [gaussian, gaussOriginal]);
@@ -2100,6 +2111,12 @@ export default function App() {
                     <div className="ctrl-label"><span>Opacity α</span><b>{gaussian.alpha.toFixed(3)}</b></div>
                     <input type="range" min={0} max={1} step={0.005} value={gaussian.alpha} onChange={(e) => editGaussOpacity(Number(e.target.value))} />
                   </div>
+                  {(['R', 'G', 'B'] as const).map((name, axis) => (
+                    <div className="ctrl-item" key={`c${axis}`}>
+                      <div className="ctrl-label"><span>DC {name}</span><b>{gaussian.color[axis].toFixed(3)}</b></div>
+                      <input type="range" min={0} max={1} step={0.005} value={gaussian.color[axis]} onChange={(e) => editGaussColor(axis as 0 | 1 | 2, Number(e.target.value))} />
+                    </div>
+                  ))}
 
                   <div className="sec-head"><span>ROTATION QUATERNION</span><b>normalised on edit</b></div>
                   {([3, 0, 1, 2] as const).map((axis) => (
