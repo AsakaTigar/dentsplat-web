@@ -51,11 +51,14 @@ type MetaFile = {
 };
 
 type GeometryMethod = {
+  file?: string;
+  frame?: string;
   count: number;
   cloud_to_mesh: { mean_mm: number; p50_mm: number; p95_mm: number; max_mm: number };
   mesh_to_cloud: { mean_mm: number; p50_mm: number; p95_mm: number; max_mm: number };
   fscore: { threshold_mm: number; precision: number; recall: number };
-  normal_abs_dot: { mean: number; p50: number; p10: number };
+  normal_abs_dot: { mean: number; p50: number; p10: number } | null;
+  raw_ply?: GeometryMethod;
 };
 type GeometryAudit = {
   source_mesh: { triangles: number; vertices: number; sample_note: string };
@@ -1568,18 +1571,25 @@ export default function App() {
                   <div className="geom-audit">
                     <div className="ga-head"><span>method</span><span>cloud→mesh</span><span>F@0.5</span><span>|n·n|</span></div>
                     {([
-                      ['Brush 3DGS', geometryAudit.methods.brush_3dgs],
-                      ['Surface Sampling', geometryAudit.methods.surface_sampling],
-                    ] as const).map(([name, m]) => (
+                      ['Brush · DSPK', geometryAudit.methods.brush_3dgs],
+                      ['Brush · FP32', geometryAudit.methods.brush_3dgs.raw_ply],
+                      ['Sampling · DSPK', geometryAudit.methods.surface_sampling],
+                      ['Sampling · FP32', geometryAudit.methods.surface_sampling.raw_ply],
+                    ] as [string, GeometryMethod | undefined][]).filter((r): r is [string, GeometryMethod] => !!r[1]).map(([name, m]) => (
                       <div className="ga-row" key={name}>
                         <b>{name}</b>
                         <span>{m.cloud_to_mesh.mean_mm.toFixed(3)} / {m.cloud_to_mesh.p95_mm.toFixed(3)} mm</span>
                         <span>{(m.fscore.precision * 100).toFixed(1)} / {(m.fscore.recall * 100).toFixed(1)}%</span>
-                        <span>{m.normal_abs_dot.mean.toFixed(3)}</span>
+                        <span>{m.normal_abs_dot ? m.normal_abs_dot.mean.toFixed(3) : '—'}</span>
                       </div>
                     ))}
                   </div>
-                  <p className="source-note">{geometryAudit.source_mesh.triangles.toLocaleString()} tri / {geometryAudit.source_mesh.vertices.toLocaleString()} verts · cloud→mesh 显示 mean / p95；F@0.5 为 precision / recall。{geometryAudit.caveat}</p>
+                  <p className="source-note">
+                    {geometryAudit.source_mesh.triangles.toLocaleString()} tri / {geometryAudit.source_mesh.vertices.toLocaleString()} verts · cloud→mesh 显示 mean / p95；F@0.5 为 precision / recall。
+                    FP32→DSPK 的 cloud→mesh mean 差：Brush {Math.abs(geometryAudit.methods.brush_3dgs.raw_ply!.cloud_to_mesh.mean_mm - geometryAudit.methods.brush_3dgs.cloud_to_mesh.mean_mm).toFixed(4)} mm，
+                    Sampling {Math.abs(geometryAudit.methods.surface_sampling.raw_ply!.cloud_to_mesh.mean_mm - geometryAudit.methods.surface_sampling.cloud_to_mesh.mean_mm).toFixed(4)} mm。
+                    {' '}{geometryAudit.caveat}
+                  </p>
                 </>
               ) : <p className="source-note">geometry_metrics.json 尚未加载或不可用。</p>}
 
