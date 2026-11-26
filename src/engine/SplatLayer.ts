@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SPLAT_FRAGMENT, SPLAT_VERTEX } from './shaders.ts';
 import { LAYER, type SplatCloud } from './dspk.ts';
-import { principalAxes, covarianceOf, type GaussianInspect, type GaussianState, type Vec3 } from './gaussian.ts';
+import { principalAxes, covarianceOf, type GaussianInspect, type GaussianState, type Quat, type Vec3 } from './gaussian.ts';
 
 const BINS = 1 << 14;
 
@@ -288,6 +288,30 @@ export class SplatLayer {
     const arr = attr.array as Float32Array;
     for (let v = 0; v < 4; v++) for (let k = 0; k < 3; k++) arr[(i * 4 + v) * 3 + k] = actual[k];
     attr.needsUpdate = true;
+    return actual;
+  }
+
+  setSplatRotation(i: number, quat: Quat): Quat | null {
+    if (i < 0 || i >= this.cloud.count) return null;
+    const qn = Math.hypot(...quat) || 1;
+    const n: Quat = [quat[0] / qn, quat[1] / qn, quat[2] / qn, quat[3] / qn];
+    const c = this.cloud;
+    let actual = n;
+    if (c.raw) {
+      for (let k = 0; k < 4; k++) c.raw.quats[i * 4 + k] = n[k];
+      const f = this.geometry.getAttribute('aRotF') as THREE.BufferAttribute;
+      for (let v = 0; v < 4; v++) for (let k = 0; k < 4; k++) (f.array as Float32Array)[(i * 4 + v) * 4 + k] = n[k];
+      f.needsUpdate = true;
+    } else {
+      const bytes = n.map((q) => Math.min(255, Math.max(0, Math.round((q * 0.5 + 0.5) * 255))));
+      actual = bytes.map((b) => b / 255 * 2 - 1) as Quat;
+      const an = Math.hypot(...actual) || 1;
+      actual = actual.map((q) => q / an) as Quat;
+      for (let k = 0; k < 4; k++) c.rot[i * 4 + k] = bytes[k];
+      const f = this.geometry.getAttribute('aRot') as THREE.BufferAttribute;
+      for (let v = 0; v < 4; v++) for (let k = 0; k < 4; k++) (f.array as Uint8Array)[(i * 4 + v) * 4 + k] = bytes[k];
+      f.needsUpdate = true;
+    }
     return actual;
   }
 

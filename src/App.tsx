@@ -381,6 +381,7 @@ export default function App() {
       selectGaussian: (index: number, focus = false) => v.selectGaussian(index, { focus }),
       gaussian: () => (v.inspectedIndex >= 0 ? v.primaryLayer()?.inspect(v.inspectedIndex) ?? null : null),
       editGaussianPosition: (index: number, center: Vec3) => v.setGaussianPosition(index, center),
+      editGaussianRotation: (index: number, quat: [number, number, number, number]) => v.setGaussianRotation(index, quat),
       editGaussianScale: (index: number, scales: Vec3) => v.setGaussianScale(index, scales),
       editGaussianOpacity: (index: number, alpha: number) => v.setGaussianOpacity(index, alpha),
       screen: () => {
@@ -943,10 +944,20 @@ export default function App() {
     if (info) setGaussian(info);
   }, [gaussian]);
 
+  const editGaussRotation = useCallback((axis: 0 | 1 | 2 | 3, value: number) => {
+    const v = viewerRef.current;
+    if (!v || !gaussian) return;
+    const next = [...gaussian.quat] as [number, number, number, number];
+    next[axis] = value;
+    const info = v.setGaussianRotation(gaussian.index, next);
+    if (info) setGaussian(info);
+  }, [gaussian]);
+
   const resetGaussian = useCallback(() => {
     const v = viewerRef.current;
     if (!v || !gaussian || !gaussOriginal) return;
     v.setGaussianPosition(gaussian.index, gaussOriginal.center);
+    v.setGaussianRotation(gaussian.index, gaussOriginal.quat);
     v.setGaussianScale(gaussian.index, gaussOriginal.scales);
     const info = v.setGaussianOpacity(gaussian.index, gaussOriginal.alpha);
     if (info) setGaussian(info);
@@ -1918,6 +1929,17 @@ export default function App() {
                     <div className="ctrl-label"><span>Opacity α</span><b>{gaussian.alpha.toFixed(3)}</b></div>
                     <input type="range" min={0} max={1} step={0.005} value={gaussian.alpha} onChange={(e) => editGaussOpacity(Number(e.target.value))} />
                   </div>
+
+                  <div className="sec-head"><span>ROTATION QUATERNION</span><b>normalised on edit</b></div>
+                  {([3, 0, 1, 2] as const).map((axis) => (
+                    <div className="ctrl-item" key={`q${axis}`}>
+                      <div className="ctrl-label">
+                        <span>{['W', 'X', 'Y', 'Z'][axis === 3 ? 0 : axis + 1]}</span>
+                        <b>{gaussian.quat[axis].toFixed(3)}</b>
+                      </div>
+                      <input type="range" min={-1} max={1} step={0.01} value={gaussian.quat[axis]} onChange={(e) => editGaussRotation(axis, Number(e.target.value))} />
+                    </div>
+                  ))}
 
                   <div className="sec-head"><span>COVARIANCE Σ ({isPlyLocal ? 'u²' : 'mm²'})</span></div>
                   <div className="cov-grid">
