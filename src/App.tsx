@@ -1524,10 +1524,10 @@ export default function App() {
               <i className="scene-dot cbct" /><span><b>CBCT Surfel</b><small>Case 03 · 111,000</small></span>
             </button>
             <button type="button" className={'scene-node' + (variant === 'full' && !split ? ' on' : '')} disabled={tenX} onClick={() => { setVariant('full'); setSplit(false); }}>
-              <i className="scene-branch" /><span><b>DSPK Full</b><small>{fmtInt(report?.full.splats ?? 0)} splats</small></span>
+              <i className="scene-branch" /><span><b>DSPK Full</b><small>{isQuad ? 'see quad labels' : `${fmtInt(report?.full.splats ?? 0)} splats`}</small></span>
             </button>
             <button type="button" className={'scene-node' + (variant === 'pruned' && !split ? ' on' : '')} disabled={tenX} onClick={() => { setVariant('pruned'); setSplit(false); }}>
-              <i className="scene-branch" /><span><b>DSPK Pruned</b><small>{fmtInt(report?.pruned.splats ?? 0)} splats</small></span>
+              <i className="scene-branch" /><span><b>DSPK Pruned</b><small>{isQuad ? 'see quad labels' : `${fmtInt(report?.pruned.splats ?? 0)} splats`}</small></span>
             </button>
             <button type="button" className={'scene-node' + (wire ? ' on' : '')} onClick={() => setWire((w) => !w)}>
               <i className="scene-branch" /><span><b>Aligned Mesh Wire</b><small>{wire ? 'visible' : 'hidden'}</small></span>
