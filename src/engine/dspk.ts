@@ -85,6 +85,9 @@ export type RawSplatData = {
   colors: Float32Array;
   alphas: Float32Array;
   sh1: Float32Array | null;
+  /** Full f_rest payload (degree 1/2/3), preserved for lossless PLY round-trips. */
+  shRest: Float32Array | null;
+  shRestCount: number;
   shDegree: number;
   sourceFormat: string;
 };

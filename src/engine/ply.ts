@@ -138,6 +138,7 @@ export function parseGaussianPly(buffer: ArrayBuffer, fileName = 'local.ply'): P
   const colors = new Float32Array(n * 3);
   const alphas = new Float32Array(n);
   const sh1 = shDegree >= 1 ? new Float32Array(n * 9) : null;
+  const shRest = restCount > 0 ? new Float32Array(n * restCount) : null;
 
   let fallbackSigma = 0.2;
   if (!hasScale) {
@@ -173,11 +174,10 @@ export function parseGaussianPly(buffer: ArrayBuffer, fileName = 'local.ply'): P
     alphas[i] = hasOpacity
       ? 1 / (1 + Math.exp(-finite(get(i, 'opacity'), 6)))
       : hasAlphaByte ? Math.min(1, Math.max(0, finite(get(i, 'alpha'), 255) / 255)) : 1;
-    if (sh1) {
-      for (let c = 0; c < 3; c++) for (let b = 0; b < 3; b++) {
-        sh1[i * 9 + c * 3 + b] = finite(get(i, `f_rest_${c * 3 + b}`), 0);
-      }
+    if (shRest) {
+      for (let k = 0; k < restCount; k++) shRest[i * restCount + k] = finite(get(i, `f_rest_${k}`), 0);
     }
+    if (sh1) for (let k = 0; k < 9; k++) sh1[i * 9 + k] = shRest ? shRest[i * restCount + k] : 0;
   }
 
   const cloud = buildCloud({
@@ -201,7 +201,7 @@ export function parseGaussianPly(buffer: ArrayBuffer, fileName = 'local.ply'): P
     },
   });
   cloud.raw = {
-    centers, quats, scales, colors, alphas, sh1, shDegree,
+    centers, quats, scales, colors, alphas, sh1, shRest, shRestCount: restCount, shDegree,
     sourceFormat: hasScale && hasRot ? '3DGS PLY · FP32' : 'Point PLY · isotropic fallback',
   };
   return {

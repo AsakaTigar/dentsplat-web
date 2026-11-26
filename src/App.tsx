@@ -1706,7 +1706,7 @@ export default function App() {
                   <div className="sec-head"><span>G(t) · PRINCIPAL AXES</span><b>{gaussian.axes.sigmas.map((s) => s.toFixed(3)).join(' / ')} {gaussUnit}</b></div>
                   <GaussianPlot sigmas={gaussian.axes.sigmas} unit={gaussUnit} />
                   {gaussian.shDegree > 1 && (
-                    <p className="source-note">该文件含 SH{gaussian.shDegree} 字段；当前浏览器导入器只保留并渲染 DC + l=1 系数，l≥2 未载入，不能据此宣称 SH{gaussian.shDegree} 渲染。</p>
+                    <p className="source-note">该文件含 SH{gaussian.shDegree} 字段；导入/导出会保留全部 f_rest 系数，但当前 GPU 渲染只评估 DC + l=1，l≥2 未渲染，不能据此宣称 SH{gaussian.shDegree} 渲染。</p>
                   )}
 
                   <div className="sec-head"><span>LIVE EDIT</span><b>writes this Gaussian</b></div>
