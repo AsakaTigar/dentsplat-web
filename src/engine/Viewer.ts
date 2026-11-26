@@ -252,6 +252,7 @@ export class DentSplatViewer {
   private labGroup = new THREE.Group();
   private inspectGroup = new THREE.Group();
   labMode: LabMode = 'rgb';
+  labSigma: 1 | 2 | 3 = 1;
   labInfo: LabInfo = { mode: 'rgb', available: 0, rendered: 0, truncated: false, triangles: 0, points: 0 };
   pickGaussians = false;
   /** Isolate the selected Gaussian in the splat raster and the lab overlays. */
@@ -1009,7 +1010,7 @@ export class DentSplatViewer {
       const i = keep[k];
       this.splatWorld(l, i, p);
       this.splatQuat(l, i, q);
-      this.splatSigma(l, i, s);
+      this.splatSigma(l, i, s).multiplyScalar(this.labSigma);
       mtx.compose(p, q, s);
       mesh.setMatrixAt(k, mtx);
       if (mode === 'ellipsoid') {
@@ -1025,6 +1026,12 @@ export class DentSplatViewer {
     this.labGroup.add(mesh);
     const tris = (geo.index ? geo.index.count : geo.attributes.position.count) / 3;
     this.labInfo.triangles = Math.round(tris * keep.length);
+    return this.labInfo;
+  }
+
+  setLabSigma(sigma: 1 | 2 | 3): LabInfo {
+    this.labSigma = sigma;
+    if (this.geometricMode()) return this.setLabMode(this.labMode);
     return this.labInfo;
   }
 

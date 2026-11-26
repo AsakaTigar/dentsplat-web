@@ -223,6 +223,7 @@ export default function App() {
   const isPlyLocal = !!customAssetName?.toLowerCase().endsWith('.ply');
   const gaussUnit = isPlyLocal ? 'PLY u' : 'mm';
   const [labMode, setLabMode] = useState<LabMode>('rgb');
+  const [labSigma, setLabSigma] = useState<1 | 2 | 3>(1);
   const [labInfo, setLabInfo] = useState<LabInfo | null>(null);
   const [gaussian, setGaussian] = useState<GaussianInspect | null>(null);
   const [gaussOriginal, setGaussOriginal] = useState<GaussianInspect | null>(null);
@@ -348,6 +349,7 @@ export default function App() {
       pickAt: (clientX: number, clientY: number) => v.pick(clientX, clientY),
       pickSplatAt: (clientX: number, clientY: number) => v.pickSplatIndex(clientX, clientY),
       lab: (mode: LabMode) => v.setLabMode(mode),
+      labSigma: (n: 1 | 2 | 3) => v.setLabSigma(n),
       labInfo: () => v.labInfo,
       selectGaussian: (index: number, focus = false) => v.selectGaussian(index, { focus }),
       gaussian: () => (v.inspectedIndex >= 0 ? v.primaryLayer()?.inspect(v.inspectedIndex) ?? null : null),
@@ -489,8 +491,9 @@ export default function App() {
   useEffect(() => {
     const v = viewerRef.current;
     if (!v || !report) return;
+    v.setLabSigma(labSigma);
     setLabInfo(v.setLabMode(labMode));
-  }, [labMode, report, tenX, localEpoch]);
+  }, [labMode, labSigma, report, tenX, localEpoch]);
 
   useEffect(() => {
     const v = viewerRef.current;
@@ -802,6 +805,12 @@ export default function App() {
       setRailTab('lab');
       setInspectorOpen(true);
     }
+  }, []);
+
+  const changeLabSigma = useCallback((sigma: 1 | 2 | 3) => {
+    setLabSigma(sigma);
+    const info = viewerRef.current?.setLabSigma(sigma);
+    if (info) setLabInfo(info);
   }, []);
 
   const startMethodCompare = useCallback(() => {
@@ -1135,7 +1144,7 @@ export default function App() {
           <button type="button" className={mode === 'measure' ? 'on' : ''} onClick={() => { setMode(mode === 'measure' ? 'pick' : 'measure'); setRailTab('findings'); setInspectorOpen(true); }}>Measure</button>
           <button type="button" className={railTab === 'slice' ? 'on' : ''} onClick={() => { setRailTab('slice'); setInspectorOpen(true); }}>Slice &amp; Cap</button>
           <button type="button" className={railTab === 'layers' ? 'on' : ''} onClick={() => { setRailTab('layers'); setInspectorOpen(true); }}>3D Anatomy</button>
-          <button type="button" className={railTab === 'audit' ? 'on' : ''} onClick={() => { setRailTab('audit'); setInspectorOpen(true); }}>Evidence Audit</button>
+          <button type="button" className={railTab === 'audit' ? 'on' : ''} onClick={() => { setRailTab('audit'); setInspectorOpen(true); }}>Compression</button>
         </nav>
 
         <div className="dtx-spacer" />
@@ -1323,6 +1332,15 @@ export default function App() {
                   {m.label}
                 </button>
               ))}
+              {(labMode === 'ellipsoid' || labMode === 'wire') && (
+                <span className="lab-sigmas">
+                  {([1, 2, 3] as const).map((n) => (
+                    <button key={n} type="button" className={labSigma === n ? 'on' : ''} onClick={() => changeLabSigma(n)}>
+                      {n}σ
+                    </button>
+                  ))}
+                </span>
+              )}
               {labInfo && labInfo.rendered > 0 && (
                 <span className="lab-sample">
                   {labInfo.mode === 'centers' ? 'points' : labInfo.mode === 'ellipsoid' ? 'ellipsoids' : 'wireframes'}{' '}
@@ -1409,7 +1427,7 @@ export default function App() {
             ['findings', 'findings', 'Findings'],
             ['layers', 'layers', 'Layers'],
             ['slice', 'slice', 'Slice'],
-            ['audit', 'bench', 'Audit'],
+            ["audit", "bench", "Compress"],
             ['source', 'source', 'Data'],
           ] as [RailTab, string, string][]).map(([id, icon, label]) => (
             <button

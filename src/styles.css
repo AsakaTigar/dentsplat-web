@@ -593,3 +593,6 @@ input[type=range] { width: 100%; accent-color: var(--clinical); height: 15px; cu
 .ga-row { background: #171a20; border: 1px solid #22262e; border-radius: 3px; color: #aab3c2; }
 .ga-row b { color: #d8dee9; font-family: inherit; }
 .ga-row span:not(:first-of-type) { text-align: right; white-space: nowrap; }
+.lab-sigmas { display: inline-flex; gap: 2px; margin-left: 4px; padding-left: 7px; border-left: 1px solid #303541; }
+.lab-sigmas button { padding: 3px 5px !important; font: 9.5px/1 ui-monospace, Menlo, Consolas, monospace; border: 1px solid #303541; }
+.lab-sigmas button.on { color: #0b1220; background: var(--cyan); border-color: var(--cyan); }
