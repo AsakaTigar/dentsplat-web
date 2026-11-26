@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { Vec3 } from '../engine/gaussian.ts';
+import { gaussianPdfAt, isosurfaceAmplitude, type GaussianAxes, type Vec3 } from '../engine/gaussian.ts';
 import type { DentSplatViewer } from '../engine/Viewer.ts';
 
 const COLORS = ['#ef4444', '#22c55e', '#38bdf8'];
@@ -100,6 +100,68 @@ export function ProjectionPlot({ viewer, index }: { viewer: DentSplatViewer | nu
     return () => cancelAnimationFrame(raf);
   }, [viewer, index]);
   return <canvas ref={ref} className="gauss-plot" aria-label="Live projected Gaussian ellipse" />;
+}
+
+export function GaussianDensityPlot({ center, covariance, axes, alpha, unit = 'mm' }: {
+  center: Vec3; covariance: number[]; axes: GaussianAxes; alpha: number; unit?: string;
+}) {
+  const ref = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = 268, h = 124;
+    c.width = w * dpr; c.height = h * dpr;
+    c.style.width = `${w}px`; c.style.height = `${h}px`;
+    const ctx = c.getContext('2d')!;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const padL = 8, padR = 8, padT = 8, padB = 18;
+    const pw = w - padL - padR, ph = h - padT - padB;
+    const maxSigma = Math.max(...axes.sigmas, 1e-5);
+    const extent = maxSigma * 3.2;
+    const peak = gaussianPdfAt(center, center, covariance);
+    const img = ctx.createImageData(Math.round(pw * dpr), Math.round(ph * dpr));
+    const iw = img.width, ih = img.height;
+    for (let py = 0; py < ih; py++) {
+      const v = (1 - 2 * py / (ih - 1)) * extent;
+      for (let px = 0; px < iw; px++) {
+        const u = (2 * px / (iw - 1) - 1) * extent;
+        const m2 = (u / Math.max(1e-6, axes.sigmas[0])) ** 2 + (v / Math.max(1e-6, axes.sigmas[1])) ** 2;
+        const f = Math.exp(-0.5 * m2);
+        const o = (py * iw + px) * 4;
+        img.data[o] = Math.round(8 + 34 * f);
+        img.data[o + 1] = Math.round(20 + 190 * f);
+        img.data[o + 2] = Math.round(35 + 210 * f);
+        img.data[o + 3] = 255;
+      }
+    }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.putImageData(img, Math.round(padL * dpr), Math.round(padT * dpr));
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = 1;
+    for (const rho of [1, 2, 3]) {
+      ctx.beginPath();
+      ctx.ellipse(
+        padL + pw / 2, padT + ph / 2,
+        (axes.sigmas[0] * rho / extent) * pw / 2,
+        (axes.sigmas[1] * rho / extent) * ph / 2,
+        0, 0, Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.82)';
+      ctx.font = '8px ui-monospace, Menlo, monospace';
+      ctx.fillText(`${rho}σ`, padL + pw / 2 + (axes.sigmas[0] * rho / extent) * pw / 2 + 2, padT + ph / 2 - 2);
+    }
+    ctx.fillStyle = 'rgba(226,232,240,0.9)';
+    ctx.font = '9px ui-monospace, Menlo, monospace';
+    ctx.fillText(`N(μ,Σ) peak ${peak.toExponential(2)} ${unit}⁻³ · α·G(0)=${alpha.toFixed(3)}`, padL, h - 5);
+    ctx.fillStyle = 'rgba(148,163,184,0.85)';
+    ctx.fillText(`1σ shell α=${isosurfaceAmplitude(alpha, 1).toFixed(3)} · 2σ=${isosurfaceAmplitude(alpha, 2).toFixed(3)} · 3σ=${isosurfaceAmplitude(alpha, 3).toFixed(3)}`, padL, h - 16);
+  }, [center, covariance, axes, alpha, unit]);
+  return <canvas ref={ref} className="gauss-plot" aria-label="3D Gaussian probability density slice and isosurfaces" />;
 }
 
 export default function GaussianPlot({ sigmas, unit = 'mm' }: { sigmas: Vec3; unit?: string }) {

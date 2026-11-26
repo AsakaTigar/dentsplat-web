@@ -11,11 +11,15 @@ export type GaussianState = {
   fdi: number;
   layer: number;
   sh1: number[] | null;
+  shRest: number[] | null;
+  shRestCount: number;
   shDegree: number;
   precision: 'fp32' | 'dspk-8bit';
 };
 
 export type GaussianAxes = {
+  /** Covariance eigenvalues, descending. */
+  eigenvalues: Vec3;
   /** Principal sigmas sqrt(eigenvalue), descending. */
   sigmas: Vec3;
   /** Unit directions in world space, aligned with sigmas. */
@@ -24,6 +28,7 @@ export type GaussianAxes = {
 
 export type GaussianInspect = GaussianState & {
   covariance: number[];
+  rotation: number[];
   axes: GaussianAxes;
 };
 
@@ -83,5 +88,36 @@ export function symmetricEigen(m: number[]): { values: Vec3; vectors: Vec3[] } {
 
 export function principalAxes(scales: Vec3, quat: Quat): GaussianAxes {
   const { values, vectors } = symmetricEigen(covarianceOf(scales, quat));
-  return { sigmas: values.map((x) => Math.sqrt(x)) as Vec3, directions: vectors };
+  return { eigenvalues: values, sigmas: values.map((x) => Math.sqrt(x)) as Vec3, directions: vectors };
+}
+
+export function covarianceDeterminant(covariance: number[]): number {
+  const [a, b, c, d, e, f, g, h, i] = covariance;
+  return a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+}
+
+export function mahalanobisSquared(point: Vec3, center: Vec3, covariance: number[]): number {
+  const [a, b, c, d, e, f, g, h, i] = covariance;
+  const A = e * i - f * h, B = f * g - d * i, C = d * h - e * g;
+  const D = c * h - b * i, E = a * i - c * g, F = b * g - a * h;
+  const G = b * f - c * e, H = c * d - a * f, I = a * e - b * d;
+  const det = a * A + b * B + c * C;
+  if (!Number.isFinite(det) || Math.abs(det) < 1e-20) return Infinity;
+  const x = point[0] - center[0], y = point[1] - center[1], z = point[2] - center[2];
+  return (A * x * x + B * x * y + C * x * z + D * y * x + E * y * y + F * y * z + G * z * x + H * z * y + I * z * z) / det;
+}
+
+export function gaussianPdfAt(point: Vec3, center: Vec3, covariance: number[]): number {
+  const det = covarianceDeterminant(covariance);
+  if (!(det > 0) || !Number.isFinite(det)) return 0;
+  const norm = 1 / (Math.pow(2 * Math.PI, 1.5) * Math.sqrt(det));
+  return norm * Math.exp(-0.5 * mahalanobisSquared(point, center, covariance));
+}
+
+export function gaussianAmplitudeAt(point: Vec3, center: Vec3, covariance: number[], alpha: number): number {
+  return alpha * Math.exp(-0.5 * mahalanobisSquared(point, center, covariance));
+}
+
+export function isosurfaceAmplitude(alpha: number, sigmaRadius: number): number {
+  return alpha * Math.exp(-0.5 * sigmaRadius * sigmaRadius);
 }

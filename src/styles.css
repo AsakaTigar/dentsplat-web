@@ -545,6 +545,19 @@ input[type=range] { width: 100%; accent-color: var(--clinical); height: 15px; cu
 .sh-details { border: 1px solid var(--border); border-radius: 4px; padding: 5px 7px; font-size: 10.5px; color: var(--muted); }
 .sh-details summary { cursor: pointer; color: #b8c0cf; }
 .sh-details code { display: block; margin-top: 5px; font-size: 9.5px; color: #9fb8cf; word-break: break-word; }
+.gauss-index-picker { display: flex; gap: 5px; align-items: center; }
+.gauss-index-picker input {
+  width: 92px; min-width: 0; padding: 4px 6px; color: #d8dee9; background: #101318;
+  border: 1px solid var(--border-hi); border-radius: 4px; font: 10px/1.2 ui-monospace, Menlo, Consolas, monospace;
+}
+.selected-index-picker { margin-top: 6px; }
+.sh-coeff-grid { display: grid; gap: 6px; margin-top: 6px; }
+.sh-degree { display: grid; gap: 4px; padding: 5px; background: #14171d; border: 1px solid #22262e; border-radius: 3px; }
+.sh-degree > b { color: #d8dee9; font-size: 10px; }
+.sh-degree > div { display: grid; grid-template-columns: 16px 1fr; gap: 5px; align-items: start; }
+.sh-degree span { color: var(--muted); font: 9px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+.sh-degree code { margin: 0; font-size: 9px; line-height: 1.5; }
+.rotation-grid span { color: #b9c8d8; }
 .gauss-actions { margin-top: 2px; }
 .ply-note { border-left: 2px solid var(--cyan); padding-left: 7px; }
 .lab-footnote { padding-top: 6px; border-top: 1px solid var(--border); font-size: 10px; color: var(--muted); line-height: 1.6; }

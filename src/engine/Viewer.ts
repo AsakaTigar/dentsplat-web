@@ -1180,6 +1180,10 @@ async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) 
 
   setLabSigma(sigma: 1 | 2 | 3): LabInfo {
     this.labSigma = sigma;
+    if (this.inspectedIndex >= 0) {
+      const state = this.primaryLayer()?.inspect(this.inspectedIndex);
+      if (state) this.drawInspectMarker(this.primaryLayer()!, this.inspectedIndex, state);
+    }
     if (this.geometricMode()) return this.setLabMode(this.labMode);
     return this.labInfo;
   }
@@ -1201,25 +1205,52 @@ async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) 
     }
     const p = new THREE.Vector3(...state.center);
     const q = new THREE.Quaternion(...state.quat);
-    const s = new THREE.Vector3(...state.scales);
-    const g = new THREE.IcosahedronGeometry(1, 1);
-    const wire = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, depthTest: false, transparent: true, opacity: 0.95 }));
-    wire.position.copy(p); wire.quaternion.copy(q); wire.scale.copy(s).multiplyScalar(1.08);
+    const s = new THREE.Vector3(...state.scales).multiplyScalar(this.labSigma);
+    const shell = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1, 2),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color(...state.color), transparent: true,
+        opacity: Math.max(0.08, Math.min(0.42, state.alpha * 0.32)),
+        depthWrite: false, side: THREE.DoubleSide,
+      }),
+    );
+    shell.position.copy(p); shell.quaternion.copy(q); shell.scale.copy(s);
+    shell.renderOrder = 968;
+    this.inspectGroup.add(shell);
+    const wire = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1, 2),
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, depthTest: false, transparent: true, opacity: 0.9 }),
+    );
+    wire.position.copy(p); wire.quaternion.copy(q); wire.scale.copy(s).multiplyScalar(1.025);
     wire.renderOrder = 970;
     this.inspectGroup.add(wire);
+    const center = new THREE.Mesh(
+      new THREE.SphereGeometry(Math.max(0.06, Math.min(0.42, Math.max(...state.scales) * 0.08)), 12, 8),
+      new THREE.MeshBasicMaterial({ color: 0xf59e0b, depthTest: false, transparent: true, opacity: 1 }),
+    );
+    center.position.copy(p); center.renderOrder = 972;
+    this.inspectGroup.add(center);
     const axisColors = [0xef4444, 0x22c55e, 0x3b82f6];
     for (let k = 0; k < 3; k++) {
       const dir = new THREE.Vector3(...state.axes.directions[k]);
-      const len = Math.max(0.05, state.axes.sigmas[k] * 2.5);
-      const line = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints([p.clone().sub(dir.clone().multiplyScalar(len)), p.clone().add(dir.clone().multiplyScalar(len))]),
-        new THREE.LineBasicMaterial({ color: axisColors[k], depthTest: false, transparent: true, opacity: 0.9 }),
-      );
-      line.renderOrder = 971;
-      this.inspectGroup.add(line);
+      const len = Math.max(0.12, state.axes.sigmas[k] * this.labSigma * 1.35);
+      const head = Math.max(0.04, len * 0.08);
+      for (const sign of [1, -1]) {
+        const arrow = new THREE.ArrowHelper(dir.clone().multiplyScalar(sign), p, len, axisColors[k], head, head * 0.55);
+        const lineMat = arrow.line.material as THREE.LineBasicMaterial;
+        const coneMat = arrow.cone.material as THREE.MeshBasicMaterial;
+        lineMat.depthTest = false;
+        lineMat.transparent = true;
+        lineMat.opacity = 0.9;
+        coneMat.depthTest = false;
+        coneMat.transparent = true;
+        coneMat.opacity = 0.9;
+        arrow.renderOrder = 971;
+        this.inspectGroup.add(arrow);
+      }
     }
-    const label = this.makeLabel(`#${i}`);
-    label.position.copy(p).add(new THREE.Vector3(0, Math.max(1.5, s.x * 4), 0));
+    const label = this.makeLabel(`#${i} · ${this.labSigma}σ`);
+    label.position.copy(p).add(new THREE.Vector3(0, Math.max(1.5, s.x * 1.5), 0));
     label.renderOrder = 1000;
     this.inspectGroup.add(label);
   }

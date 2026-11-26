@@ -2,14 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type * as THREE from 'three';
 import { DentSplatViewer } from './engine/Viewer.ts';
 import type { AlphaComposition, BenchResult, ClearanceAudit, ClipAxis, CompressionBenchResult, LabInfo, LabMode, PickerHit, ProbeResult, Stats, ViewPreset } from './engine/Viewer.ts';
-import type { GaussianInspect, Vec3 } from './engine/gaussian.ts';
+import { gaussianPdfAt, isosurfaceAmplitude, type GaussianInspect, type Vec3 } from './engine/gaussian.ts';
 import { parseGaussianPly } from './engine/ply.ts';
 import { CASES, AUDIT_BASIS, LESION_LABEL } from './data/cases.ts';
 import type { CaseSpec, CaseCohort, LayerSpec } from './data/cases.ts';
 import { LAYER_RGB } from './engine/dspk.ts';
 import Odontogram from './ui/Odontogram.tsx';
 import MprQuadView from './ui/MprQuadView.tsx';
-import GaussianPlot, { ProjectionPlot, ShAppearancePlot } from './ui/GaussianPlot.tsx';
+import GaussianPlot, { GaussianDensityPlot, ProjectionPlot, ShAppearancePlot } from './ui/GaussianPlot.tsx';
 import type { Mm3 } from './ui/MprQuadView.tsx';
 import type { ToothMeta } from './ui/Odontogram.tsx';
 
@@ -264,6 +264,7 @@ export default function App() {
   const [labInfo, setLabInfo] = useState<LabInfo | null>(null);
   const [gaussian, setGaussian] = useState<GaussianInspect | null>(null);
   const [gaussOriginal, setGaussOriginal] = useState<GaussianInspect | null>(null);
+  const [gaussIndexInput, setGaussIndexInput] = useState('0');
   const [alphaMix, setAlphaMix] = useState<AlphaComposition | null>(null);
   const [gaussIsolate, setGaussIsolate] = useState(false);
   const [plyNote, setPlyNote] = useState<string | null>(null);
@@ -335,6 +336,7 @@ export default function App() {
       const info = v.selectGaussian(index);
       setGaussian(info);
       setGaussOriginal(info);
+      setGaussIndexInput(String(index));
       setAlphaMix(null);
       setRailTab('lab');
       setInspectorOpen(true);
@@ -1099,6 +1101,20 @@ export default function App() {
     setInspectorOpen(true);
     setPickerOpen(false);
   }, [caseId, switchCase]);
+
+  const selectGaussianByIndex = useCallback((rawIndex: string) => {
+    const v = viewerRef.current;
+    const index = Number(rawIndex);
+    if (!v || !Number.isInteger(index) || index < 0) return;
+    const info = v.selectGaussian(index, { focus: true });
+    if (!info) return;
+    setGaussian(info);
+    setGaussOriginal(info);
+    setGaussIndexInput(String(index));
+    setAlphaMix(null);
+    setRailTab('lab');
+    setInspectorOpen(true);
+  }, []);
 
   const editGaussScale = useCallback((axis: 0 | 1 | 2, value: number) => {
     const v = viewerRef.current;
@@ -2120,8 +2136,18 @@ export default function App() {
               {!gaussian ? (
                 <div className="lab-empty">
                   <p>当前模式：<b>{LAB_MODES.find((m) => m.id === labMode)?.label ?? labMode}</b></p>
-                  <p>在视口点击任意高斯中心，读取它的 μ、σ、四元数、不透明度、协方差与 SH 系数，并可直接拖动参数观察椭球变化。</p>
-                  <p className="muted">椭球模式按真实 3×3 协方差构建；法线模式显示椭球最小主轴，不是网格表面法线。</p>
+                  <p>在视口点击任意高斯中心，读取它的 μ、σ、四元数、旋转矩阵、不透明度、完整 SH、协方差与三维概率密度；也可直接按索引定位。</p>
+                  <div className="gauss-index-picker">
+                    <input
+                      type="number" min={0} max={Math.max(0, stats.splats - 1)} step={1}
+                      value={gaussIndexInput}
+                      onChange={(e) => setGaussIndexInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') selectGaussianByIndex(gaussIndexInput); }}
+                      aria-label="Gaussian index"
+                    />
+                    <button type="button" className="tbar-btn" onClick={() => selectGaussianByIndex(gaussIndexInput)}>定位 Gaussian</button>
+                  </div>
+                  <p className="muted">椭球模式按真实 3×3 协方差构建；法线模式显示椭球最小主轴，不是网格表面法线。1σ/2σ/3σ 控件同时改变选中高斯的等值面。</p>
                 </div>
               ) : (
                 <>
@@ -2141,6 +2167,12 @@ export default function App() {
 
                   <div className="sec-head"><span>G(t) · PRINCIPAL AXES</span><b>{gaussian.axes.sigmas.map((s) => s.toFixed(3)).join(' / ')} {gaussUnit}</b></div>
                   <GaussianPlot sigmas={gaussian.axes.sigmas} unit={gaussUnit} />
+                  <div className="sec-head"><span>3D PROBABILITY DENSITY</span><b>{labSigma}σ isosurface</b></div>
+                  <GaussianDensityPlot center={gaussian.center} covariance={gaussian.covariance} axes={gaussian.axes} alpha={gaussian.alpha} unit={gaussUnit} />
+                  <p className="source-note">
+                    G(x)=α·exp(−½·(x−μ)ᵀΣ⁻¹(x−μ))；归一化 PDF 峰值为 {gaussianPdfAt(gaussian.center, gaussian.center, gaussian.covariance).toExponential(2)} {gaussUnit}⁻³。
+                    当前 {labSigma}σ 等值面的幅度为 {isosurfaceAmplitude(gaussian.alpha, labSigma).toFixed(4)}。热图是前两个主特征轴平面的解析切片，不是有限差分近似。
+                  </p>
                   <div className="sec-head"><span>SCREEN-SPACE PROJECTION</span><b>live camera</b></div>
                   <ProjectionPlot viewer={viewerRef.current} index={gaussian.index} />
                   <div className="quick-row">
@@ -2229,6 +2261,13 @@ export default function App() {
                     </div>
                   ))}
 
+                  <div className="sec-head"><span>ROTATION MATRIX R</span><b>from quaternion</b></div>
+                  <div className="cov-grid rotation-grid">
+                    {[0, 1, 2].map((r) => [0, 1, 2].map((c) => (
+                      <span key={`${r}-${c}`} className={r === c ? 'diag' : ''}>{gaussian.rotation[r * 3 + c].toFixed(4)}</span>
+                    )))}
+                  </div>
+
                   <div className="sec-head"><span>COVARIANCE Σ ({isPlyLocal ? 'u²' : 'mm²'})</span></div>
                   <div className="cov-grid">
                     {[0, 1, 2].map((r) => [0, 1, 2].map((c) => (
@@ -2236,8 +2275,8 @@ export default function App() {
                     )))}
                   </div>
                   <div className="eig-list">
-                    {gaussian.axes.sigmas.map((s, i) => (
-                      <span key={i}><i className={`axis-dot a${i}`} />λ{i + 1} = {s.toFixed(4)} {gaussUnit}</span>
+                    {gaussian.axes.eigenvalues.map((lambda, i) => (
+                      <span key={i}><i className={`axis-dot a${i}`} />λ{i + 1} = {lambda.toExponential(2)} · σ = {gaussian.axes.sigmas[i].toFixed(4)} {gaussUnit}</span>
                     ))}
                   </div>
 
@@ -2253,6 +2292,46 @@ export default function App() {
                       </details>
                     </>
                   )}
+                  {gaussian.shRest && gaussian.shRestCount > 0 ? (
+                    <details className="sh-details" open={gaussian.shDegree > 1}>
+                      <summary>完整 SH 系数 · degree {gaussian.shDegree} · {gaussian.shRestCount} values</summary>
+                      <div className="sh-coeff-grid">
+                        {([1, 2, 3] as const).filter((degree) => {
+                          const width = degree * 2 + 1;
+                          const start = degree === 1 ? 0 : degree === 2 ? 9 : 33;
+                          return start + 3 * width <= gaussian.shRestCount;
+                        }).map((degree) => {
+                          const width = degree * 2 + 1;
+                          const start = degree === 1 ? 0 : degree === 2 ? 9 : 33;
+                          return (
+                            <div className="sh-degree" key={degree}>
+                              <b>l={degree} · {width} coefficients / channel</b>
+                              {['R', 'G', 'B'].map((channel, c) => (
+                                <div key={channel}>
+                                  <span>{channel}</span>
+                                  <code>{gaussian.shRest!.slice(start + c * width, start + (c + 1) * width).map((v) => v.toFixed(4)).join(', ')}</code>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="source-note">系数按 PLY 原始 channel-major 顺序展示；l=2/l=3 已保留在 FP32 raw 数据中，当前网页渲染器只评估 DC+l=1。</p>
+                    </details>
+                  ) : (
+                    <p className="source-note">当前 DSPK 只携带 DC+l=1；完整 l=2/l=3 系数不可用，不做补零伪造。</p>
+                  )}
+
+                  <div className="gauss-index-picker selected-index-picker">
+                    <input
+                      type="number" min={0} max={Math.max(0, stats.splats - 1)} step={1}
+                      value={gaussIndexInput}
+                      onChange={(e) => setGaussIndexInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') selectGaussianByIndex(gaussIndexInput); }}
+                      aria-label="Selected Gaussian index"
+                    />
+                    <button type="button" className="tbar-btn" onClick={() => selectGaussianByIndex(gaussIndexInput)}>按索引定位</button>
+                  </div>
 
                   <div className="quick-row gauss-actions">
                     <button type="button" className="tbar-btn" onClick={() => viewerRef.current?.selectGaussian(gaussian.index, { focus: true })}>聚焦</button>

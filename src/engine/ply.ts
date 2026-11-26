@@ -75,6 +75,7 @@ export type PlyParseResult = {
     gaussianFields: boolean;
     colorSource: 'f_dc' | 'rgb';
     scaleDecoded: boolean;
+    twoScale2dgs?: boolean;
   };
 };
 
@@ -125,7 +126,9 @@ export function parseGaussianPly(buffer: ArrayBuffer, fileName = 'local.ply'): P
   const n = h.vertexCount;
   const hasDC = has('f_dc_0') && has('f_dc_1') && has('f_dc_2');
   const hasRGB = has('red') && has('green') && has('blue');
-  const hasScale = has('scale_0') && has('scale_1') && has('scale_2');
+  const hasThreeScales = has('scale_0') && has('scale_1') && has('scale_2');
+  const hasTwoScales = has('scale_0') && has('scale_1') && !has('scale_2');
+  const hasScale = hasThreeScales || hasTwoScales;
   const hasRot = has('rot_0') && has('rot_1') && has('rot_2') && has('rot_3');
   const hasOpacity = has('opacity');
   const hasAlphaByte = has('alpha');
@@ -155,9 +158,17 @@ export function parseGaussianPly(buffer: ArrayBuffer, fileName = 'local.ply'): P
   for (let i = 0; i < n; i++) {
     for (let k = 0; k < 3; k++) {
       centers[i * 3 + k] = finite(get(i, ['x', 'y', 'z'][k]), 0);
-      scales[i * 3 + k] = hasScale
-        ? Math.max(1e-4, finite(Math.exp(get(i, `scale_${k}`)), fallbackSigma))
-        : fallbackSigma;
+      if (hasThreeScales) {
+        scales[i * 3 + k] = Math.max(1e-4, finite(Math.exp(get(i, `scale_${k}`)), fallbackSigma));
+      } else if (hasTwoScales) {
+        const a = Math.max(1e-4, finite(Math.exp(get(i, 'scale_0')), fallbackSigma));
+        const b = Math.max(1e-4, finite(Math.exp(get(i, 'scale_1')), fallbackSigma));
+        scales[i * 3] = a;
+        scales[i * 3 + 1] = b;
+        scales[i * 3 + 2] = Math.max(1e-4, Math.min(a, b) * 0.01);
+      } else {
+        scales[i * 3 + k] = fallbackSigma;
+      }
       colors[i * 3 + k] = hasDC
         ? Math.min(1, Math.max(0, 0.5 + SH_C0 * finite(get(i, `f_dc_${k}`), 0)))
         : hasRGB
@@ -191,9 +202,11 @@ export function parseGaussianPly(buffer: ArrayBuffer, fileName = 'local.ply'): P
       kind: 'ios',
       unit: 'unknown',
       source: 'local PLY',
-      note: hasScale
-        ? '原始 FP32 高斯属性，未经过 DSPK 量化；PLY 无 FDI/解剖层语义。'
-        : '简单点云 PLY；无 scale/rot 字段，使用各向同性显示尺度。',
+      note: hasTwoScales
+        ? '官方 2DGS 双切向尺度；第三轴使用 1% viewer-only 薄厚度，未冒充训练出的厚度。'
+        : hasScale
+          ? '原始 FP32 高斯属性，未经过 DSPK 量化；PLY 无 FDI/解剖层语义。'
+          : '简单点云 PLY；无 scale/rot 字段，使用各向同性显示尺度。',
       ply: {
         format: h.format, fields: h.props.map((p) => p.name), stride: h.stride,
         sh_degree: shDegree, gaussian_fields: hasScale && hasRot,
@@ -202,7 +215,7 @@ export function parseGaussianPly(buffer: ArrayBuffer, fileName = 'local.ply'): P
   });
   cloud.raw = {
     centers, quats, scales, colors, alphas, sh1, shRest, shRestCount: restCount, shDegree,
-    sourceFormat: hasScale && hasRot ? '3DGS PLY · FP32' : 'Point PLY · isotropic fallback',
+    sourceFormat: hasTwoScales ? '2DGS PLY · FP32 + declared thin axis' : hasScale && hasRot ? '3DGS PLY · FP32' : 'Point PLY · isotropic fallback',
   };
   return {
     cloud,
@@ -212,6 +225,7 @@ export function parseGaussianPly(buffer: ArrayBuffer, fileName = 'local.ply'): P
       gaussianFields: hasScale && hasRot,
       colorSource: hasDC ? 'f_dc' : 'rgb',
       scaleDecoded: hasScale,
+      twoScale2dgs: hasTwoScales,
     },
   };
 }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SPLAT_FRAGMENT, SPLAT_VERTEX } from './shaders.ts';
 import { LAYER, type SplatCloud } from './dspk.ts';
-import { principalAxes, covarianceOf, type GaussianInspect, type GaussianState, type Quat, type Vec3 } from './gaussian.ts';
+import { principalAxes, covarianceOf, quatToMat3, type GaussianInspect, type GaussianState, type Quat, type Vec3 } from './gaussian.ts';
 
 const BINS = 1 << 14;
 
@@ -272,10 +272,14 @@ export class SplatLayer {
     const sh1 = raw?.sh1
       ? Array.from(raw.sh1.subarray(i * 9, i * 9 + 9))
       : c.sh1 ? Array.from(c.sh1.subarray(i * 9, i * 9 + 9), (v) => v / 64) : null;
+    const shRestCount = raw?.shRestCount ?? 0;
+    const shRest = raw?.shRest
+      ? Array.from(raw.shRest.subarray(i * shRestCount, i * shRestCount + shRestCount))
+      : null;
     return {
       index: i, center, scales, quat, alpha, color,
       fdi: c.misc[i * 4 + 1], layer: c.misc[i * 4 + 2],
-      sh1, shDegree: raw?.shDegree ?? (c.hasSH1 ? 1 : 0),
+      sh1, shRest, shRestCount, shDegree: raw?.shDegree ?? (c.hasSH1 ? 1 : 0),
       precision: raw ? 'fp32' : 'dspk-8bit',
     };
   }
@@ -286,6 +290,7 @@ export class SplatLayer {
     return {
       ...s,
       covariance: covarianceOf(s.scales, s.quat),
+      rotation: quatToMat3(s.quat),
       axes: principalAxes(s.scales, s.quat),
     };
   }
