@@ -265,6 +265,9 @@ export class DentSplatViewer {
   private gizmo = new THREE.Group();
   private labGroup = new THREE.Group();
   private inspectGroup = new THREE.Group();
+  private quadGroup = new THREE.Group();
+  quadLayers: SplatLayer[] = [];
+  quadCompare = false;
   labMode: LabMode = 'rgb';
   labSigma: 1 | 2 | 3 = 1;
   labInfo: LabInfo = { mode: 'rgb', available: 0, rendered: 0, truncated: false, triangles: 0, points: 0 };
@@ -305,7 +308,7 @@ export class DentSplatViewer {
       const name = metal ? metal[1] : (named.length ? named : parts).sort((a, b) => b.length - a.length)[0];
       this.gpu = (name || raw).trim().slice(0, 40);
     }
-    this.scene.add(this.caseGroup, this.measureGroup, this.auditGroup, this.gizmo, this.labGroup, this.inspectGroup);
+    this.scene.add(this.caseGroup, this.measureGroup, this.auditGroup, this.gizmo, this.labGroup, this.inspectGroup, this.quadGroup);
     this.attachInput();
     this.resize();
     this.loop();
@@ -414,7 +417,55 @@ export class DentSplatViewer {
     this.labGroup.visible = false;
   }
 
+  /** Load four already-quantised packets into the same scene for a 2x2 camera-synced comparison. */
+async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) {
+    if (items.length !== 4) throw new Error('quad comparison needs exactly four items');
+    const seq = ++this.loadSeq;
+    this.loadAbort?.abort();
+    const ac = new AbortController();
+    this.loadAbort = ac;
+    const fetchOne = (url: string) => fetch(url, { signal: ac.signal }).then((r) => {
+      if (!r.ok) throw new Error(`fetch ${url}: HTTP ${r.status}`);
+      return r.arrayBuffer();
+    });
+    try {
+      const bufs = await Promise.all(items.map((x) => fetchOne(x.url)));
+      if (seq !== this.loadSeq || this.disposed) return null;
+      const clouds = bufs.map((b) => decodeSplatCloud(b));
+      this.disposeLayers();
+      this.quadLayers = clouds.map((c) => new SplatLayer(c, { opacityScale: 1 }));
+      this.layerAlphas = {};
+      for (const l of this.quadLayers) {
+        l.setLayerAlphas(this.layerAlphas);
+        this.quadGroup.add(l.mesh);
+      }
+      this.quadCompare = true;
+      this.layer = null;
+      this.layerAlt = null;
+      this.proxy = null;
+      this.fullBytes = items.reduce((s, x) => s + x.bytes, 0);
+      this.prunedBytes = this.fullBytes;
+      this.applyUniforms();
+      this.forceSort = true;
+      return this.quadLayers.map((l, i) => ({ name: items[i].name, splats: l.cloud.count, bytes: items[i].bytes }));
+    } finally {
+      if (this.loadAbort === ac) this.loadAbort = null;
+    }
+  }
+
+  clearQuadCompare() {
+    for (const l of this.quadLayers) l.dispose();
+    this.quadLayers = [];
+    for (const child of [...this.quadGroup.children]) {
+      this.quadGroup.remove(child);
+      disposeObject(child);
+    }
+    this.quadCompare = false;
+    this.forceSort = true;
+  }
+
   private disposeLayers() {
+    this.clearQuadCompare();
     const splatMeshes = new Set<THREE.Object3D>();
     if (this.layer) splatMeshes.add(this.layer.mesh);
     if (this.layerAlt) splatMeshes.add(this.layerAlt.mesh);
@@ -814,11 +865,11 @@ export class DentSplatViewer {
 
   // ------------------------------------------------------------------ state
 
-  activeLayer(): SplatLayer | null { return this.variant === 'full' ? this.layer : this.layerAlt; }
-  primaryLayer(): SplatLayer | null { return this.layer; }
+  activeLayer(): SplatLayer | null { return this.quadCompare && this.quadLayers.length ? this.quadLayers[0] : (this.variant === 'full' ? this.layer : this.layerAlt); }
+  primaryLayer(): SplatLayer | null { return this.quadCompare && this.quadLayers.length ? this.quadLayers[0] : this.layer; }
 
   applyUniforms() {
-    const layers = [this.layer, this.layerAlt];
+    const layers = [this.layer, this.layerAlt, ...this.quadLayers];
     for (const l of layers) {
       if (!l) continue;
       l.setSelected(this.selectedTooth);
@@ -860,12 +911,12 @@ export class DentSplatViewer {
   }
 
   setLayerAlpha(id: number, v: number) {    this.layerAlphas[id] = v;
-    for (const l of [this.layer, this.layerAlt]) l?.setLayerAlpha(id, v);
+    for (const l of [this.layer, this.layerAlt, ...this.quadLayers]) l?.setLayerAlpha(id, v);
   }
 
   setLayerAlphaMap(map: Record<number, number>) {
     this.layerAlphas = { ...map };
-    for (const l of [this.layer, this.layerAlt]) l?.setLayerAlphas(this.layerAlphas);
+    for (const l of [this.layer, this.layerAlt, ...this.quadLayers]) l?.setLayerAlphas(this.layerAlphas);
   }
 
   set(patch: Partial<Pick<DentSplatViewer, 'jawGap' | 'sheen' | 'outline' | 'showLesions' | 'opacity' | 'isolateTooth' | 'hiddenTeeth'> & { clip: DentSplatViewer['clip'] }>) {
@@ -1379,30 +1430,38 @@ export class DentSplatViewer {
     const r = this.renderer.getDrawingBufferSize(new THREE.Vector2());
     const vp = new THREE.Vector2(r.x, r.y);
     const view = this.camera.matrixWorldInverse;
-    if (this.splitCompare) {
-      this.layer?.update(view, vp, this.forceSort);
-      this.layerAlt?.update(view, vp, this.forceSort);
+    if (this.quadCompare) {
+      const fw = Math.floor(r.x / 2), fh = Math.floor(r.y / 2);
+      const qvp = new THREE.Vector2(fw, fh);
+      for (const l of this.quadLayers) { (l.u.uViewportPx.value as THREE.Vector2).set(fw, fh); l.update(view, qvp, this.forceSort); }
+      this.forceSort = false;
+      this.renderQuad(r, fw, fh);
     } else {
-      this.activeLayer()?.update(view, vp, this.forceSort);
-    }
-    this.forceSort = false;
+      if (this.splitCompare) {
+        this.layer?.update(view, vp, this.forceSort);
+        this.layerAlt?.update(view, vp, this.forceSort);
+      } else {
+        this.activeLayer()?.update(view, vp, this.forceSort);
+      }
+      this.forceSort = false;
 
-    if (this.splitCompare) {
-      // Two independent viewports, identical camera and projection, different packets.
-      const fw = Math.floor(r.x / 2);
-      this.camera.aspect = fw / r.y; this.camera.updateProjectionMatrix();
-      this.renderer.setScissorTest(true);
-      this.renderer.setViewport(0, 0, fw, r.y);
-      this.renderer.setScissor(0, 0, fw, r.y);
-      this.renderOne(this.layer);
-      this.renderer.setViewport(fw, 0, r.x - fw, r.y);
-      this.renderer.setScissor(fw, 0, r.x - fw, r.y);
-      this.renderOne(this.layerAlt);
-      this.renderer.setScissorTest(false);
-      this.renderer.setViewport(0, 0, r.x, r.y);
-      this.camera.aspect = r.x / r.y; this.camera.updateProjectionMatrix();
-    } else {
-      this.renderOne(null);
+      if (this.splitCompare) {
+        // Two independent viewports, identical camera and projection, different packets.
+        const fw = Math.floor(r.x / 2);
+        this.camera.aspect = fw / r.y; this.camera.updateProjectionMatrix();
+        this.renderer.setScissorTest(true);
+        this.renderer.setViewport(0, 0, fw, r.y);
+        this.renderer.setScissor(0, 0, fw, r.y);
+        this.renderOne(this.layer);
+        this.renderer.setViewport(fw, 0, r.x - fw, r.y);
+        this.renderer.setScissor(fw, 0, r.x - fw, r.y);
+        this.renderOne(this.layerAlt);
+        this.renderer.setScissorTest(false);
+        this.renderer.setViewport(0, 0, r.x, r.y);
+        this.camera.aspect = r.x / r.y; this.camera.updateProjectionMatrix();
+      } else {
+        this.renderOne(null);
+      }
     }
 
     const ms = performance.now() - t0;
@@ -1442,6 +1501,27 @@ export class DentSplatViewer {
   private forceSort = true;
   private lastStats = 0;
   fullBytes = 0; prunedBytes = 0;
+
+  private renderQuad(r: THREE.Vector2, fw: number, fh: number) {
+    const saved = [this.caseGroup.visible, this.labGroup.visible, this.measureGroup.visible, this.auditGroup.visible, this.gizmo.visible, this.inspectGroup.visible];
+    this.caseGroup.visible = false; this.labGroup.visible = false; this.measureGroup.visible = false;
+    this.auditGroup.visible = false; this.gizmo.visible = false; this.inspectGroup.visible = false;
+    this.camera.aspect = fw / fh; this.camera.updateProjectionMatrix();
+    this.renderer.setScissorTest(true);
+    const pos = [[0, r.y - fh], [fw, r.y - fh], [0, 0], [fw, 0]];
+    for (let k = 0; k < 4; k++) {
+      for (let i = 0; i < this.quadLayers.length; i++) this.quadLayers[i].mesh.visible = i === k;
+      const [x, y] = pos[k];
+      this.renderer.setViewport(x, y, fw, fh);
+      this.renderer.setScissor(x, y, fw, fh);
+      this.renderer.render(this.scene, this.camera);
+    }
+    for (const l of this.quadLayers) l.mesh.visible = true;
+    this.renderer.setScissorTest(false);
+    this.renderer.setViewport(0, 0, r.x, r.y);
+    this.camera.aspect = r.x / r.y; this.camera.updateProjectionMatrix();
+    [this.caseGroup.visible, this.labGroup.visible, this.measureGroup.visible, this.auditGroup.visible, this.gizmo.visible, this.inspectGroup.visible] = saved;
+  }
 
   private renderOne(only: SplatLayer | null) {
     const showSplat = !this.geometricMode();

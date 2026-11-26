@@ -267,8 +267,14 @@ export default function App() {
   const [timelineCompare, setTimelineCompare] = useState(false);
   const [timelineBusy, setTimelineBusy] = useState(false);
   const [timelinePlay, setTimelinePlay] = useState(false);
+  const [quadMode, setQuadMode] = useState(false);
+  const [quadItems, setQuadItems] = useState<{ name: string; splats: number; bytes: number }[]>([]);
+  const isQuad = quadMode;
 
   const switchCase = useCallback((id: string) => {
+    setQuadMode(false);
+    setQuadItems([]);
+    viewerRef.current?.clearQuadCompare();
     setCaseId(id);
     setCustomAssetName(null);
     if (isLocal) setLocalEpoch((e) => e + 1);
@@ -542,6 +548,13 @@ export default function App() {
   useEffect(() => {
     viewerRef.current?.setGaussianIsolate(gaussIsolate);
   }, [gaussIsolate]);
+
+  useEffect(() => {
+    if (!quadMode || railTab === 'methods') return;
+    viewerRef.current?.clearQuadCompare();
+    setQuadMode(false); setQuadItems([]);
+    switchCase('A2');
+  }, [quadMode, railTab, switchCase]);
 
   useEffect(() => {
     let dead = false;
@@ -890,6 +903,48 @@ export default function App() {
       setLoading(false);
     }
   }, [diskBaseline]);
+
+  const startQuadCompare = useCallback(async () => {
+    const v = viewerRef.current;
+    if (!v || !timeline || !diskBaseline) return;
+    const a2 = CASES.find((c) => c.id === 'A2'), a = CASES.find((c) => c.id === 'A');
+    const step0 = timeline.steps.find((s) => s.step === 0);
+    if (!a2 || !a || !step0) return;
+    setLoading(true); setErr(null);
+    setQuadMode(false); setQuadItems([]);
+    setTenX(false); setSplit(false); setMprOn(false); setMethodCompare(false);
+    setTimelineStep(null); setTimelineCompare(false); setTimelinePlay(false);
+    setGaussian(null); setGaussOriginal(null); setAlphaMix(null);
+    v.clearGaussianSelection();
+    try {
+      v.caseId = 'QUAD';
+      const items = await v.loadQuadComparison([
+        { name: 'COLMAP sparse points', url: `${import.meta.env.BASE_URL}assets/${step0.file}`, bytes: step0.bytes },
+        { name: 'Brush 3DGS', url: a2.fullUrl, bytes: allScenes.sceneA_trained?.full.bytes ?? 832835 },
+        { name: 'Surface Sampling', url: a.fullUrl, bytes: allScenes.sceneA_ios?.full.bytes ?? 1196970 },
+        { name: 'Surface-Aligned Disks', url: `${import.meta.env.BASE_URL}assets/${diskBaseline.file}`, bytes: diskBaseline.bytes },
+      ]);
+      if (!items) return;
+      setQuadItems(items);
+      setQuadMode(true);
+      setCustomAssetName('quad:4');
+      setMeta({ unit: 'mm', kind: 'quad', teeth: {}, metrics: {} });
+      setReport(null);
+      setAlphas({}); setLocalLayerIds([]); setSelected(0); setHidden([]); setIsolate(false); setMeasures([]); setProbe(null);
+      setRailTab('methods'); setInspectorOpen(true); setPickerOpen(false);
+      setLabMode('rgb');
+      setLoading(false);
+    } catch (e) {
+      setErr(`四表示对照加载失败: ${String(e)}`);
+      setLoading(false);
+    }
+  }, [allScenes, diskBaseline, timeline]);
+
+  const exitQuadCompare = useCallback(() => {
+    viewerRef.current?.clearQuadCompare();
+    setQuadMode(false); setQuadItems([]);
+    switchCase('A2');
+  }, [switchCase]);
 
   const loadTimelineStep = useCallback(async (step: TimelineStep, compareFinal = timelineCompare) => {
     const v = viewerRef.current;
@@ -1287,7 +1342,7 @@ export default function App() {
     );
   }, [findingFilter, findings]);
 
-  const caseBadge = isTimeline ? `TIMELINE · STEP ${timelineStep ?? '—'}` : isDiskMethod ? 'METHOD BASELINE · SURFACE-ALIGNED DISKS' : customAssetName ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : '.DSPK'} · ${customAssetName}` : tenX ? '10× COMPRESSION ABLATION · CASE 03' : mprOn ? 'DTX MPR · CASE 03 · RAW CBCT' : spec.badge;
+  const caseBadge = isQuad ? 'QUAD COMPARISON · SAME CAMERA · 4 REAL REPRESENTATIONS' : isTimeline ? `TIMELINE · STEP ${timelineStep ?? '—'}` : isDiskMethod ? 'METHOD BASELINE · SURFACE-ALIGNED DISKS' : customAssetName ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : '.DSPK'} · ${customAssetName}` : tenX ? '10× COMPRESSION ABLATION · CASE 03' : mprOn ? 'DTX MPR · CASE 03 · RAW CBCT' : spec.badge;
 
   // ---------------------------------------------------------------- render
 
@@ -1444,7 +1499,7 @@ export default function App() {
           ))}
         </div>
         <div className="dtx-spacer" />
-        <div className="subtab-info">{isTimeline ? `TIMELINE · step ${timelineStep ?? '—'} · ${report ? `${fmtInt(report.full.splats)} splats` : ''}` : isDiskMethod ? `METHOD BASELINE · ${report ? `${fmtInt(report.full.splats)} disks` : ''}` : isLocal ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : 'DSPK'} · ${customAssetName}` : `${spec.code} · ${spec.title}`}</div>
+        <div className="subtab-info">{isQuad ? `QUAD · ${quadItems.map((q) => `${q.name} ${fmtInt(q.splats)}`).join(' / ')}` : isTimeline ? `TIMELINE · step ${timelineStep ?? '—'} · ${report ? `${fmtInt(report.full.splats)} splats` : ''}` : isDiskMethod ? `METHOD BASELINE · ${report ? `${fmtInt(report.full.splats)} disks` : ''}` : isLocal ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : 'DSPK'} · ${customAssetName}` : `${spec.code} · ${spec.title}`}</div>
       </div>
 
       <div className={'dtx-workspace' + (inspectorOpen ? '' : ' collapsed')}>
@@ -1454,8 +1509,8 @@ export default function App() {
             <div className="scene-group">DATASET</div>
             <div className="scene-root" title={isLocal ? customAssetName ?? '' : spec.title}>
               <i className="scene-dot live" />
-              <b>{isLocal ? (customAssetName ?? 'LOCAL') : spec.shortTitle}</b>
-              <small>{report ? `${fmtInt(report.full.splats)} splats · ${fmtMB(report.full.bytes)} MB` : 'loading…'}</small>
+              <b>{isQuad ? '4-representation comparison' : isLocal ? (customAssetName ?? 'LOCAL') : spec.shortTitle}</b>
+              <small>{isQuad ? '4 real assets · one camera' : report ? `${fmtInt(report.full.splats)} splats · ${fmtMB(report.full.bytes)} MB` : 'loading…'}</small>
             </div>
 
             <div className="scene-group">REPRESENTATIONS</div>
@@ -1514,7 +1569,7 @@ export default function App() {
           <div className="vp-header">
             <div className="hud vp-title">
               <span className="vp-green-sq" />
-              <b>{railTab === 'lab' ? 'Gaussian Lab' : railTab === 'methods' ? 'Method Comparison' : railTab === 'recon' ? 'Reconstruction Timeline' : '3DGS Viewer'}</b>
+              <b>{isQuad ? 'Quad Comparison' : railTab === 'lab' ? 'Gaussian Lab' : railTab === 'methods' ? 'Method Comparison' : railTab === 'recon' ? 'Reconstruction Timeline' : '3DGS Viewer'}</b>
               <span className="vp-sep">|</span>
               <span className="vp-stat"><b className={stats.fps >= 55 ? 'ok' : ''}>{stats.fps}</b> FPS</span>
               <span className="vp-stat">{fmtInt(stats.splats)} splats</span>
@@ -1571,6 +1626,18 @@ export default function App() {
           )}
 
           <canvas id="gl" ref={canvasRef} />
+
+          {isQuad && (
+            <div className="quad-overlay">
+              {quadItems.map((q) => (
+                <div className="quad-label" key={q.name}>
+                  <b>{q.name}</b>
+                  <small>{fmtInt(q.splats)} splats · {fmtMB(q.bytes)} MB</small>
+                </div>
+              ))}
+              <button type="button" className="quad-exit" onClick={exitQuadCompare}>退出四视口</button>
+            </div>
+          )}
 
           <div className="vp-corner-bl">
             <div className="vp-coord">
@@ -1896,6 +1963,10 @@ export default function App() {
               <button type="button" className="tbar-btn primary method-compare-btn" onClick={startMethodCompare}>
                 同源双视口：Surface Sampling ↔ Brush 3DGS
               </button>
+              <button type="button" className="tbar-btn method-compare-btn" onClick={() => void startQuadCompare()} disabled={!timeline || !diskBaseline}>
+                四表示同步对照：COLMAP / Brush / Sampling / Disks
+              </button>
+              <p className="source-note">四视口共用同一相机，资产来自同一 Poseidon3D 000125 扫描；COLMAP 点、Brush、采样与磁盘基线都是真实产物或可复算基线，不包含未训练的 2DGS/Mip-Splatting。</p>
               <p className="source-note">Case 01 与 Case 10 来自同一 Poseidon3D 000125 口扫；左侧为 Brush 训练版（28,691 高斯），右侧为未训练采样基线（59,808 高斯）。两视口共用相机、坐标架与时间。</p>
               {methodCompare && <div className="method-live">METHOD COMPARISON ACTIVE · split camera locked · 左 Brush / 右 Sampling</div>}
 
@@ -2313,8 +2384,10 @@ export default function App() {
                 <dt>Proxy</dt>
                 <dd>{isLocal ? 'None · splat-only picking' : report?.proxy?.triangles != null && report.proxy.kb != null ? `${(report.proxy.triangles / 1000).toFixed(1)}k tri · ${report.proxy.kb.toFixed(0)} KB` : '—'}</dd>
               </dl>
-              <p className="source-note">{isTimeline
-                ? `真实 Brush 重训 checkpoint · step ${timelineStep ?? '—'}。该独立重训用于展示训练过程；checkpoint 没有 FDI/层标签，也不继承已发布 Case 01 的 proxy 或报告。`
+              <p className="source-note">{isQuad
+                ? '四表示同步对照：COLMAP 稀疏点、Brush 3DGS、Surface Sampling、Mesh-Aligned Disks，四个真实资产共用同一相机；不是 2DGS/Mip-Splatting 训练结果。'
+                : isTimeline
+                  ? `真实 Brush 重训 checkpoint · step ${timelineStep ?? '—'}。该独立重训用于展示训练过程；checkpoint 没有 FDI/层标签，也不继承已发布 Case 01 的 proxy 或报告。`
                 : isDiskMethod
                   ? '表示基线：与 Case 10 使用完全相同的 0.35 mm 采样中心、颜色和 FDI，只把协方差替换成沿源网格法线的扁平圆盘（切向 0.30 mm、法向 0.03 mm）。这不是 2DGS 算法，也没有训练过程。'
                   : isPlyLocal

@@ -11,7 +11,7 @@
 - **Gaussian Lab**：RGB、真实 1/2/3σ 高斯椭球、中心点云、椭球线框、Opacity、Scale、估计法线与深度八种视图；椭球按真实协方差 `Σ = R diag(s²) Rᵀ` 构造。
 - **Gaussian Inspector**：点击单个高斯，读取 μ、σ、四元数、不透明度、DC 颜色、SH1 系数、协方差与特征轴；可实时编辑位置、尺度和不透明度，并导出当前高斯云为标准 3DGS PLY。
 - **FP32 PLY 导入**：浏览器直读 binary/ascii 3DGS PLY，位置/尺度/旋转/颜色/不透明度走 FP32 着色器路径，不先量化成 DSPK；SH3 的 l=2/l=3 通过顶点浮点纹理在 GPU 评估，SH0–SH3 系数可无损导出。PLY 不声明长度单位时界面以原始单位 `u` 展示。
-- **同源方法对照**：Case 01（Brush 3DGS）与 Case 10（0.35 mm Surface Sampling）共用相机分屏；网格几何审计同时给出 DSPK 与 FP32 两行，以分离传输量化与重建误差。
+- **同源方法对照**：Case 01（Brush 3DGS）与 Case 10（0.35 mm Surface Sampling）共用相机分屏；Methods 还能一键打开四个真实表示的 2×2 同相机对照：COLMAP 稀疏点、Brush 3DGS、Surface Sampling、Mesh-Aligned Disks。网格几何审计同时给出 DSPK 与 FP32 两行，以分离传输量化与重建误差。
 - **重建产物时间轴**：除已发布的最终资产外，使用同一 120 视角数据和 Brush 独立重训了一次，导出 1k / 2k / 3k / 5k / 10k / 15k 六个真实高斯 checkpoint（25,581 → 28,694 splats），可直接在网页加载对比；训练 loss 行未输出，因此不画示意曲线。
 - **压缩与研究对比**：10× 等字节 Uniform / Anatomy-Aware、Full 参考 PSNR/MAE、逐层误差、FDI 中心距变化，以及 160×140×128 CBCT MPR。
 - **临床辅助仍保留**：FDI 牙位、三轴剖切、测量、MPR、AI 报告审计只作为辅助视图，不再占据产品中心。
