@@ -60,6 +60,7 @@ export class SplatLayer {
   private indexAttr: THREE.BufferAttribute;
   private lastKey = '';
   private lastSort = 0;
+  private sh3Tex: THREE.DataTexture | null = null;
   visible = 0;
   forceDirty = true;
 
@@ -129,9 +130,26 @@ export class SplatLayer {
     geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1e4);
     this.geometry = geo;
 
+    if (raw?.shRest && raw.shRestCount >= 45) {
+      const width = 1024, texels = 12;
+      const height = Math.max(1, Math.ceil(n * texels / width));
+      const data = new Float32Array(width * height * 4);
+      for (let i = 0; i < n; i++) {
+        for (let k = 0; k < 45; k++) {
+          const idx = i * texels + (k >> 2);
+          data[idx * 4 + (k & 3)] = raw.shRest[i * raw.shRestCount + k];
+        }
+      }
+      this.sh3Tex = new THREE.DataTexture(data, width, height, THREE.RGBAFormat, THREE.FloatType);
+      this.sh3Tex.minFilter = THREE.NearestFilter;
+      this.sh3Tex.magFilter = THREE.NearestFilter;
+      this.sh3Tex.generateMipmaps = false;
+      this.sh3Tex.needsUpdate = true;
+    }
+
     this.material = new THREE.ShaderMaterial({
       glslVersion: THREE.GLSL3,
-      defines: raw ? { RAW_PLY: 1 } : {},
+      defines: raw ? { RAW_PLY: 1, ...(this.sh3Tex ? { SH3: 1 } : {}) } : {},
       vertexShader: SPLAT_VERTEX,
       fragmentShader: SPLAT_FRAGMENT,
       transparent: true,
@@ -175,6 +193,8 @@ export class SplatLayer {
         uShowLesions: { value: 1 },
         uInspectIndex: { value: -1 },
         uInspectOnly: { value: 0 },
+        uSHTex: { value: this.sh3Tex },
+        uSHTexWidth: { value: 1024 },
       },
     });
 
@@ -453,6 +473,8 @@ export class SplatLayer {
   dispose() {
     this.geometry.dispose();
     this.material.dispose();
+    this.sh3Tex?.dispose();
+    this.sh3Tex = null;
   }
 }
 

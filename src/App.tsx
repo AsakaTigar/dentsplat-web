@@ -1925,7 +1925,9 @@ export default function App() {
                     </>
                   )}
                   {gaussian.shDegree > 1 && (
-                    <p className="source-note">该文件含 SH{gaussian.shDegree} 字段；导入/导出会保留全部 f_rest 系数，但当前 GPU 渲染只评估 DC + l=1，l≥2 未渲染，不能据此宣称 SH{gaussian.shDegree} 渲染。</p>
+                    <p className="source-note">该文件含 SH{gaussian.shDegree} 字段；导入/导出保留全部 f_rest 系数。{gaussian.shDegree === 3
+                      ? ' FP32 PLY 的 l=2/l=3 已通过顶点纹理在 GPU 评估；DSPK 包仍只携带 DC+l=1。'
+                      : ' 当前 GPU 只评估 DC+l=1；l=2 系数保留但未单独渲染。'}</p>
                   )}
 
                   <div className="sec-head"><span>LIVE EDIT</span><b>writes this Gaussian</b></div>

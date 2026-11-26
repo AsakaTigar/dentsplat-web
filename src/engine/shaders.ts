@@ -22,6 +22,10 @@ attribute vec4 aRotF;        // FP32 quaternion x,y,z,w
 attribute vec4 aScaleAlphaF; // FP32 sigma x,y,z (mm) + opacity
 attribute vec3 aColorF;      // FP32 linear colour
 attribute mat3 aSH1F;        // FP32 l=1 bands, column = channel: (y, z, x)
+#ifdef SH3
+uniform highp sampler2D uSHTex;
+uniform int uSHTexWidth;
+#endif
 #else
 attribute vec4 aRot;         // snorm quaternion x,y,z,w
 attribute vec3 aScale;       // 0..255 log-scale
@@ -81,6 +85,20 @@ mat3 quatToMat3(vec4 q) {
     2.0 * (q.x * q.z + q.w * q.y), 2.0 * (q.y * q.z - q.w * q.x), 1.0 - 2.0 * (q.x * q.x + q.y * q.y)
   );
 }
+
+#ifdef SH3
+float shCoeff(int sid, int k) {
+  int t = k / 4, c = k - t * 4;
+  int idx = sid * 12 + t;
+  int tx = idx % uSHTexWidth;
+  int ty = idx / uSHTexWidth;
+  vec4 v = texelFetch(uSHTex, ivec2(tx, ty), 0);
+  if (c == 0) return v.x;
+  if (c == 1) return v.y;
+  if (c == 2) return v.z;
+  return v.w;
+}
+#endif
 
 bool toothHidden(int fdi) {
   int lo = int(uint(fdi) & 31u);
@@ -250,6 +268,34 @@ void main() {
       vec3 d = normalize(pos - cameraPosition);
       vec3 dir = vec3(-d.y, d.z, -d.x);
       col += SH_C1 * vec3(dot(dir, sh[0]), dot(dir, sh[1]), dot(dir, sh[2])) * uSheen;
+#ifdef SH3
+      float x = d.x, y = d.y, z = d.z;
+      float b2[5];
+      b2[0] = 1.0925484305920792 * x * y;
+      b2[1] = -1.0925484305920792 * y * z;
+      b2[2] = 0.31539156525252005 * (2.0 * z * z - x * x - y * y);
+      b2[3] = -1.0925484305920792 * x * z;
+      b2[4] = 0.5462742152960396 * (x * x - y * y);
+      float b3[7];
+      b3[0] = -0.5900435899266435 * y * (3.0 * x * x - y * y);
+      b3[1] = 2.890611442640554 * x * y * z;
+      b3[2] = -0.4570457994644658 * y * (4.0 * z * z - x * x - y * y);
+      b3[3] = 0.3731763325901154 * z * (2.0 * z * z - 3.0 * x * x - 3.0 * y * y);
+      b3[4] = -0.4570457994644658 * x * (4.0 * z * z - x * x - y * y);
+      b3[5] = 1.445305721320277 * z * (x * x - y * y);
+      b3[6] = -0.5900435899266435 * x * (x * x - 3.0 * y * y);
+      vec3 sh2 = vec3(0.0), sh3 = vec3(0.0);
+      for (int c = 0; c < 3; c++) {
+        int base = c * 15;
+        float v2 = 0.0, v3 = 0.0;
+        for (int k = 0; k < 5; k++) v2 += b2[k] * shCoeff(splatId, base + 3 + k);
+        for (int k = 0; k < 7; k++) v3 += b3[k] * shCoeff(splatId, base + 8 + k);
+        if (c == 0) { sh2.r = v2; sh3.r = v3; }
+        else if (c == 1) { sh2.g = v2; sh3.g = v3; }
+        else { sh2.b = v2; sh3.b = v3; }
+      }
+      col += (sh2 + sh3) * uSheen;
+#endif
     }
   }
   if (capW > 0.0) {
