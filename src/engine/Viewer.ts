@@ -14,6 +14,13 @@ export type ProjectedGaussian = {
   depthMm: number;
   viewportPx: [number, number];
 };
+export type AlphaComposition = {
+  targetPx: [number, number];
+  coverage: number;
+  color: [number, number, number];
+  contributors: { index: number; depthMm: number; alpha: number; weight: number; color: [number, number, number] }[];
+  neighborhoodMm: number;
+};
 
 export type ViewPreset = {
   id: string; label: string; sub?: string;
@@ -613,6 +620,53 @@ export class DentSplatViewer {
       angleRad: Math.atan2(ax.y, ax.x),
       depthMm: z,
       viewportPx: [w, h],
+    };
+  }
+
+  /** Local alpha compositing at the selected Gaussian's projected pixel.
+   *  Candidates are true scene splats within a 3D neighbourhood, projected with EWA covariance. */
+  alphaComposition(index: number, radiusMm = 6): AlphaComposition | null {
+    const layer = this.primaryLayer();
+    const base = layer?.stateOf(index);
+    const target = this.projectedGaussian(index);
+    if (!layer || !base || !target) return null;
+    const [tx, ty] = target.centerPx;
+    const planes = this.clipPlanes();
+    const rows: { index: number; depthMm: number; alpha: number; weight: number; color: [number, number, number] }[] = [];
+    for (let i = 0; i < layer.cloud.count; i++) {
+      const dx = layer.centers[i * 3] - base.center[0];
+      const dy = layer.centers[i * 3 + 1] - base.center[1];
+      const dz = layer.centers[i * 3 + 2] - base.center[2];
+      if (dx * dx + dy * dy + dz * dz > radiusMm * radiusMm) continue;
+      if (this.fdiHidden(layer.cloud.misc[i * 4 + 1]) || (this.layerAlphas[layer.cloud.misc[i * 4 + 2]] ?? 1) <= 0.001) continue;
+      const w = new THREE.Vector3(layer.centers[i * 3], layer.centers[i * 3 + 1], layer.centers[i * 3 + 2]);
+      if (!this.pointPassesClip(w, planes)) continue;
+      const p = this.projectedGaussian(i);
+      if (!p) continue;
+      const c = Math.cos(p.angleRad), s = Math.sin(p.angleRad);
+      const px = p.centerPx[0] - tx, py = p.centerPx[1] - ty;
+      const u = c * px + s * py, v = -s * px + c * py;
+      const r2 = (u / p.sigmaPx[0]) ** 2 + (v / p.sigmaPx[1]) ** 2;
+      if (r2 > 18) continue;
+      const st = layer.stateOf(i)!;
+      const alpha = st.alpha * (this.layerAlphas[st.layer] ?? 1);
+      if (alpha <= 0.001) continue;
+      rows.push({ index: i, depthMm: p.depthMm, alpha, weight: alpha * Math.exp(-0.5 * r2), color: st.color as [number, number, number] });
+    }
+    rows.sort((a, b) => b.depthMm - a.depthMm);
+    let T = 1;
+    const C = [0, 0, 0];
+    for (const r of rows) {
+      const a = Math.min(1, Math.max(0, r.weight));
+      C[0] += r.color[0] * a * T; C[1] += r.color[1] * a * T; C[2] += r.color[2] * a * T;
+      T *= 1 - a;
+    }
+    const coverage = 1 - T;
+    return {
+      targetPx: [tx, ty], coverage,
+      color: coverage > 1e-5 ? [C[0] / coverage, C[1] / coverage, C[2] / coverage] : [0, 0, 0],
+      contributors: [...rows].sort((a, b) => b.weight - a.weight).slice(0, 8),
+      neighborhoodMm: radiusMm,
     };
   }
 

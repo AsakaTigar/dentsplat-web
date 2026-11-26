@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type * as THREE from 'three';
 import { DentSplatViewer } from './engine/Viewer.ts';
-import type { BenchResult, ClearanceAudit, ClipAxis, CompressionBenchResult, LabInfo, LabMode, PickerHit, ProbeResult, Stats, ViewPreset } from './engine/Viewer.ts';
+import type { AlphaComposition, BenchResult, ClearanceAudit, ClipAxis, CompressionBenchResult, LabInfo, LabMode, PickerHit, ProbeResult, Stats, ViewPreset } from './engine/Viewer.ts';
 import type { GaussianInspect, Vec3 } from './engine/gaussian.ts';
 import { parseGaussianPly } from './engine/ply.ts';
 import { CASES, AUDIT_BASIS, LESION_LABEL } from './data/cases.ts';
@@ -246,6 +246,7 @@ export default function App() {
   const [labInfo, setLabInfo] = useState<LabInfo | null>(null);
   const [gaussian, setGaussian] = useState<GaussianInspect | null>(null);
   const [gaussOriginal, setGaussOriginal] = useState<GaussianInspect | null>(null);
+  const [alphaMix, setAlphaMix] = useState<AlphaComposition | null>(null);
   const [gaussIsolate, setGaussIsolate] = useState(false);
   const [plyNote, setPlyNote] = useState<string | null>(null);
 
@@ -303,11 +304,13 @@ export default function App() {
         v.clearGaussianSelection();
         setGaussian(null);
         setGaussOriginal(null);
+        setAlphaMix(null);
         return;
       }
       const info = v.selectGaussian(index);
       setGaussian(info);
       setGaussOriginal(info);
+      setAlphaMix(null);
       setRailTab('lab');
       setInspectorOpen(true);
     };
@@ -1892,6 +1895,35 @@ export default function App() {
                   <GaussianPlot sigmas={gaussian.axes.sigmas} unit={gaussUnit} />
                   <div className="sec-head"><span>SCREEN-SPACE PROJECTION</span><b>live camera</b></div>
                   <ProjectionPlot viewer={viewerRef.current} index={gaussian.index} />
+                  <div className="quick-row">
+                    <button
+                      type="button"
+                      className="tbar-btn"
+                      onClick={() => setAlphaMix(viewerRef.current?.alphaComposition(gaussian.index, 6) ?? null)}
+                    >
+                      分析像素混合
+                    </button>
+                    <span className="timeline-hint">真实场景中 6 mm 邻域</span>
+                  </div>
+                  {alphaMix && (
+                    <>
+                      <div className="alpha-summary">
+                        <i style={{ background: `rgb(${alphaMix.color.map((v) => Math.round(v * 255)).join(',')})` }} />
+                        <span>像素覆盖率 α <b>{(alphaMix.coverage * 100).toFixed(1)}%</b> · 前 {alphaMix.contributors.length} 个贡献者</span>
+                      </div>
+                      <div className="alpha-list">
+                        {alphaMix.contributors.map((c) => (
+                          <div key={c.index}>
+                            <span>#{c.index}</span>
+                            <span>z {c.depthMm.toFixed(1)} mm</span>
+                            <span>α {c.alpha.toFixed(3)}</span>
+                            <b>{(c.weight * 100).toFixed(1)}%</b>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="source-note">局部合成快照：候选为对象空间 6 mm 邻域内的真实高斯，按当前相机 EWA 投影与深度由远到近累积；不是全射线体素遍历，移动相机后需重算。</p>
+                    </>
+                  )}
                   {gaussian.shDegree > 1 && (
                     <p className="source-note">该文件含 SH{gaussian.shDegree} 字段；导入/导出会保留全部 f_rest 系数，但当前 GPU 渲染只评估 DC + l=1，l≥2 未渲染，不能据此宣称 SH{gaussian.shDegree} 渲染。</p>
                   )}
