@@ -1024,12 +1024,12 @@ export default function App() {
     if (info) setGaussian(info);
   }, [gaussian, gaussOriginal]);
 
-  const shoot = useCallback(() => {
-    const data = viewerRef.current?.snapshot();
+  const shoot = useCallback((size?: number) => {
+    const data = size ? viewerRef.current?.renderToDataURL(size) : viewerRef.current?.snapshot();
     if (!data) return;
     const a = document.createElement('a');
     a.href = data;
-    a.download = `dentsplat_${caseId}_${Date.now()}.png`;
+    a.download = `dentsplat_${caseId}_${size ? `${size}px` : 'view'}_${Date.now()}.png`;
     a.click();
   }, [caseId]);
 
@@ -1392,8 +1392,11 @@ export default function App() {
           <button type="button" className="rib-btn" onClick={resetView}>
             <Icon name="reset" /><span>重置视图</span>
           </button>
-          <button type="button" className="rib-btn" onClick={shoot}>
+          <button type="button" className="rib-btn" onClick={() => shoot()}>
             <Icon name="camera" /><span>导出影像</span>
+          </button>
+          <button type="button" className="rib-btn" onClick={() => shoot(3840)} title="离屏渲染 3840px 宽 PNG（约 4K），不改变当前画布尺寸">
+            <Icon name="camera" /><span>4K 截图</span>
           </button>
           <button type="button" className="rib-btn" onClick={saveReview} title="保存病例、牙位、切片坐标、测量与审计结果为 JSON">
             <Icon name="audit" /><span>保存记录</span>
