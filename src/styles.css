@@ -664,3 +664,4 @@ input[type=range] { width: 100%; accent-color: var(--clinical); height: 15px; cu
 .timeline-warning { border-left: 2px solid var(--amber); padding-left: 7px; color: #d6b17a; }
 .timeline-toggle { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #9aa3b4; cursor: pointer; }
 .timeline-toggle input { accent-color: var(--clinical); }
+.timeline-hint { color: #6f7889; font: 9.5px/1.4 ui-monospace, Menlo, Consolas, monospace; }

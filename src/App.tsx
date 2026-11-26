@@ -259,6 +259,7 @@ export default function App() {
   const [timelineStep, setTimelineStep] = useState<number | null>(null);
   const [timelineCompare, setTimelineCompare] = useState(false);
   const [timelineBusy, setTimelineBusy] = useState(false);
+  const [timelinePlay, setTimelinePlay] = useState(false);
 
   const switchCase = useCallback((id: string) => {
     setCaseId(id);
@@ -274,6 +275,7 @@ export default function App() {
     setPlyNote(null);
     setTimelineStep(null);
     setTimelineCompare(false);
+    setTimelinePlay(false);
     setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
     viewerRef.current?.clearAudit();
     viewerRef.current?.clearGaussianSelection();
@@ -501,7 +503,7 @@ export default function App() {
       const h = hashCase();
       if (CASES.some((c) => c.id === h) && h !== caseId) {
         setCaseId(h); setCustomAssetName(null); if (isLocal) setLocalEpoch((e) => e + 1); setTenX(false); setSplit(false); setMprOn(false);
-        setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null); setTimelineStep(null); setTimelineCompare(false);
+        setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null); setTimelineStep(null); setTimelineCompare(false); setTimelinePlay(false);
         setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
         viewerRef.current?.clearAudit();
         viewerRef.current?.clearGaussianSelection();
@@ -732,7 +734,7 @@ export default function App() {
     try {
       setLoading(true); setErr(null);
       setTenX(false); setSplit(false); setMprOn(false); setVariant('full'); setBench(null); setCompressionBench(null);
-      setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null); setTimelineStep(null); setTimelineCompare(false);
+      setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setPlyNote(null); setTimelineStep(null); setTimelineCompare(false); setTimelinePlay(false);
       setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
       setSelected(0); setHidden([]); setIsolate(false); setMeasures([]); setProbe(null); setActiveFindingId(null);
       const head = new DataView(await file.arrayBuffer());
@@ -876,6 +878,17 @@ export default function App() {
       setTimelineBusy(false);
     }
   }, [allScenes, timelineBusy, timelineCompare]);
+
+  useEffect(() => {
+    if (!timelinePlay) return;
+    if (railTab !== 'recon' || !timeline) { setTimelinePlay(false); return; }
+    if (timelineBusy) return;
+    const idx = timeline.steps.findIndex((s) => s.step === timelineStep);
+    const next = idx < 0 ? timeline.steps[0] : timeline.steps[idx + 1];
+    if (!next) { setTimelinePlay(false); return; }
+    const timer = window.setTimeout(() => { void loadTimelineStep(next); }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [timelinePlay, timeline, timelineStep, timelineBusy, railTab, loadTimelineStep]);
 
   const changeLabMode = useCallback((mode: LabMode) => {
     setLabMode(mode);
@@ -1656,6 +1669,17 @@ export default function App() {
               <div className="sec-head"><span>BRUSH CHECKPOINTS · LIVE LOAD</span><b>{timeline ? `${timeline.steps.length} steps` : 'loading…'}</b></div>
               {timeline ? (
                 <>
+                  <div className="quick-row">
+                    <button
+                      type="button"
+                      className={'tbar-btn' + (timelinePlay ? ' on' : '')}
+                      disabled={timelineBusy}
+                      onClick={() => setTimelinePlay((p) => !p)}
+                    >
+                      {timelinePlay ? '暂停序列' : '播放训练序列'}
+                    </button>
+                    <span className="timeline-hint">1.2 s / step · 真实 checkpoint</span>
+                  </div>
                   <div className="recon-checkpoints">
                     {timeline.steps.map((s) => (
                       <button
