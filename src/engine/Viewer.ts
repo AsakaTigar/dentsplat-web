@@ -1086,6 +1086,17 @@ export class DentSplatViewer {
     return state;
   }
 
+  setGaussianPosition(index: number, center: Vec3): GaussianInspect | null {
+    const layer = this.primaryLayer();
+    const actual = layer?.setSplatPosition(index, center);
+    if (!layer || !actual) return null;
+    const state = layer.inspect(index);
+    if (state) this.drawInspectMarker(layer, index, state);
+    if (this.geometricMode()) this.setLabMode(this.labMode);
+    this.forceSort = true;
+    return state;
+  }
+
   setGaussianScale(index: number, scales: Vec3): GaussianInspect | null {
     const layer = this.primaryLayer();
     const actual = layer?.setSplatScale(index, scales);

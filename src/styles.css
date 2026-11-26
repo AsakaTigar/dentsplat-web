@@ -587,3 +587,9 @@ input[type=range] { width: 100%; accent-color: var(--clinical); height: 15px; cu
 .recon-steps li.missing { border-color: rgba(245, 158, 11, .25); background: rgba(245, 158, 11, .04); }
 .recon-steps li.missing span { color: #d6a35c; }
 .recon-steps .tbar-btn { padding: 2px 6px; font-size: 10px; height: 20px; }
+.geom-audit { display: grid; gap: 2px; font: 9.5px/1.4 ui-monospace, Menlo, Consolas, monospace; }
+.ga-head, .ga-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 7px; align-items: center; padding: 4px 6px; }
+.ga-head { color: var(--muted); border-bottom: 1px solid var(--border); font-size: 9px; }
+.ga-row { background: #171a20; border: 1px solid #22262e; border-radius: 3px; color: #aab3c2; }
+.ga-row b { color: #d8dee9; font-family: inherit; }
+.ga-row span:not(:first-of-type) { text-align: right; white-space: nowrap; }

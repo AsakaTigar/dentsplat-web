@@ -270,6 +270,27 @@ export class SplatLayer {
     };
   }
 
+  setSplatPosition(i: number, center: Vec3): Vec3 | null {
+    if (i < 0 || i >= this.cloud.count) return null;
+    const c = this.cloud;
+    let actual: Vec3;
+    if (c.raw) {
+      actual = [...center] as Vec3;
+      for (let k = 0; k < 3; k++) c.raw.centers[i * 3 + k] = actual[k];
+    } else {
+      const span = [c.bboxMax[0] - c.bboxMin[0], c.bboxMax[1] - c.bboxMin[1], c.bboxMax[2] - c.bboxMin[2]];
+      const bytes = center.map((v, k) => Math.round(Math.min(1, Math.max(0, (v - c.bboxMin[k]) / Math.max(1e-6, span[k]))) * 65535));
+      actual = bytes.map((b, k) => c.bboxMin[k] + (b / 65535) * span[k]) as Vec3;
+      for (let k = 0; k < 3; k++) c.pos[i * 3 + k] = bytes[k];
+    }
+    for (let k = 0; k < 3; k++) this.centers[i * 3 + k] = actual[k];
+    const attr = this.geometry.getAttribute('aCenter') as THREE.BufferAttribute;
+    const arr = attr.array as Float32Array;
+    for (let v = 0; v < 4; v++) for (let k = 0; k < 3; k++) arr[(i * 4 + v) * 3 + k] = actual[k];
+    attr.needsUpdate = true;
+    return actual;
+  }
+
   setSplatScale(i: number, scales: Vec3): Vec3 | null {
     if (i < 0 || i >= this.cloud.count) return null;
     const next = scales.map((s) => Math.min(5, Math.max(1e-4, s))) as Vec3;

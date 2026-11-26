@@ -50,6 +50,19 @@ type MetaFile = {
   metrics?: Record<string, number | number[]>;
 };
 
+type GeometryMethod = {
+  count: number;
+  cloud_to_mesh: { mean_mm: number; p50_mm: number; p95_mm: number; max_mm: number };
+  mesh_to_cloud: { mean_mm: number; p50_mm: number; p95_mm: number; max_mm: number };
+  fscore: { threshold_mm: number; precision: number; recall: number };
+  normal_abs_dot: { mean: number; p50: number; p10: number };
+};
+type GeometryAudit = {
+  source_mesh: { triangles: number; vertices: number; sample_note: string };
+  methods: { brush_3dgs: GeometryMethod; surface_sampling: GeometryMethod };
+  caveat: string;
+};
+
 type RailTab = 'findings' | 'lab' | 'methods' | 'recon' | 'layers' | 'slice' | 'audit' | 'source';
 
 const LAB_MODES: { id: LabMode; label: string; note: string }[] = [
@@ -218,6 +231,7 @@ export default function App() {
   const [pickerOpen, setPickerOpen] = useState(true);
   const [caseQuery, setCaseQuery] = useState('');
   const [allScenes, setAllScenes] = useState<Record<string, SceneReport>>({});
+  const [geometryAudit, setGeometryAudit] = useState<GeometryAudit | null>(null);
 
   const switchCase = useCallback((id: string) => {
     setCaseId(id);
@@ -334,6 +348,7 @@ export default function App() {
       labInfo: () => v.labInfo,
       selectGaussian: (index: number, focus = false) => v.selectGaussian(index, { focus }),
       gaussian: () => (v.inspectedIndex >= 0 ? v.primaryLayer()?.inspect(v.inspectedIndex) ?? null : null),
+      editGaussianPosition: (index: number, center: Vec3) => v.setGaussianPosition(index, center),
       editGaussianScale: (index: number, scales: Vec3) => v.setGaussianScale(index, scales),
       editGaussianOpacity: (index: number, alpha: number) => v.setGaussianOpacity(index, alpha),
       screen: () => {
@@ -484,6 +499,15 @@ export default function App() {
   useEffect(() => {
     viewerRef.current?.setGaussianIsolate(gaussIsolate);
   }, [gaussIsolate]);
+
+  useEffect(() => {
+    let dead = false;
+    fetch(`${import.meta.env.BASE_URL}assets/geometry_metrics.json`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((x) => { if (!dead && x?.schema === 'dentsplat-geometry-audit-v1') setGeometryAudit(x as GeometryAudit); })
+      .catch(() => {});
+    return () => { dead = true; };
+  }, []);
 
   useEffect(() => { viewerRef.current?.setLayerAlphaMap(alphas); }, [alphas, caseId]);
   useEffect(() => {
@@ -805,9 +829,19 @@ export default function App() {
     if (info) setGaussian(info);
   }, [gaussian]);
 
+  const editGaussPosition = useCallback((axis: 0 | 1 | 2, value: number) => {
+    const v = viewerRef.current;
+    if (!v || !gaussian) return;
+    const next = [...gaussian.center] as Vec3;
+    next[axis] = value;
+    const info = v.setGaussianPosition(gaussian.index, next);
+    if (info) setGaussian(info);
+  }, [gaussian]);
+
   const resetGaussian = useCallback(() => {
     const v = viewerRef.current;
     if (!v || !gaussian || !gaussOriginal) return;
+    v.setGaussianPosition(gaussian.index, gaussOriginal.center);
     v.setGaussianScale(gaussian.index, gaussOriginal.scales);
     const info = v.setGaussianOpacity(gaussian.index, gaussOriginal.alpha);
     if (info) setGaussian(info);
@@ -854,13 +888,14 @@ export default function App() {
           measured_mm: c.result?.distance ?? null, point_a_mm: c.result?.a ?? null, point_b_mm: c.result?.b ?? null })),
       },
       compression: { ablation, full_reference_bench: compressionBench },
+      geometry_audit: geometryAudit,
       stats: v?.statsSnapshot() ?? null,
     };
     const blob = new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob), a = document.createElement('a');
     a.href = url; a.download = `dentsplat_review_${isLocal ? 'LOCAL' : caseId}_FDI${selected || 'all'}_${Date.now()}.json`; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }, [ablation, auditClaims, cap, caseId, clipAxis, clipBand, clipOffset, compressionBench, cursorMm, customAssetName, flip, gaussOriginal, gaussian, heatmap, isLocal, jaw, labInfo, labMode, measures, mprMask, mprOn, plyNote, selected, spec, split, tenX, variant]);
+  }, [ablation, auditClaims, cap, caseId, clipAxis, clipBand, clipOffset, compressionBench, cursorMm, customAssetName, flip, gaussOriginal, gaussian, geometryAudit, heatmap, isLocal, jaw, labInfo, labMode, measures, mprMask, mprOn, plyNote, selected, spec, split, tenX, variant]);
 
   const toggleHide = useCallback((fdi: number) => {
     setHidden((h) => (h.includes(fdi) ? h.filter((x) => x !== fdi) : [...h, fdi]));
@@ -1526,6 +1561,28 @@ export default function App() {
               </button>
               <p className="source-note">Case 01 与 Case 10 来自同一 Poseidon3D 000125 口扫；左侧为 Brush 训练版（28,691 高斯），右侧为未训练采样基线（59,808 高斯）。两视口共用相机、坐标架与时间。</p>
               {methodCompare && <div className="method-live">METHOD COMPARISON ACTIVE · split camera locked · 左 Brush / 右 Sampling</div>}
+
+              <div className="sec-head"><span>GEOMETRY AUDIT · CASE 01</span><b>mesh vertex sample</b></div>
+              {geometryAudit ? (
+                <>
+                  <div className="geom-audit">
+                    <div className="ga-head"><span>method</span><span>cloud→mesh</span><span>F@0.5</span><span>|n·n|</span></div>
+                    {([
+                      ['Brush 3DGS', geometryAudit.methods.brush_3dgs],
+                      ['Surface Sampling', geometryAudit.methods.surface_sampling],
+                    ] as const).map(([name, m]) => (
+                      <div className="ga-row" key={name}>
+                        <b>{name}</b>
+                        <span>{m.cloud_to_mesh.mean_mm.toFixed(3)} / {m.cloud_to_mesh.p95_mm.toFixed(3)} mm</span>
+                        <span>{(m.fscore.precision * 100).toFixed(1)} / {(m.fscore.recall * 100).toFixed(1)}%</span>
+                        <span>{m.normal_abs_dot.mean.toFixed(3)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="source-note">{geometryAudit.source_mesh.triangles.toLocaleString()} tri / {geometryAudit.source_mesh.vertices.toLocaleString()} verts · cloud→mesh 显示 mean / p95；F@0.5 为 precision / recall。{geometryAudit.caveat}</p>
+                </>
+              ) : <p className="source-note">geometry_metrics.json 尚未加载或不可用。</p>}
+
               <div className="method-caveat">R²-Gaussian 需要 X 射线投影及成像几何，当前 CBCT 分割体数据不能替代；项目不提供伪造的跨方法结果。</div>
             </div>
 
@@ -1563,6 +1620,21 @@ export default function App() {
                   )}
 
                   <div className="sec-head"><span>LIVE EDIT</span><b>writes this Gaussian</b></div>
+                  {([0, 1, 2] as const).map((axis) => (
+                    <div className="ctrl-item" key={`p${axis}`}>
+                      <div className="ctrl-label">
+                        <span><i className={`axis-dot a${axis}`} />μ {['X', 'Y', 'Z'][axis]}</span>
+                        <b>{gaussian.center[axis].toFixed(3)} {gaussUnit}</b>
+                      </div>
+                      <input
+                        type="range" step={0.01}
+                        min={(gaussOriginal?.center[axis] ?? gaussian.center[axis]) - 10}
+                        max={(gaussOriginal?.center[axis] ?? gaussian.center[axis]) + 10}
+                        value={gaussian.center[axis]}
+                        onChange={(e) => editGaussPosition(axis, Number(e.target.value))}
+                      />
+                    </div>
+                  ))}
                   {([0, 1, 2] as const).map((axis) => (
                     <div className="ctrl-item" key={axis}>
                       <div className="ctrl-label">
@@ -1612,7 +1684,7 @@ export default function App() {
                     <button type="button" className="tbar-btn" onClick={resetGaussian} disabled={!gaussOriginal}>重置</button>
                   </div>
                   <p className="source-note">
-                    DSPK 编辑受 8-bit log-scale 量化限制，界面显示的是写回后的实际值；FP32 PLY 保留原始浮点。
+                    DSPK 编辑受 16-bit 位置与 8-bit log-scale 量化限制，界面显示的是写回后的实际值；FP32 PLY 保留原始浮点。
                     {isPlyLocal && ' PLY 不声明长度单位，界面以原始 PLY 单位 (u) 显示，未自动换算为 mm。'}
                   </p>
                 </>
