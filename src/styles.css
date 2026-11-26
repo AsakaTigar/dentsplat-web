@@ -652,3 +652,13 @@ input[type=range] { width: 100%; accent-color: var(--clinical); height: 15px; cu
 .recon-checkpoints b { color: #d8dee9; font: 10px/1.2 ui-monospace, Menlo, Consolas, monospace; }
 .recon-checkpoints small { color: #6f7889; font: 9px/1.25 ui-monospace, Menlo, Consolas, monospace; white-space: nowrap; }
 .recon-checkpoints button.on b { color: var(--clinical); }
+.count-curve { display: flex; align-items: flex-end; gap: 8px; height: 62px; padding: 4px 4px 0; border-bottom: 1px solid var(--border); }
+.count-curve span { flex: 1; display: grid; justify-items: center; gap: 2px; height: 100%; grid-template-rows: 1fr auto; }
+.count-curve i { width: 8px; align-self: end; border-radius: 2px 2px 0 0; background: linear-gradient(180deg, #38bdf8, #2563eb); min-height: 3px; }
+.count-curve em { font: 8px/1 ui-monospace, Menlo, Consolas, monospace; color: #8d96a8; font-style: normal; }
+.count-curve small { display: none; }
+.timeline-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.timeline-metrics span { display: grid; gap: 1px; padding: 4px 5px; background: #171a20; border: 1px solid #242832; border-radius: 3px; }
+.timeline-metrics b { color: #7f8a9d; font: 9px/1.2 ui-monospace, Menlo, Consolas, monospace; font-weight: 500; }
+.timeline-metrics em { color: #d8dee9; font: 10px/1.2 ui-monospace, Menlo, Consolas, monospace; font-style: normal; }
+.timeline-warning { border-left: 2px solid var(--amber); padding-left: 7px; color: #d6b17a; }

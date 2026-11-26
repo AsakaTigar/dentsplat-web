@@ -204,6 +204,11 @@ const trained = readDspk(TRAINED);
 const sampled = readDspk(SAMPLED);
 const trainedRaw = readPlyCloud(TRAINED_RAW, true);
 const sampledRaw = readPlyCloud(SAMPLED_RAW, false);
+const timeline = [1000, 2000, 3000, 5000, 10000, 15000].map((step) => {
+  const c = readDspk(`public/assets/timeline/sceneA_step${step}.dspk`);
+  const a = audit(c);
+  return { step, count: c.count, cloud_to_mesh: a.cloud_to_mesh, fscore: a.fscore, normal_abs_dot: a.normal_abs_dot };
+});
 const out = {
   schema: 'dentsplat-geometry-audit-v1',
   generated_at: new Date().toISOString(),
@@ -220,6 +225,7 @@ const out = {
     brush_3dgs: { file: TRAINED, ...audit(trained), raw_ply: { file: TRAINED_RAW, frame: 'R_y(-90) into viewer frame', ...audit(trainedRaw) } },
     surface_sampling: { file: SAMPLED, ...audit(sampled), raw_ply: { file: SAMPLED_RAW, frame: 'already in viewer frame', ...audit(sampledRaw) } },
   },
+  timeline,
   caveat: 'Mesh vertices are a sampled surface, so F-score@0.5mm is a point-set approximation. Normal consistency uses the ellipsoid minor axis as an estimated normal. DSPK and raw FP32 rows share the same mesh query, so their difference isolates transport precision rather than reconstruction quality.',
 };
 writeFileSync(OUT, JSON.stringify(out, null, 2));

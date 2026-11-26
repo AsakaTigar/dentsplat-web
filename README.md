@@ -26,6 +26,7 @@
 | FP32→DSPK 传输差 | cloud→mesh mean 差 **0.0000 mm**（Brush / Sampling 均为 4 位小数） |
 | 10× 同字节预算 | Uniform 22.28 dB overall；Anatomy 19.75 dB overall，但 L4 27.63→35.84 dB、FDI48–L4 clearance 0.724→0.427 mm |
 | Brush 独立重训时间轴 | 1k: 25,581 splats / 742,552 B → 15k: 28,694 splats / 832,830 B；6 个 DSPK checkpoint 可在 Reconstruction 面板加载 |
+| 时间轴几何（同网格） | 1k → 15k：cloud→mesh mean 0.260→0.293 mm，F@0.5 precision 86.8→84.3%，recall 96.2→96.6%，normal 0.613→0.606；高斯数量增加不等于中心更贴网格 |
 | Case 05 标签诊断 | 1 mm 内 26.67%；FDI33 91.14% 对 FDI42/43 0%，bbox 差 0.08 mm、最佳 yaw 2.5°；结论是局部 Brush 表面偏差，不是坐标系错误 |
 
 几何审计的距离是到 95,324 个焊接网格顶点的点集近似，不是精确 point-to-triangle Chamfer；法线一致性使用协方差最小主轴作为估计法线。完整字段、源文件 SHA 与反例见 [`MEASUREMENTS.md`](MEASUREMENTS.md) 和 `public/assets/geometry_metrics.json`。

@@ -1,6 +1,6 @@
 {
   "schema": "dentsplat-geometry-audit-v1",
-  "generated_at": "2026-11-26T06:55:41.170Z",
+  "generated_at": "2026-11-26T08:23:18.123Z",
   "source_mesh": {
     "path": "D:/Aodou/.cache/tmp/poseidon/c125/000125_MODEL_mandible.stl",
     "obj_cache": "D:/Aodou/.cache/tmp/poseidon/obj/000125_lower.obj",
@@ -120,5 +120,127 @@
       }
     }
   },
+  "timeline": [
+    {
+      "step": 1000,
+      "count": 25581,
+      "cloud_to_mesh": {
+        "mean_mm": 0.2598,
+        "p50_mm": 0.1841,
+        "p95_mm": 0.7799,
+        "max_mm": 2.2064
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.8678,
+        "recall": 0.9618
+      },
+      "normal_abs_dot": {
+        "mean": 0.6129,
+        "p50": 0.6722,
+        "p10": 0.1406
+      }
+    },
+    {
+      "step": 2000,
+      "count": 26056,
+      "cloud_to_mesh": {
+        "mean_mm": 0.2704,
+        "p50_mm": 0.1971,
+        "p95_mm": 0.7844,
+        "max_mm": 2.4133
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.8651,
+        "recall": 0.9631
+      },
+      "normal_abs_dot": {
+        "mean": 0.6235,
+        "p50": 0.6858,
+        "p10": 0.1464
+      }
+    },
+    {
+      "step": 3000,
+      "count": 26438,
+      "cloud_to_mesh": {
+        "mean_mm": 0.2756,
+        "p50_mm": 0.2023,
+        "p95_mm": 0.7896,
+        "max_mm": 2.4705
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.8625,
+        "recall": 0.9655
+      },
+      "normal_abs_dot": {
+        "mean": 0.6247,
+        "p50": 0.6882,
+        "p10": 0.146
+      }
+    },
+    {
+      "step": 5000,
+      "count": 26784,
+      "cloud_to_mesh": {
+        "mean_mm": 0.2837,
+        "p50_mm": 0.2091,
+        "p95_mm": 0.8033,
+        "max_mm": 2.5008
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.8558,
+        "recall": 0.9662
+      },
+      "normal_abs_dot": {
+        "mean": 0.6221,
+        "p50": 0.6856,
+        "p10": 0.1418
+      }
+    },
+    {
+      "step": 10000,
+      "count": 27724,
+      "cloud_to_mesh": {
+        "mean_mm": 0.2908,
+        "p50_mm": 0.2137,
+        "p95_mm": 0.8152,
+        "max_mm": 2.4879
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.8474,
+        "recall": 0.9658
+      },
+      "normal_abs_dot": {
+        "mean": 0.6123,
+        "p50": 0.671,
+        "p10": 0.1364
+      }
+    },
+    {
+      "step": 15000,
+      "count": 28694,
+      "cloud_to_mesh": {
+        "mean_mm": 0.2933,
+        "p50_mm": 0.2157,
+        "p95_mm": 0.8178,
+        "max_mm": 3.0799
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.8428,
+        "recall": 0.9662
+      },
+      "normal_abs_dot": {
+        "mean": 0.6064,
+        "p50": 0.6614,
+        "p10": 0.1335
+      }
+    }
+  ],
   "caveat": "Mesh vertices are a sampled surface, so F-score@0.5mm is a point-set approximation. Normal consistency uses the ellipsoid minor axis as an estimated normal. DSPK and raw FP32 rows share the same mesh query, so their difference isolates transport precision rather than reconstruction quality."
 }

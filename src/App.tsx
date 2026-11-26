@@ -63,6 +63,12 @@ type GeometryMethod = {
 type GeometryAudit = {
   source_mesh: { triangles: number; vertices: number; sample_note: string };
   methods: { brush_3dgs: GeometryMethod; surface_sampling: GeometryMethod };
+  timeline?: {
+    step: number; count: number;
+    cloud_to_mesh: { mean_mm: number; p95_mm: number };
+    fscore: { precision: number; recall: number };
+    normal_abs_dot: { mean: number } | null;
+  }[];
   caveat: string;
 };
 
@@ -1646,6 +1652,37 @@ export default function App() {
                     ))}
                   </div>
                   <p className="source-note">{timeline.training.note} · {timeline.metrics_note}</p>
+                  <div className="count-curve" aria-label="Gaussian count by checkpoint">
+                    {(() => {
+                      const max = Math.max(...timeline.steps.map((s) => s.splats));
+                      const min = Math.min(...timeline.steps.map((s) => s.splats));
+                      return timeline.steps.map((s) => {
+                        const t = max === min ? 0.6 : 0.25 + 0.75 * (s.splats - min) / (max - min);
+                        return (
+                          <span key={s.step} title={`${s.step.toLocaleString()} steps · ${s.splats.toLocaleString()} splats`}>
+                            <i style={{ height: `${Math.round(t * 100)}%` }} />
+                            <em>{s.step / 1000}k</em>
+                            <small>{fmtInt(s.splats)}</small>
+                          </span>
+                        );
+                      });
+                    })()}
+                  </div>
+                  {geometryAudit?.timeline && geometryAudit.timeline.length > 1 && (() => {
+                    const first = geometryAudit.timeline![0], last = geometryAudit.timeline![geometryAudit.timeline!.length - 1];
+                    return (
+                      <>
+                        <div className="sec-head"><span>CHECKPOINT GEOMETRY</span><b>mesh vertex audit</b></div>
+                        <div className="timeline-metrics">
+                          <span><b>cloud→mesh mean</b><em>{first.cloud_to_mesh.mean_mm.toFixed(3)} → {last.cloud_to_mesh.mean_mm.toFixed(3)} mm</em></span>
+                          <span><b>F@0.5 precision</b><em>{(first.fscore.precision * 100).toFixed(1)} → {(last.fscore.precision * 100).toFixed(1)}%</em></span>
+                          <span><b>F@0.5 recall</b><em>{(first.fscore.recall * 100).toFixed(1)} → {(last.fscore.recall * 100).toFixed(1)}%</em></span>
+                          <span><b>normal |n·n|</b><em>{first.normal_abs_dot?.mean.toFixed(3) ?? '—'} → {last.normal_abs_dot?.mean.toFixed(3) ?? '—'}</em></span>
+                        </div>
+                        <p className="source-note timeline-warning">这次独立重训的高斯数量持续增加，但中心到网格的 mean 与 F precision 变差、recall 略升：优化目标改善渲染覆盖，不等价于高斯中心更贴网格。曲线按同一步的实际 checkpoint 复算，未做筛点。</p>
+                      </>
+                    );
+                  })()}
                 </>
               ) : <p className="source-note">timeline.json 尚未加载。</p>}
 
