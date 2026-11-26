@@ -75,6 +75,7 @@ type GeometryAudit = {
 type TimelineStep = {
   step: number; file: string; bytes: number; splats: number; sha256: string;
   source_ply: string; psnr_db: number | null; loss: number | null;
+  sh_degree?: number; kind?: string; note?: string;
 };
 type TimelineManifest = {
   schema: string; case: string;
@@ -840,7 +841,7 @@ export default function App() {
       const finalBytes = final?.bytes ?? 832835;
       const finalUrl = `${import.meta.env.BASE_URL}assets/sceneA_trained_full.dspk`;
       const base = {
-        mb: +(step.bytes / 1048576).toFixed(2), sh_degree: 1,
+        mb: +(step.bytes / 1048576).toFixed(2), sh_degree: step.sh_degree ?? 1,
         bytes_per_splat: +(step.bytes / step.splats).toFixed(2),
       };
       v.caseId = 'TIMELINE';
@@ -1664,8 +1665,8 @@ export default function App() {
                         className={timelineStep === s.step && (customAssetName === `timeline:${s.step}` || customAssetName === `timeline:${s.step}:vs-final`) ? 'on' : ''}
                         onClick={() => void loadTimelineStep(s)}
                       >
-                        <b>{fmtInt(s.step)}</b>
-                        <small>{fmtInt(s.splats)} splats</small>
+                        <b>{s.step === 0 ? 'S0' : fmtInt(s.step)}</b>
+                        <small>{s.step === 0 ? 'COLMAP' : `${fmtInt(s.splats)} splats`}</small>
                         <small>{fmtMB(s.bytes)} MB</small>
                       </button>
                     ))}
@@ -1693,7 +1694,7 @@ export default function App() {
                         return (
                           <span key={s.step} title={`${s.step.toLocaleString()} steps · ${s.splats.toLocaleString()} splats`}>
                             <i style={{ height: `${Math.round(t * 100)}%` }} />
-                            <em>{s.step / 1000}k</em>
+                            <em>{s.step === 0 ? 'S0' : `${s.step / 1000}k`}</em>
                             <small>{fmtInt(s.splats)}</small>
                           </span>
                         );

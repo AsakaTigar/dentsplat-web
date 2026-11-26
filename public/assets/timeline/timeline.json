@@ -9,10 +9,23 @@
     "sh_degree": 1,
     "export_every": 1000,
     "independent_rerun": true,
-    "note": "独立重训；最终 28,694 splats，与已发布 28,691 的差异来自 Brush 非确定性训练。"
+    "note": "独立重训：step 0 为 COLMAP sparse points，1k–15k 为 Brush 导出的真实高斯；最终 28,694 splats，与已发布 28,691 的差异来自 Brush 非确定性训练。"
   },
   "metrics_note": "训练器未输出 loss/PSNR 行；本时间轴只展示真实导出的高斯数量、字节和可加载模型，不画示意曲线。",
   "steps": [
+    {
+      "step": 0,
+      "file": "timeline/sceneA_step0.dspk",
+      "bytes": 500790,
+      "splats": 25000,
+      "sha256": "cf3c7a155f314406a8b8a9249b4bb4011b2d71d889b7905b08a5937aa332efd3",
+      "source_ply": "tools/out/case125/timeline_points0.ply",
+      "psnr_db": null,
+      "loss": null,
+      "sh_degree": 0,
+      "kind": "colmap-sparse-points",
+      "note": "COLMAP points3D, rotated R_y(-90); pre-Gaussian initialization, isotropic 0.21 mm splats"
+    },
     {
       "step": 1000,
       "file": "timeline/sceneA_step1000.dspk",
@@ -21,7 +34,9 @@
       "sha256": "d2d5365270854bf84c5806164649d14c7f4ea3051d279046f0b7a7fa216096a2",
       "source_ply": "tools/out/case125/brush_timeline/caseA_01000.ply",
       "psnr_db": null,
-      "loss": null
+      "loss": null,
+      "sh_degree": 1,
+      "kind": "brush-3dgs"
     },
     {
       "step": 2000,
@@ -31,7 +46,9 @@
       "sha256": "8c5352c53a21a16c685578aa47aa3f2d93c7d545f2b83028b87023cdf2d0f4bf",
       "source_ply": "tools/out/case125/brush_timeline/caseA_02000.ply",
       "psnr_db": null,
-      "loss": null
+      "loss": null,
+      "sh_degree": 1,
+      "kind": "brush-3dgs"
     },
     {
       "step": 3000,
@@ -41,7 +58,9 @@
       "sha256": "41ae48e4a923fa84041d1a6b65647c36464ec8c3c05a75519aa8894c1b6f20ca",
       "source_ply": "tools/out/case125/brush_timeline/caseA_03000.ply",
       "psnr_db": null,
-      "loss": null
+      "loss": null,
+      "sh_degree": 1,
+      "kind": "brush-3dgs"
     },
     {
       "step": 5000,
@@ -51,7 +70,9 @@
       "sha256": "008e33487fe0e0433268736db025c75f529d1aca4ad85cc223ad90c16ad89611",
       "source_ply": "tools/out/case125/brush_timeline/caseA_05000.ply",
       "psnr_db": null,
-      "loss": null
+      "loss": null,
+      "sh_degree": 1,
+      "kind": "brush-3dgs"
     },
     {
       "step": 10000,
@@ -61,7 +82,9 @@
       "sha256": "54044f0999c624983b584e8c1acaf8c7728d8915e6155bb89b385d0232936b91",
       "source_ply": "tools/out/case125/brush_timeline/caseA_10000.ply",
       "psnr_db": null,
-      "loss": null
+      "loss": null,
+      "sh_degree": 1,
+      "kind": "brush-3dgs"
     },
     {
       "step": 15000,
@@ -71,7 +94,9 @@
       "sha256": "3fd96f7a951a0f3fe1c1f783a77aad0146094f54bdec27944c3bf909d9986eec",
       "source_ply": "tools/out/case125/brush_timeline/caseA_15000.ply",
       "psnr_db": null,
-      "loss": null
+      "loss": null,
+      "sh_degree": 1,
+      "kind": "brush-3dgs"
     }
   ]
 }
