@@ -523,6 +523,7 @@ export default function App() {
   }, [!isLocal, spec.hasJaw, jaw, opacity, showLesions, hidden, isolate, clipAxis, clipOffset, clipBand, cap, flip]);
   useEffect(() => { viewerRef.current?.setVariant(variant, split); }, [variant, split]);
   useEffect(() => { if (methodCompare && !split) setSplit(true); }, [methodCompare, split]);
+  useEffect(() => { if (methodCompare && railTab !== 'methods') setMethodCompare(false); }, [methodCompare, railTab]);
   useEffect(() => { viewerRef.current?.setVisMode(heatmap ? 1 : 0); }, [heatmap, caseId, tenX]);
   useEffect(() => { viewerRef.current?.setWireframe(wire); }, [wire]);
   useEffect(() => { if (viewerRef.current) viewerRef.current.measureMode = mode; }, [mode]);
