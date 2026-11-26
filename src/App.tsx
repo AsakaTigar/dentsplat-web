@@ -83,6 +83,10 @@ type TimelineManifest = {
   metrics_note: string;
   steps: TimelineStep[];
 };
+type DiskBaseline = {
+  schema: string; file: string; bytes: number; splats: number;
+  tangent_sigma_mm: number; normal_sigma_mm: number; note: string;
+};
 
 type RailTab = 'findings' | 'lab' | 'methods' | 'recon' | 'layers' | 'slice' | 'audit' | 'source';
 
@@ -240,6 +244,7 @@ export default function App() {
   const isLocal = !!customAssetName;
   const isPlyLocal = !!customAssetName?.toLowerCase().endsWith('.ply');
   const isTimeline = !!customAssetName?.startsWith('timeline:');
+  const isDiskMethod = customAssetName === 'method:disks';
   const gaussUnit = isPlyLocal ? 'PLY u' : 'mm';
   const [labMode, setLabMode] = useState<LabMode>('rgb');
   const [labSigma, setLabSigma] = useState<1 | 2 | 3>(1);
@@ -257,6 +262,7 @@ export default function App() {
   const [allScenes, setAllScenes] = useState<Record<string, SceneReport>>({});
   const [geometryAudit, setGeometryAudit] = useState<GeometryAudit | null>(null);
   const [timeline, setTimeline] = useState<TimelineManifest | null>(null);
+  const [diskBaseline, setDiskBaseline] = useState<DiskBaseline | null>(null);
   const [timelineStep, setTimelineStep] = useState<number | null>(null);
   const [timelineCompare, setTimelineCompare] = useState(false);
   const [timelineBusy, setTimelineBusy] = useState(false);
@@ -547,6 +553,10 @@ export default function App() {
       .then((r) => (r.ok ? r.json() : null))
       .then((x) => { if (!dead && x?.schema === 'dentsplat-timeline-v1') setTimeline(x as TimelineManifest); })
       .catch(() => {});
+    fetch(`${import.meta.env.BASE_URL}assets/sceneA_disks.json`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((x) => { if (!dead && x?.schema === 'dentsplat-representation-baseline-v1') setDiskBaseline(x as DiskBaseline); })
+      .catch(() => {});
     return () => { dead = true; };
   }, []);
 
@@ -832,6 +842,54 @@ export default function App() {
       setLoading(false);
     }
   }, [loadLocalPly]);
+
+  const loadDiskBaseline = useCallback(async () => {
+    const v = viewerRef.current;
+    if (!v || !diskBaseline) return;
+    setLoading(true); setErr(null);
+    setTenX(false); setSplit(false); setMprOn(false); setVariant('full'); setBench(null); setCompressionBench(null);
+    setMethodCompare(false); setTimelineStep(null); setTimelineCompare(false); setTimelinePlay(false);
+    setGaussian(null); setGaussOriginal(null); setGaussIsolate(false); setAlphaMix(null);
+    v.clearGaussianSelection();
+    try {
+      const url = `${import.meta.env.BASE_URL}assets/${diskBaseline.file}`;
+      v.caseId = 'DISKS';
+      await v.loadCase({ fullUrl: url, prunedUrl: url, proxyUrl: null, fullBytes: diskBaseline.bytes, prunedBytes: diskBaseline.bytes });
+      const cloud = v.layer?.cloud;
+      const layerCounts: Record<number, number> = {};
+      const sums: Record<number, [number, number, number, number]> = {};
+      for (let i = 0; i < (cloud?.count ?? 0); i++) {
+        const f = cloud!.misc[i * 4 + 1], ly = cloud!.misc[i * 4 + 2];
+        layerCounts[ly] = (layerCounts[ly] ?? 0) + 1;
+        if (!f) continue;
+        const s = sums[f] ?? (sums[f] = [0, 0, 0, 0]);
+        s[0] += v.layer!.centers[i * 3]; s[1] += v.layer!.centers[i * 3 + 1]; s[2] += v.layer!.centers[i * 3 + 2]; s[3]++;
+      }
+      const teeth: Record<string, ToothMeta> = {};
+      for (const [fs, s] of Object.entries(sums)) {
+        const f = Number(fs);
+        const q = Math.floor(f / 10);
+        teeth[`FDI_${f}`] = { fdi: f, arch: f < 30 ? 'upper' : 'lower', side: q === 1 || q === 4 ? 'Right (右)' : 'Left (左)', pos: f % 10, at: [s[0] / s[3], s[1] / s[3], s[2] / s[3]], centroid_mm: [s[0] / s[3], s[1] / s[3], s[2] / s[3]] };
+      }
+      setReport({
+        full: { splats: diskBaseline.splats, bytes: diskBaseline.bytes, mb: +(diskBaseline.bytes / 1048576).toFixed(2), sh_degree: 0, bytes_per_splat: 20 },
+        pruned: { splats: diskBaseline.splats, bytes: diskBaseline.bytes, mb: +(diskBaseline.bytes / 1048576).toFixed(2), sh_degree: 0, bytes_per_splat: 20 },
+        bytes_ratio: 1, proxy: { bytes: 0, kb: 0, nodes: 0, triangles: 0 }, compression_fidelity_mm: {}, metrics: {},
+      });
+      setMeta({ unit: 'mm', kind: 'disks', teeth, metrics: {}, bbox_min: cloud ? [...cloud.bboxMin] : undefined, bbox_max: cloud ? [...cloud.bboxMax] : undefined });
+      setLocalLayerIds(Object.keys(layerCounts).map(Number).sort((a, b) => a - b));
+      setAlphas(Object.fromEntries(Object.keys(layerCounts).map((k) => [Number(k), 1])));
+      setSelected(0); setHidden([]); setIsolate(false); setMeasures([]); setProbe(null); setActiveFindingId(null);
+      setCustomAssetName('method:disks');
+      setRailTab('methods'); setInspectorOpen(true); setPickerOpen(false);
+      setLabMode('rgb');
+      history.replaceState(null, '', '#METHODS');
+      setLoading(false);
+    } catch (e) {
+      setErr(`disk baseline 加载失败: ${String(e)}`);
+      setLoading(false);
+    }
+  }, [diskBaseline]);
 
   const loadTimelineStep = useCallback(async (step: TimelineStep, compareFinal = timelineCompare) => {
     const v = viewerRef.current;
@@ -1229,7 +1287,7 @@ export default function App() {
     );
   }, [findingFilter, findings]);
 
-  const caseBadge = isTimeline ? `TIMELINE · STEP ${timelineStep ?? '—'}` : customAssetName ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : '.DSPK'} · ${customAssetName}` : tenX ? '10× COMPRESSION ABLATION · CASE 03' : mprOn ? 'DTX MPR · CASE 03 · RAW CBCT' : spec.badge;
+  const caseBadge = isTimeline ? `TIMELINE · STEP ${timelineStep ?? '—'}` : isDiskMethod ? 'METHOD BASELINE · SURFACE-ALIGNED DISKS' : customAssetName ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : '.DSPK'} · ${customAssetName}` : tenX ? '10× COMPRESSION ABLATION · CASE 03' : mprOn ? 'DTX MPR · CASE 03 · RAW CBCT' : spec.badge;
 
   // ---------------------------------------------------------------- render
 
@@ -1383,7 +1441,7 @@ export default function App() {
           ))}
         </div>
         <div className="dtx-spacer" />
-        <div className="subtab-info">{isTimeline ? `TIMELINE · step ${timelineStep ?? '—'} · ${report ? `${fmtInt(report.full.splats)} splats` : ''}` : isLocal ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : 'DSPK'} · ${customAssetName}` : `${spec.code} · ${spec.title}`}</div>
+        <div className="subtab-info">{isTimeline ? `TIMELINE · step ${timelineStep ?? '—'} · ${report ? `${fmtInt(report.full.splats)} splats` : ''}` : isDiskMethod ? `METHOD BASELINE · ${report ? `${fmtInt(report.full.splats)} disks` : ''}` : isLocal ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : 'DSPK'} · ${customAssetName}` : `${spec.code} · ${spec.title}`}</div>
       </div>
 
       <div className={'dtx-workspace' + (inspectorOpen ? '' : ' collapsed')}>
@@ -1800,6 +1858,11 @@ export default function App() {
                   <div><b>Surface Sampling</b><small>0.35 mm 表面采样 · SH0</small></div>
                   <span>AVAILABLE</span>
                   <button type="button" className="tbar-btn" onClick={() => switchCase('A')}>Case 10</button>
+                </div>
+                <div className="method-row ok">
+                  <div><b>Surface-Aligned Disks</b><small>mesh-derived covariance baseline · 不是 2DGS · SH0</small></div>
+                  <span>BASELINE</span>
+                  <button type="button" className="tbar-btn" onClick={() => void loadDiskBaseline()} disabled={!diskBaseline}>{diskBaseline ? 'Load' : '…'}</button>
                 </div>
                 <div className="method-row ok">
                   <div><b>Brush 3DGS</b><small>15,000 步 · 各向异性 3DGS · SH1</small></div>
@@ -2249,7 +2312,9 @@ export default function App() {
               </dl>
               <p className="source-note">{isTimeline
                 ? `真实 Brush 重训 checkpoint · step ${timelineStep ?? '—'}。该独立重训用于展示训练过程；checkpoint 没有 FDI/层标签，也不继承已发布 Case 01 的 proxy 或报告。`
-                : isPlyLocal
+                : isDiskMethod
+                  ? '表示基线：与 Case 10 使用完全相同的 0.35 mm 采样中心、颜色和 FDI，只把协方差替换成沿源网格法线的扁平圆盘（切向 0.30 mm、法向 0.03 mm）。这不是 2DGS 算法，也没有训练过程。'
+                  : isPlyLocal
                   ? 'FP32 PLY 本地预览：位置、尺度、旋转、颜色与不透明度直接来自 PLY 浮点字段，不经过 DSPK 8-bit 量化，也不继承牙位/解剖语义。'
                   : isLocal
                     ? '独立本地预览：只使用 DSPK 内嵌几何与语义，不继承原病例 proxy、牙位元数据、MPR 或报告。单牙功能按文件实际 FDI 内容开放。'
