@@ -1,38 +1,41 @@
-# DentSplat — 浏览器里的牙科 3D Gaussian Splatting 临床原型
+# DentSplat Lab — 牙科 Gaussian Splatting 研究与交互式渲染平台
 
 **在线演示：<https://asakatigar.github.io/dentsplat-web/>** · 打开即用，无需安装任何软件。
 
-一句话：把牙科数据压进一个自描述容器 `.dspk`，在浏览器里用**一次 draw call** 画出来，并让每一个交互、每一个数字都能被仓库里的脚本重新测出来。
+一句话：把真实牙科 3DGS / CBCT 资产压进自描述容器 `.dspk`，在浏览器里观察、检查和修改每一个高斯，并把不同表示、压缩与几何误差放到同一套可复算的坐标和相机下比较。
 
-> **当前资产是合成预览（SYNTHETIC PREVIEW），界面上常驻同一标注。** 几何按公开数据集的解剖统计生成，颜色与病灶位置为程序化合成；没有使用真实患者数据，也没有临床诊断验证。下文"已测量"一节的数字量化的是**编解码与渲染契约**，不是真实扫描训练出的 3DGS 的保真度。
+当前页面包含 **10 个真实资产条目**：6 个 Brush 训练的 IOS 3DGS、3 个 DentVoxel CBCT 贴面、1 个同源未训练表面采样基线。数据来源、许可和已知边界写在每个病例的 Data 面板与 `public/assets/report.json` 中。这里没有任何诊断准确性结论。
 
 ## 能做什么
 
-- **双场景**：A = IOS 牙列（Teeth3DS+ 统计口径），B = CBCT 阻生智齿与下牙槽神经管（ToothFairy3 六层语义口径）。
-- **FDI 牙位**：点击 3D 牙齿或在二维牙位图上点选，整颗牙高亮、相机平滑聚焦；牙位语义写在 splat 的第四个字节里，随几何走，不靠旁挂文件。
-- **着色器级裁剪**：X / Y / Z 三轴剖切 + 断面盖片，拖动即时生效；分层透明度滑块直接驱动 `uLayerAlpha` 数组。
-- **Full vs Pruned 同屏对比**：同一个相机、同一帧，分屏显示完整包与剪枝包。
-- **毫米测距**：基于不可见代理网格的水面距离，不是"最近高斯中心"。
-- **证据面板**：每个数字标注它的仪器、口径与反例。
+- **Gaussian Lab**：RGB、真实 1/2/3σ 高斯椭球、中心点云、椭球线框、Opacity、Scale、估计法线与深度八种视图；椭球按真实协方差 `Σ = R diag(s²) Rᵀ` 构造。
+- **Gaussian Inspector**：点击单个高斯，读取 μ、σ、四元数、不透明度、DC 颜色、SH1 系数、协方差与特征轴；可实时编辑位置、尺度和不透明度，并导出当前高斯云为标准 3DGS PLY。
+- **FP32 PLY 导入**：浏览器直读 binary/ascii 3DGS PLY，位置/尺度/旋转/颜色/不透明度走 FP32 着色器路径，不先量化成 DSPK；PLY 不声明长度单位时界面以原始单位 `u` 展示。
+- **同源方法对照**：Case 01（Brush 3DGS）与 Case 10（0.35 mm Surface Sampling）共用相机分屏；网格几何审计同时给出 DSPK 与 FP32 两行，以分离传输量化与重建误差。
+- **重建产物时间轴**：列出真实存在的 120 个输入视角、采样基线、Brush 15,000 步结果和两个 DSPK 包；未导出的中间 checkpoint 与训练曲线明确标记为缺失。
+- **压缩与研究对比**：10× 等字节 Uniform / Anatomy-Aware、Full 参考 PSNR/MAE、逐层误差、FDI 中心距变化，以及 160×140×128 CBCT MPR。
+- **临床辅助仍保留**：FDI 牙位、三轴剖切、测量、MPR、AI 报告审计只作为辅助视图，不再占据产品中心。
 
-## 已测量（同机、同构建，脚本可复算）
+## 已测量（同源、可复算）
 
-| 指标 | Scene A | Scene B |
-| --- | --- | --- |
-| 体积（完整 → 剪枝） | 2,582,852 → 609,126 B（4.24×） | 1,301,244 → 379,898 B（3.43×） |
-| PSNR（整帧 / 掩膜内） | 21.82 / 17.60 dB | 25.10 / 22.03 dB |
-| GPU 单遍 | 2.6–2.9 → 0.7–0.9 ms | 1.3–1.5 → 0.5–0.7 ms |
-| 几何覆盖间隙（剪枝后） | 0.314 / 0.691 / 4.796 mm | 0.349 / 0.946 / 1.297 mm |
+| 证据 | 当前读数 |
+| --- | --- |
+| 训练资产 | Poseidon3D 000125 → 120 Blender 视角 → Brush v0.3.0 15,000 步 → 28,691 个 SH1 高斯 |
+| 同源基线 | 0.35 mm 表面采样 → 59,808 高斯，SH0 |
+| 几何审计（网格顶点样本） | Brush cloud→mesh mean **0.295 mm**，F@0.5 mm **84.5 / 96.5%**；Sampling **0.226 mm / 87.2 / 100.0%** |
+| FP32→DSPK 传输差 | cloud→mesh mean 差 **0.0000 mm**（Brush / Sampling 均为 4 位小数） |
+| 10× 同字节预算 | Uniform 22.28 dB overall；Anatomy 19.75 dB overall，但 L4 27.63→35.84 dB、FDI48–L4 clearance 0.724→0.427 mm |
+| Case 05 标签诊断 | 1 mm 内 26.67%；FDI33 91.14% 对 FDI42/43 0%，bbox 差 0.08 mm、最佳 yaw 2.5°；结论是局部 Brush 表面偏差，不是坐标系错误 |
 
-离线链路（CBCT → 六层 → 容器）已完整执行：87,405 splats、46 项断言、重跑逐字节相同。所有数字的出处、仪器与失败反例见 [`MEASUREMENTS.md`](MEASUREMENTS.md)。
+几何审计的距离是到 95,324 个焊接网格顶点的点集近似，不是精确 point-to-triangle Chamfer；法线一致性使用协方差最小主轴作为估计法线。完整字段、源文件 SHA 与反例见 [`MEASUREMENTS.md`](MEASUREMENTS.md) 和 `public/assets/geometry_metrics.json`。
 
 ## 不证明什么
 
-- **资产是合成的**：没有真实扫描网格，也没有训练过程；Blender → gsplat 那条训练链在本仓库里只到脚本，未在本机执行。
-- **CBCT 链路用的是合成体数据**（1.0 mm 体素、0.6 mm splat），不是患者；真实病例与 nnU-Net 推理尚未接入。
-- **单机单卡单浏览器**：RTX 5070 Ti / ANGLE-D3D11 / Chromium；低端集成显卡与远程桌面未实测。
-- **"阻生智齿是否压迫神经管"目前只是可做的交互**，不是结果；合成模型上的 2.35 mm 是几何距离，不是临床测量。
-- 没有任何诊断准确性结论。
+- **没有 2DGS / Mip-Splatting / SuGaR / R²-Gaussian 训练结果**：Methods 页只把已有真实导出标为 AVAILABLE；切换网页显示模式不算算法实现。R²-Gaussian 需要 X 射线投影几何，当前 CBCT 分割体不能替代。
+- **没有中间训练 checkpoint**：仓库没有 Brush 中间步的高斯文件或非空训练日志，因此没有伪造的 loss/PSNR 曲线或 step 0/100/500 时间轴。
+- **SH 高阶尚未渲染**：导入器读取 SH degree，但 GPU 路径只评估 DC + l=1；SH3 文件不会被宣称成 SH3 渲染。
+- **单机单卡单浏览器**：RTX 5070 Ti / ANGLE-D3D11 / Chromium；低端集显、移动端和远程桌面未做性能结论。
+- **不是医疗器械**：测量、审计与 MPR 不构成诊断，`0.06 mm` 级数字是贴面中心距，不是根尖表面距离或神经损伤风险预测。
 
 ## 本地运行
 
@@ -108,8 +111,9 @@ MEASUREMENTS.md    每个数字的仪器、口径与反例
   `tools/out/blob_audit_before.json` 与 `tools/out/blob_audit_after.json`
   （0% 各向同性 / 100% 贴面盘 / 欠覆盖 12.1%，改前为 100% 圆球 / 欠覆盖 49%）。
 
-- **Case A · Trained** (`#A2`): the same Poseidon3D scan trained as a real 3DGS on the local RTX 5070 Ti
-  with Brush v0.3.0 (15,000 steps, 120 Blender renders, SH1, 28,691 Gaussians). The export is rotated
-  -90 deg about Y into the viewer frame (`tools/ply-frame-fix.mjs`), FDI is transferred from the sampled
-  packet (99.5 % within 1.0 mm, `tools/label-transfer.mjs`). The pruned variant is a 3x decimation; its
-  PSNR/gap are TBD.
+- **Case A · Trained** (`#A2`, default first screen): the same Poseidon3D scan trained as a real 3DGS on
+  the local RTX 5070 Ti with Brush v0.3.0 (15,000 steps, 120 Blender renders, SH1, 28,691 Gaussians).
+  The export is rotated -90 deg about Y into the viewer frame, including the l=1 coefficients
+  (`tools/ply-frame-fix.mjs`); FDI is transferred from the sampled packet (99.5 % within 1.0 mm,
+  `tools/label-transfer.mjs`). The 3x decimation has 9,564 splats / 278,146 B, coverage gap
+  0.496 / 0.885 / 2.857 mm, and browser PSNR 31.04 / 26.37 dB (`tools/report-trained.mjs`).
