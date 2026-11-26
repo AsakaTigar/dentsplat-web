@@ -38,3 +38,7 @@ tools/out/case125/
 tools/out/rtest/
 
 tools/out/*.log
+
+# Stage-2 viewer-frame clouds are derived artefacts (51 MB); keep only the audit JSONs.
+tools/out/stage2/viewer/
+tools/out/stage2/*.log

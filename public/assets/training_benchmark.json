@@ -1,6 +1,6 @@
 {
   "schema": "dentsplat-training-benchmark-v1",
-  "generated_at": "2026-11-26T20:17:38.490Z",
+  "generated_at": "2026-11-26T21:02:49.261Z",
   "case": "Poseidon3D 000125 mandible",
   "split": {
     "protocol": "test_every=8",
@@ -202,8 +202,440 @@
     }
   },
   "cross_case": {
-    "status": "not_run",
-    "reason": "No maxillary or ProsthoObjects3D COLMAP dataset exists under E:\\dentsplat_work; the two runs above are the only same-split real reconstructions available."
+    "status": "ran",
+    "protocol_note": "Same recipe as the 000125 benchmark (MCMC 3DGS cap_max=80k, opacity_reg/scale_reg=0.01, sh_degree=3; 2DGS depth+normal+dist; 15k steps, test_every=8, 120 views at 1024 px). Appearance supervision is a synthetic height/facing render of the real scan geometry, not a patient photograph, so PSNR/SSIM/LPIPS are comparable across these cases but not to clinical photography.",
+    "results": [
+      {
+        "case": "Poseidon3D 000114 maxilla",
+        "source": "Poseidon3D 000114_MODEL_maxilla.stl (real IOS scan geometry, CC BY 4.0)",
+        "render": "120 views / 1024 px, three elevation rings (-18°, +2°, +22°), synthetic height/facing material on the decimated (18%) mesh",
+        "data": {
+          "views": 120,
+          "train_images": 105,
+          "test_images": 15,
+          "resolution": "1024x1024",
+          "protocol": "test_every=8"
+        },
+        "reference_mesh": {
+          "role": "decimated surface that rendered the training views (face count verified against render_meta.json)",
+          "triangles": 40478,
+          "vertices": 20238,
+          "sha256": "fe864111a64de9bdf729ec16636193ffea724372420a19eb18229b937e707945"
+        },
+        "methods": {
+          "gsplat-3dgs-mcmc": {
+            "label": "gsplat MCMC 3DGS",
+            "config": {
+              "max_steps": 15000,
+              "sh_degree": 3,
+              "cap_max": 80000,
+              "opacity_reg": 0.01,
+              "scale_reg": 0.01,
+              "init_opacity": 0.5
+            },
+            "training": {
+              "method": "3dgs-gsplat-mcmc-local:maxilla",
+              "split": {
+                "protocol": "test_every=8",
+                "train_images": 105,
+                "test_images": 15
+              },
+              "steps": [
+                1000,
+                3000,
+                7000,
+                15000
+              ],
+              "curve": [
+                {
+                  "step": 1000,
+                  "source_step": 999,
+                  "train_loss": 0.009558405727148056,
+                  "test_psnr": 35.331233978271484,
+                  "test_ssim": 0.980313777923584,
+                  "test_lpips": 0.07903723418712616,
+                  "num_gaussians": 24309,
+                  "train_sec": 17.806
+                },
+                {
+                  "step": 3000,
+                  "source_step": 2999,
+                  "train_loss": 0.008249972946941853,
+                  "test_psnr": 36.79905700683594,
+                  "test_ssim": 0.9855605959892273,
+                  "test_lpips": 0.06029421091079712,
+                  "num_gaussians": 64486,
+                  "train_sec": 46.98
+                },
+                {
+                  "step": 7000,
+                  "source_step": 6999,
+                  "train_loss": 0.004420964512974024,
+                  "test_psnr": 39.06705856323242,
+                  "test_ssim": 0.9921399354934692,
+                  "test_lpips": 0.034935515373945236,
+                  "num_gaussians": 80000,
+                  "train_sec": 103.444
+                },
+                {
+                  "step": 15000,
+                  "source_step": 14999,
+                  "train_loss": 0.003837199416011572,
+                  "test_psnr": 39.78820037841797,
+                  "test_ssim": 0.9935789704322815,
+                  "test_lpips": 0.028622496873140335,
+                  "num_gaussians": 80000,
+                  "train_sec": 212.824
+                }
+              ],
+              "final_test_psnr": 39.78820037841797,
+              "final_test_ssim": 0.9935789704322815,
+              "final_test_lpips": 0.028622496873140335,
+              "train_sec": 212.824,
+              "num_gaussians": 80000
+            },
+            "geometry": {
+              "cloud_to_mesh": {
+                "mean_mm": 0.2085,
+                "p50_mm": 0.0518,
+                "p95_mm": 0.9478,
+                "max_mm": 7.9255
+              },
+              "mesh_to_cloud": {
+                "mean_mm": 0.4016,
+                "p50_mm": 0.287,
+                "p95_mm": 1.094,
+                "max_mm": 2.6949
+              },
+              "fscore": {
+                "threshold_mm": 0.5,
+                "precision": 0.904,
+                "recall": 0.7147
+              },
+              "normal_abs_dot": {
+                "mean": 0.5257,
+                "p50": 0.5259,
+                "p10": 0.0885
+              }
+            }
+          },
+          "gsplat-2dgs": {
+            "label": "gsplat 2DGS surfels",
+            "config": {
+              "max_steps": 15000,
+              "sh_degree": 3,
+              "depth_loss": true,
+              "normal_loss": true,
+              "dist_loss": true
+            },
+            "training": {
+              "method": "2dgs-gsplat-local:maxilla",
+              "split": {
+                "protocol": "test_every=8",
+                "train_images": 105,
+                "test_images": 15
+              },
+              "steps": [
+                1000,
+                3000,
+                7000,
+                15000
+              ],
+              "curve": [
+                {
+                  "step": 1000,
+                  "source_step": 999,
+                  "train_loss": 0.0070683592930436134,
+                  "test_psnr": 34.361663818359375,
+                  "test_ssim": 0.9750548005104065,
+                  "test_lpips": 0.08450359106063843,
+                  "num_gaussians": 21470,
+                  "train_sec": 26.998
+                },
+                {
+                  "step": 3000,
+                  "source_step": 2999,
+                  "train_loss": 0.006524461321532726,
+                  "test_psnr": 37.485252380371094,
+                  "test_ssim": 0.9863969683647156,
+                  "test_lpips": 0.04659057781100273,
+                  "num_gaussians": 28761,
+                  "train_sec": 66.93
+                },
+                {
+                  "step": 7000,
+                  "source_step": 6999,
+                  "train_loss": 0.0037162448279559612,
+                  "test_psnr": 39.51842498779297,
+                  "test_ssim": 0.991578221321106,
+                  "test_lpips": 0.02687441185116768,
+                  "num_gaussians": 33088,
+                  "train_sec": 142.227
+                },
+                {
+                  "step": 15000,
+                  "source_step": 14999,
+                  "train_loss": 0.04182082787156105,
+                  "test_psnr": 39.92531967163086,
+                  "test_ssim": 0.9926633834838867,
+                  "test_lpips": 0.02358103357255459,
+                  "num_gaussians": 33166,
+                  "train_sec": 279.404
+                }
+              ],
+              "final_test_psnr": 39.92531967163086,
+              "final_test_ssim": 0.9926633834838867,
+              "final_test_lpips": 0.02358103357255459,
+              "train_sec": 279.404,
+              "num_gaussians": 33166
+            },
+            "geometry": {
+              "cloud_to_mesh": {
+                "mean_mm": 0.3335,
+                "p50_mm": 0.0874,
+                "p95_mm": 1.8428,
+                "max_mm": 5.1327
+              },
+              "mesh_to_cloud": {
+                "mean_mm": 0.4384,
+                "p50_mm": 0.3602,
+                "p95_mm": 1.0645,
+                "max_mm": 1.9024
+              },
+              "fscore": {
+                "threshold_mm": 0.5,
+                "precision": 0.8224,
+                "recall": 0.6793
+              },
+              "normal_abs_dot": {
+                "mean": 0.4464,
+                "p50": 0.3945,
+                "p10": 0.0709
+              }
+            }
+          }
+        },
+        "packaging": {
+          "status": "training_and_geometry_only",
+          "reason": "No per-vertex FDI / layer sidecars are published for these STLs, so there is nothing to transfer or encode; the 000125 benchmark case remains the labelled container example."
+        }
+      },
+      {
+        "case": "ProsthoObjects3D 601 prepared tooth + scan body",
+        "source": "ProsthoObjects3D record 18488594, 601.stl (real scanned preparation, CC BY 4.0)",
+        "render": "120 views / 1024 px, three elevation rings (-18°, +2°, +22°), synthetic height/facing material on the decimated (18%) mesh",
+        "data": {
+          "views": 120,
+          "train_images": 105,
+          "test_images": 15,
+          "resolution": "1024x1024",
+          "protocol": "test_every=8"
+        },
+        "reference_mesh": {
+          "role": "decimated surface that rendered the training views (face count verified against render_meta.json)",
+          "triangles": 125136,
+          "vertices": 62548,
+          "sha256": "60c06de66771f3d90d759f1b32f855dbd6ea6df8352175cdee0290b1a428ae1e"
+        },
+        "methods": {
+          "gsplat-3dgs-mcmc": {
+            "label": "gsplat MCMC 3DGS",
+            "config": {
+              "max_steps": 15000,
+              "sh_degree": 3,
+              "cap_max": 80000,
+              "opacity_reg": 0.01,
+              "scale_reg": 0.01,
+              "init_opacity": 0.5
+            },
+            "training": {
+              "method": "3dgs-gsplat-mcmc-local:prostho601",
+              "split": {
+                "protocol": "test_every=8",
+                "train_images": 105,
+                "test_images": 15
+              },
+              "steps": [
+                1000,
+                3000,
+                7000,
+                15000
+              ],
+              "curve": [
+                {
+                  "step": 1000,
+                  "source_step": 999,
+                  "train_loss": 0.0093778595328331,
+                  "test_psnr": 36.3868522644043,
+                  "test_ssim": 0.9841833114624023,
+                  "test_lpips": 0.05782419070601463,
+                  "num_gaussians": 24309,
+                  "train_sec": 15.07
+                },
+                {
+                  "step": 3000,
+                  "source_step": 2999,
+                  "train_loss": 0.005892394110560417,
+                  "test_psnr": 37.29190444946289,
+                  "test_ssim": 0.9873663187026978,
+                  "test_lpips": 0.05002922937273979,
+                  "num_gaussians": 64486,
+                  "train_sec": 42.582
+                },
+                {
+                  "step": 7000,
+                  "source_step": 6999,
+                  "train_loss": 0.003818341763690114,
+                  "test_psnr": 39.46552276611328,
+                  "test_ssim": 0.9923723936080933,
+                  "test_lpips": 0.03026488795876503,
+                  "num_gaussians": 80000,
+                  "train_sec": 96.318
+                },
+                {
+                  "step": 15000,
+                  "source_step": 14999,
+                  "train_loss": 0.0030517023988068104,
+                  "test_psnr": 40.10354232788086,
+                  "test_ssim": 0.9937314987182617,
+                  "test_lpips": 0.02321525104343891,
+                  "num_gaussians": 80000,
+                  "train_sec": 202.578
+                }
+              ],
+              "final_test_psnr": 40.10354232788086,
+              "final_test_ssim": 0.9937314987182617,
+              "final_test_lpips": 0.02321525104343891,
+              "train_sec": 202.578,
+              "num_gaussians": 80000
+            },
+            "geometry": {
+              "cloud_to_mesh": {
+                "mean_mm": 0.1502,
+                "p50_mm": 0.0441,
+                "p95_mm": 0.7136,
+                "max_mm": 4.3444
+              },
+              "mesh_to_cloud": {
+                "mean_mm": 0.2614,
+                "p50_mm": 0.1914,
+                "p95_mm": 0.7243,
+                "max_mm": 1.8387
+              },
+              "fscore": {
+                "threshold_mm": 0.5,
+                "precision": 0.9275,
+                "recall": 0.8734
+              },
+              "normal_abs_dot": {
+                "mean": 0.4689,
+                "p50": 0.4459,
+                "p10": 0.0743
+              }
+            }
+          },
+          "gsplat-2dgs": {
+            "label": "gsplat 2DGS surfels",
+            "config": {
+              "max_steps": 15000,
+              "sh_degree": 3,
+              "depth_loss": true,
+              "normal_loss": true,
+              "dist_loss": true
+            },
+            "training": {
+              "method": "2dgs-gsplat-local:prostho601",
+              "split": {
+                "protocol": "test_every=8",
+                "train_images": 105,
+                "test_images": 15
+              },
+              "steps": [
+                1000,
+                3000,
+                7000,
+                15000
+              ],
+              "curve": [
+                {
+                  "step": 1000,
+                  "source_step": 999,
+                  "train_loss": 0.007233766373246908,
+                  "test_psnr": 35.87614822387695,
+                  "test_ssim": 0.9815888404846191,
+                  "test_lpips": 0.05811775103211403,
+                  "num_gaussians": 21040,
+                  "train_sec": 20.369
+                },
+                {
+                  "step": 3000,
+                  "source_step": 2999,
+                  "train_loss": 0.004547781310975552,
+                  "test_psnr": 37.96582794189453,
+                  "test_ssim": 0.9881200790405273,
+                  "test_lpips": 0.03850265219807625,
+                  "num_gaussians": 25810,
+                  "train_sec": 57.55
+                },
+                {
+                  "step": 7000,
+                  "source_step": 6999,
+                  "train_loss": 0.003264621365815401,
+                  "test_psnr": 39.75757598876953,
+                  "test_ssim": 0.9918671250343323,
+                  "test_lpips": 0.02555098757147789,
+                  "num_gaussians": 27235,
+                  "train_sec": 127.776
+                },
+                {
+                  "step": 15000,
+                  "source_step": 14999,
+                  "train_loss": 0.046145159751176834,
+                  "test_psnr": 40.141456604003906,
+                  "test_ssim": 0.9925637245178223,
+                  "test_lpips": 0.02239259146153927,
+                  "num_gaussians": 26672,
+                  "train_sec": 258.968
+                }
+              ],
+              "final_test_psnr": 40.141456604003906,
+              "final_test_ssim": 0.9925637245178223,
+              "final_test_lpips": 0.02239259146153927,
+              "train_sec": 258.968,
+              "num_gaussians": 26672
+            },
+            "geometry": {
+              "cloud_to_mesh": {
+                "mean_mm": 0.2291,
+                "p50_mm": 0.0701,
+                "p95_mm": 1.215,
+                "max_mm": 3.6762
+              },
+              "mesh_to_cloud": {
+                "mean_mm": 0.3031,
+                "p50_mm": 0.2617,
+                "p95_mm": 0.6806,
+                "max_mm": 1.3406
+              },
+              "fscore": {
+                "threshold_mm": 0.5,
+                "precision": 0.8623,
+                "recall": 0.8626
+              },
+              "normal_abs_dot": {
+                "mean": 0.4473,
+                "p50": 0.4166,
+                "p10": 0.07
+              }
+            }
+          }
+        },
+        "packaging": {
+          "status": "training_and_geometry_only",
+          "reason": "No per-vertex FDI / layer sidecars are published for these STLs, so there is nothing to transfer or encode; the 000125 benchmark case remains the labelled container example."
+        }
+      }
+    ]
   },
   "caveat": "Cloud→mesh is exact point-to-triangle distance; mesh→cloud is a 120k area-weighted surface sample, so real-data F-score@0.5mm still has a sampling floor. Normal consistency compares the ellipsoid minor axis against the closest triangle face normal. 2DGS PLY stores two trained tangent scales; the third viewer scale is a declared 1% thinness, not a learned thickness. gsplat PLY was mapped back through the exact COLMAP normalization transform before R_y(-90); the l=1 SH vector was rotated by the same combined rotation."
 }
