@@ -9,7 +9,7 @@ import type { CaseSpec, CaseCohort, LayerSpec } from './data/cases.ts';
 import { LAYER_RGB } from './engine/dspk.ts';
 import Odontogram from './ui/Odontogram.tsx';
 import MprQuadView from './ui/MprQuadView.tsx';
-import GaussianPlot from './ui/GaussianPlot.tsx';
+import GaussianPlot, { ShAppearancePlot } from './ui/GaussianPlot.tsx';
 import type { Mm3 } from './ui/MprQuadView.tsx';
 import type { ToothMeta } from './ui/Odontogram.tsx';
 
@@ -828,7 +828,7 @@ export default function App() {
       schema: 'dentsplat-review-v1',
       saved_at: new Date().toISOString(),
       case: isLocal
-        ? { mode: 'local-dspk', file: customAssetName, proxy: null }
+        ? { mode: isPlyLocal ? 'local-ply' : 'local-dspk', file: customAssetName, proxy: null, ply_note: plyNote }
         : { mode: 'library', id: caseId, code: spec.code, title: spec.title, dataset: spec.dataset, license: spec.license },
       selected_fdi: selected,
       cursor_mm: cursorMm,
@@ -1238,7 +1238,7 @@ export default function App() {
           <div className="vp-header">
             <div className="hud vp-title">
               <span className="vp-green-sq" />
-              <b>3DGS Viewer</b>
+              <b>{railTab === 'lab' ? 'Gaussian Lab' : railTab === 'methods' ? 'Method Comparison' : railTab === 'recon' ? 'Reconstruction Timeline' : '3DGS Viewer'}</b>
               <span className="vp-sep">|</span>
               <span className="vp-stat"><b className={stats.fps >= 55 ? 'ok' : ''}>{stats.fps}</b> FPS</span>
               <span className="vp-stat">{fmtInt(stats.splats)} splats</span>
@@ -1276,7 +1276,9 @@ export default function App() {
               ))}
               {labInfo && labInfo.rendered > 0 && (
                 <span className="lab-sample">
-                  {labInfo.mode === 'centers' ? 'points' : 'tris'} {fmtInt(labInfo.rendered)}/{fmtInt(labInfo.available)}
+                  {labInfo.mode === 'centers' ? 'points' : labInfo.mode === 'ellipsoid' ? 'ellipsoids' : 'wireframes'}{' '}
+                  {fmtInt(labInfo.rendered)}/{fmtInt(labInfo.available)}
+                  {labInfo.triangles > 0 ? ` · ${fmtInt(labInfo.triangles)} tris` : ''}
                   {labInfo.truncated ? ' · sampled' : ''}
                 </span>
               )}
@@ -1592,10 +1594,16 @@ export default function App() {
                   </div>
 
                   {gaussian.sh1 && (
-                    <details className="sh-details">
-                      <summary>SH1 coefficients ({gaussian.sh1.length})</summary>
-                      <code>{gaussian.sh1.map((v) => v.toFixed(3)).join(', ')}</code>
-                    </details>
+                    <>
+                      <details className="sh-details">
+                        <summary>SH1 coefficients ({gaussian.sh1.length})</summary>
+                        <code>{gaussian.sh1.map((v) => v.toFixed(3)).join(', ')}</code>
+                      </details>
+                      <details className="sh-details" open>
+                        <summary>SH1 appearance across view directions</summary>
+                        <ShAppearancePlot sh1={gaussian.sh1} base={gaussian.color} />
+                      </details>
+                    </>
                   )}
 
                   <div className="quick-row gauss-actions">
