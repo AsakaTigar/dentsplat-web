@@ -1882,7 +1882,7 @@ export default function App() {
                     const first = geometryAudit.timeline![0], last = geometryAudit.timeline![geometryAudit.timeline!.length - 1];
                     return (
                       <>
-                        <div className="sec-head"><span>CHECKPOINT GEOMETRY</span><b>mesh vertex audit</b></div>
+                        <div className="sec-head"><span>CHECKPOINT GEOMETRY</span><b>exact triangle distance</b></div>
                         <div className="timeline-metrics">
                           <span><b>cloud→mesh mean</b><em>{first.cloud_to_mesh.mean_mm.toFixed(3)} → {last.cloud_to_mesh.mean_mm.toFixed(3)} mm</em></span>
                           <span><b>F@0.5 precision</b><em>{(first.fscore.precision * 100).toFixed(1)} → {(last.fscore.precision * 100).toFixed(1)}%</em></span>
@@ -1981,7 +1981,7 @@ export default function App() {
               <p className="source-note">Case 01 与 Case 10 来自同一 Poseidon3D 000125 口扫；左侧为 Brush 训练版（28,691 高斯），右侧为未训练采样基线（59,808 高斯）。两视口共用相机、坐标架与时间。</p>
               {methodCompare && <div className="method-live">METHOD COMPARISON ACTIVE · split camera locked · 左 Brush / 右 Sampling</div>}
 
-              <div className="sec-head"><span>GEOMETRY AUDIT · CASE 01</span><b>mesh vertex sample</b></div>
+              <div className="sec-head"><span>GEOMETRY AUDIT · CASE 01</span><b>point→triangle · 120k surface samples</b></div>
               {geometryAudit ? (
                 <>
                   <div className="geom-audit">
@@ -2001,7 +2001,7 @@ export default function App() {
                     ))}
                   </div>
                   <p className="source-note">
-                    {geometryAudit.source_mesh.triangles.toLocaleString()} tri / {geometryAudit.source_mesh.vertices.toLocaleString()} verts · cloud→mesh 显示 mean / p95；F@0.5 为 precision / recall。
+                    {geometryAudit.source_mesh.triangles.toLocaleString()} tri · cloud→mesh 为精确 point-to-triangle，显示 mean / p95；mesh→cloud 使用 120,000 个面积加权表面采样；F@0.5 为 precision / recall。
                     FP32→DSPK 的 cloud→mesh mean 差：Brush {Math.abs(geometryAudit.methods.brush_3dgs.raw_ply!.cloud_to_mesh.mean_mm - geometryAudit.methods.brush_3dgs.cloud_to_mesh.mean_mm).toFixed(4)} mm，
                     Sampling {Math.abs(geometryAudit.methods.surface_sampling.raw_ply!.cloud_to_mesh.mean_mm - geometryAudit.methods.surface_sampling.cloud_to_mesh.mean_mm).toFixed(4)} mm。
                     {' '}{geometryAudit.caveat}

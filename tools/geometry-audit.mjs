@@ -49,18 +49,134 @@ for (let i = 0; i < nv; i++) {
   const p = toApp(verts[i * 3], verts[i * 3 + 1], verts[i * 3 + 2]);
   V[i * 3] = p[0]; V[i * 3 + 1] = p[1]; V[i * 3 + 2] = p[2];
 }
-const N = new Float32Array(nv * 3);
+const faceN = new Float32Array(nt * 3), faceArea = new Float32Array(nt);
 for (let t = 0; t < nt; t++) {
   const a = faces[t * 3] * 3, b = faces[t * 3 + 1] * 3, c = faces[t * 3 + 2] * 3;
   const ux = V[b] - V[a], uy = V[b + 1] - V[a + 1], uz = V[b + 2] - V[a + 2];
   const vx = V[c] - V[a], vy = V[c + 1] - V[a + 1], vz = V[c + 2] - V[a + 2];
   const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
-  for (const q of [a, b, c]) { N[q] += nx; N[q + 1] += ny; N[q + 2] += nz; }
+  const l = Math.hypot(nx, ny, nz) || 1;
+  faceN[t * 3] = nx / l; faceN[t * 3 + 1] = ny / l; faceN[t * 3 + 2] = nz / l;
+  faceArea[t] = 0.5 * l;
 }
-for (let i = 0; i < nv; i++) {
-  const l = Math.hypot(N[i * 3], N[i * 3 + 1], N[i * 3 + 2]) || 1;
-  N[i * 3] /= l; N[i * 3 + 1] /= l; N[i * 3 + 2] /= l;
+
+// ---- exact point-to-triangle BVH ----
+const triCenter = new Float32Array(nt * 3);
+for (let t = 0; t < nt; t++) {
+  for (let k = 0; k < 3; k++) triCenter[t * 3 + k] = (V[faces[t * 3] * 3 + k] + V[faces[t * 3 + 1] * 3 + k] + V[faces[t * 3 + 2] * 3 + k]) / 3;
 }
+function buildBVH(ids) {
+  let mnx = Infinity, mny = Infinity, mnz = Infinity, mxx = -Infinity, mxy = -Infinity, mxz = -Infinity;
+  let cmnx = Infinity, cmny = Infinity, cmnz = Infinity, cmxx = -Infinity, cmxy = -Infinity, cmxz = -Infinity;
+  for (const t of ids) {
+    for (let k = 0; k < 3; k++) {
+      const p = V[faces[t * 3 + k] * 3 + 0], q = V[faces[t * 3 + k] * 3 + 1], r = V[faces[t * 3 + k] * 3 + 2];
+      if (p < mnx) mnx = p; if (p > mxx) mxx = p; if (q < mny) mny = q; if (q > mxy) mxy = q; if (r < mnz) mnz = r; if (r > mxz) mxz = r;
+    }
+    const cx = triCenter[t * 3], cy = triCenter[t * 3 + 1], cz = triCenter[t * 3 + 2];
+    if (cx < cmnx) cmnx = cx; if (cx > cmxx) cmxx = cx; if (cy < cmny) cmny = cy; if (cy > cmxy) cmxy = cy; if (cz < cmnz) cmnz = cz; if (cz > cmxz) cmxz = cz;
+  }
+  const node = { min: [mnx, mny, mnz], max: [mxx, mxy, mxz], leaf: null, left: null, right: null };
+  if (ids.length <= 12) { node.leaf = ids; return node; }
+  const ex = [cmxx - cmnx, cmxy - cmny, cmxz - cmnz];
+  const axis = ex[0] >= ex[1] && ex[0] >= ex[2] ? 0 : ex[1] >= ex[2] ? 1 : 2;
+  ids.sort((a, b) => triCenter[a * 3 + axis] - triCenter[b * 3 + axis]);
+  const mid = ids.length >> 1;
+  node.left = buildBVH(ids.slice(0, mid));
+  node.right = buildBVH(ids.slice(mid));
+  return node;
+}
+const bvh = buildBVH(Array.from({ length: nt }, (_, i) => i));
+const scratch = { d2: 0, nx: 0, ny: 0, nz: 0 };
+function pointTriangle(p, t) {
+  const a = faces[t * 3] * 3, b = faces[t * 3 + 1] * 3, c = faces[t * 3 + 2] * 3;
+  const ax = V[a], ay = V[a + 1], az = V[a + 2];
+  const bx = V[b], by = V[b + 1], bz = V[b + 2];
+  const cx = V[c], cy = V[c + 1], cz = V[c + 2];
+  const abx = bx - ax, aby = by - ay, abz = bz - az;
+  const acx = cx - ax, acy = cy - ay, acz = cz - az;
+  const apx = p[0] - ax, apy = p[1] - ay, apz = p[2] - az;
+  const d1 = abx * apx + aby * apy + abz * apz;
+  const d2 = acx * apx + acy * apy + acz * apz;
+  let px, py, pz;
+  if (d1 <= 0 && d2 <= 0) { px = ax; py = ay; pz = az; }
+  else {
+    const bpx = p[0] - bx, bpy = p[1] - by, bpz = p[2] - bz;
+    const d3 = abx * bpx + aby * bpy + abz * bpz;
+    const d4 = acx * bpx + acy * bpy + acz * bpz;
+    if (d3 >= 0 && d4 <= d3) { px = bx; py = by; pz = bz; }
+    else {
+      const vc = d1 * d4 - d3 * d2;
+      if (vc <= 0 && d1 >= 0 && d3 <= 0) { const v = d1 / (d1 - d3); px = ax + v * abx; py = ay + v * aby; pz = az + v * abz; }
+      else {
+        const cpx = p[0] - cx, cpy = p[1] - cy, cpz = p[2] - cz;
+        const d5 = abx * cpx + aby * cpy + abz * cpz;
+        const d6 = acx * cpx + acy * cpy + acz * cpz;
+        if (d6 >= 0 && d5 <= d6) { px = cx; py = cy; pz = cz; }
+        else {
+          const vb = d5 * d2 - d1 * d6;
+          if (vb <= 0 && d2 >= 0 && d6 <= 0) { const w = d2 / (d2 - d6); px = ax + w * acx; py = ay + w * acy; pz = az + w * acz; }
+          else {
+            const va = d3 * d6 - d5 * d4;
+            if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0) {
+              const w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+              px = bx + w * (cx - bx); py = by + w * (cy - by); pz = bz + w * (cz - bz);
+            } else {
+              const denom = 1 / (va + vb + vc);
+              const v = vb * denom, w = vc * denom;
+              px = ax + abx * v + acx * w; py = ay + aby * v + acy * w; pz = az + abz * v + acz * w;
+            }
+          }
+        }
+      }
+    }
+  }
+  scratch.d2 = (p[0] - px) ** 2 + (p[1] - py) ** 2 + (p[2] - pz) ** 2;
+  scratch.nx = faceN[t * 3]; scratch.ny = faceN[t * 3 + 1]; scratch.nz = faceN[t * 3 + 2];
+  return scratch;
+}
+function boxD2(node, p) {
+  const dx = p[0] < node.min[0] ? node.min[0] - p[0] : p[0] > node.max[0] ? p[0] - node.max[0] : 0;
+  const dy = p[1] < node.min[1] ? node.min[1] - p[1] : p[1] > node.max[1] ? p[1] - node.max[1] : 0;
+  const dz = p[2] < node.min[2] ? node.min[2] - p[2] : p[2] > node.max[2] ? p[2] - node.max[2] : 0;
+  return dx * dx + dy * dy + dz * dz;
+}
+function nearestMesh(p) {
+  let best = Infinity, nx = 0, ny = 0, nz = 0;
+  const stack = [bvh];
+  while (stack.length) {
+    const n = stack.pop();
+    if (boxD2(n, p) >= best) continue;
+    if (n.leaf) {
+      for (const t of n.leaf) {
+        const h = pointTriangle(p, t);
+        if (h.d2 < best) { best = h.d2; nx = h.nx; ny = h.ny; nz = h.nz; }
+      }
+    } else { stack.push(n.left, n.right); }
+  }
+  return { d: Math.sqrt(best), nx, ny, nz };
+}
+
+// ---- area-weighted mesh surface samples for the mesh→cloud direction ----
+const MESH_SAMPLES = 120000;
+const cum = new Float64Array(nt);
+let totalArea = 0;
+for (let t = 0; t < nt; t++) { totalArea += faceArea[t]; cum[t] = totalArea; }
+const sampleV = new Float32Array(MESH_SAMPLES * 3);
+let rngState = 0x31415926;
+const rng = () => ((rngState = (rngState * 1664525 + 1013904223) >>> 0) / 4294967296);
+let cur = 0;
+for (let k = 0; k < MESH_SAMPLES; k++) {
+  const target = (k + 0.5) / MESH_SAMPLES * totalArea;
+  while (cur < nt - 1 && cum[cur] < target) cur++;
+  const t = cur;
+  let u = rng(), v = rng();
+  if (u + v > 1) { u = 1 - u; v = 1 - v; }
+  const w = 1 - u - v;
+  const a = faces[t * 3] * 3, b = faces[t * 3 + 1] * 3, c = faces[t * 3 + 2] * 3;
+  for (let j = 0; j < 3; j++) sampleV[k * 3 + j] = V[a + j] * w + V[b + j] * u + V[c + j] * v;
+}
+const meshSampleGrid = makeGrid(sampleV, 0.9);
 
 function readDspk(path) {
   const b = readFileSync(path);
@@ -168,22 +284,20 @@ function makeGrid(points, cell) {
   };
 }
 
-const meshGrid = makeGrid(V, 0.9);
 function audit(cloud) {
   const g = makeGrid(cloud.centers, 0.9);
   const c2m = [], m2c = [], normals = [];
   for (let i = 0; i < cloud.count; i++) {
-    const x = cloud.centers[i * 3], y = cloud.centers[i * 3 + 1], z = cloud.centers[i * 3 + 2];
-    const hit = meshGrid.nearest(x, y, z);
+    const p = [cloud.centers[i * 3], cloud.centers[i * 3 + 1], cloud.centers[i * 3 + 2]];
+    const hit = nearestMesh(p);
     c2m.push(hit.d);
-    if (hit.i >= 0 && cloud.quats && cloud.scales) {
+    if (cloud.quats && cloud.scales) {
       const n = minorAxis(cloud.quats.subarray(i * 4, i * 4 + 4), cloud.scales.subarray(i * 3, i * 3 + 3));
-      const nm = [N[hit.i * 3], N[hit.i * 3 + 1], N[hit.i * 3 + 2]];
-      normals.push(Math.abs(n[0] * nm[0] + n[1] * nm[1] + n[2] * nm[2]));
+      normals.push(Math.abs(n[0] * hit.nx + n[1] * hit.ny + n[2] * hit.nz));
     }
   }
-  for (let j = 0; j < nv; j++) {
-    const hit = g.nearest(V[j * 3], V[j * 3 + 1], V[j * 3 + 2]);
+  for (let j = 0; j < MESH_SAMPLES; j++) {
+    const hit = g.nearest(sampleV[j * 3], sampleV[j * 3 + 1], sampleV[j * 3 + 2]);
     m2c.push(hit.d);
   }
   const sum = (a) => a.reduce((x, y) => x + y, 0);
@@ -219,14 +333,14 @@ const out = {
     vertices: nv,
     sha256_obj: sha(objBuf),
     frame: { upAxisInSource: UP, anteriorAxis: FWD, anteriorSideAxis: SIDE, anteriorSign: SIGN, toApp: '[side-centre, up-centre, sign*(fwd-centre)]' },
-    sample_note: 'distances are to 95,324 welded mesh vertices, not exact point-to-triangle distance',
+    sample_note: 'cloud→mesh is exact point-to-triangle nearest distance; mesh→cloud uses 120,000 deterministic area-weighted surface samples',
   },
   methods: {
     brush_3dgs: { file: TRAINED, ...audit(trained), raw_ply: { file: TRAINED_RAW, frame: 'R_y(-90) into viewer frame', ...audit(trainedRaw) } },
     surface_sampling: { file: SAMPLED, ...audit(sampled), raw_ply: { file: SAMPLED_RAW, frame: 'already in viewer frame', ...audit(sampledRaw) } },
   },
   timeline,
-  caveat: 'Mesh vertices are a sampled surface, so F-score@0.5mm is a point-set approximation. Normal consistency uses the ellipsoid minor axis as an estimated normal. DSPK and raw FP32 rows share the same mesh query, so their difference isolates transport precision rather than reconstruction quality.',
+  caveat: 'Cloud→mesh is exact point-to-triangle distance; mesh→cloud is a 120k area-weighted surface sample, so real-data F-score@0.5mm still has a sampling floor. Normal consistency compares the ellipsoid minor axis against the closest triangle face normal. DSPK and raw FP32 rows share the same queries, so their difference isolates transport precision rather than reconstruction quality.',
 };
 writeFileSync(OUT, JSON.stringify(out, null, 2));
 console.log(JSON.stringify(out, null, 2));

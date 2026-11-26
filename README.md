@@ -22,14 +22,14 @@
 | --- | --- |
 | 训练资产 | Poseidon3D 000125 → 120 Blender 视角 → Brush v0.3.0 15,000 步 → 28,691 个 SH1 高斯 |
 | 同源基线 | 0.35 mm 表面采样 → 59,808 高斯，SH0 |
-| 几何审计（网格顶点样本） | Brush cloud→mesh mean **0.295 mm**，F@0.5 mm **84.5 / 96.5%**；Sampling **0.226 mm / 87.2 / 100.0%** |
+| 几何审计（精确 point→triangle） | Brush cloud→mesh mean **0.168 mm**（p95 0.469），F@0.5 mm **95.9 / 94.7%**；Sampling **0.0002 mm**（p95 0.0004），F@0.5 **100 / 99.97%**；mesh→cloud 使用 120k 面积加权采样 |
 | FP32→DSPK 传输差 | cloud→mesh mean 差 **0.0000 mm**（Brush / Sampling 均为 4 位小数） |
 | 10× 同字节预算 | Uniform 22.28 dB overall；Anatomy 19.75 dB overall，但 L4 27.63→35.84 dB、FDI48–L4 clearance 0.724→0.427 mm |
 | Brush 独立重训时间轴 | S0: 25,000 COLMAP sparse points；1k: 25,581 splats / 742,552 B → 15k: 28,694 splats / 832,830 B；7 个 DSPK 阶段可在 Reconstruction 面板逐步加载、1.2 s/步播放，并与已发布最终模型双视口对比 |
-| 时间轴几何（同网格） | 1k → 15k：cloud→mesh mean 0.260→0.293 mm，F@0.5 precision 86.8→84.3%，recall 96.2→96.6%，normal 0.613→0.606；高斯数量增加不等于中心更贴网格 |
+| 时间轴几何（同网格） | 1k → 15k：cloud→mesh mean 0.078→0.166 mm，F@0.5 precision 99.8→95.6%，recall 96.2→94.8%，normal 0.613→0.606；高斯数量增加不等于中心更贴网格 |
 | Case 05 标签诊断 | 1 mm 内 26.67%；FDI33 91.14% 对 FDI42/43 0%，bbox 差 0.08 mm、最佳 yaw 2.5°；结论是局部 Brush 表面偏差，不是坐标系错误 |
 
-几何审计的距离是到 95,324 个焊接网格顶点的点集近似，不是精确 point-to-triangle Chamfer；法线一致性使用协方差最小主轴作为估计法线。完整字段、源文件 SHA 与反例见 [`MEASUREMENTS.md`](MEASUREMENTS.md) 和 `public/assets/geometry_metrics.json`。
+几何审计的 cloud→mesh 方向是精确 point-to-triangle 距离；mesh→cloud 方向使用 120,000 个确定性面积加权表面采样，因此 F-score 仍有表面采样下限。法线一致性使用协方差最小主轴与最近三角面法线比较。完整字段、源文件 SHA 与反例见 [`MEASUREMENTS.md`](MEASUREMENTS.md) 和 `public/assets/geometry_metrics.json`。
 
 ## 不证明什么
 
