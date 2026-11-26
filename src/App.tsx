@@ -9,7 +9,7 @@ import type { CaseSpec, CaseCohort, LayerSpec } from './data/cases.ts';
 import { LAYER_RGB } from './engine/dspk.ts';
 import Odontogram from './ui/Odontogram.tsx';
 import MprQuadView from './ui/MprQuadView.tsx';
-import GaussianPlot, { ShAppearancePlot } from './ui/GaussianPlot.tsx';
+import GaussianPlot, { ProjectionPlot, ShAppearancePlot } from './ui/GaussianPlot.tsx';
 import type { Mm3 } from './ui/MprQuadView.tsx';
 import type { ToothMeta } from './ui/Odontogram.tsx';
 
@@ -1705,6 +1705,8 @@ export default function App() {
 
                   <div className="sec-head"><span>G(t) · PRINCIPAL AXES</span><b>{gaussian.axes.sigmas.map((s) => s.toFixed(3)).join(' / ')} {gaussUnit}</b></div>
                   <GaussianPlot sigmas={gaussian.axes.sigmas} unit={gaussUnit} />
+                  <div className="sec-head"><span>SCREEN-SPACE PROJECTION</span><b>live camera</b></div>
+                  <ProjectionPlot viewer={viewerRef.current} index={gaussian.index} />
                   {gaussian.shDegree > 1 && (
                     <p className="source-note">该文件含 SH{gaussian.shDegree} 字段；导入/导出会保留全部 f_rest 系数，但当前 GPU 渲染只评估 DC + l=1，l≥2 未渲染，不能据此宣称 SH{gaussian.shDegree} 渲染。</p>
                   )}

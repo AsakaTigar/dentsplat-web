@@ -7,6 +7,13 @@ import type { GaussianInspect, Vec3 } from './gaussian.ts';
 export type ClipAxis = 'x' | 'y' | 'z' | null;
 export type LabMode = 'rgb' | 'ellipsoid' | 'centers' | 'wire' | 'opacity' | 'scale' | 'normal' | 'depth';
 export type LabInfo = { mode: LabMode; available: number; rendered: number; truncated: boolean; triangles: number; points: number };
+export type ProjectedGaussian = {
+  centerPx: [number, number];
+  sigmaPx: [number, number];
+  angleRad: number;
+  depthMm: number;
+  viewportPx: [number, number];
+};
 
 export type ViewPreset = {
   id: string; label: string; sub?: string;
@@ -570,6 +577,43 @@ export class DentSplatViewer {
       return { fdi, point: h.point.clone(), meshName: name };
     }
     return null;
+  }
+
+  /** Screen-space 1-sigma projection of one Gaussian, using the live camera matrices. */
+  projectedGaussian(index: number): ProjectedGaussian | null {
+    const layer = this.primaryLayer();
+    const state = layer?.inspect(index);
+    if (!layer || !state) return null;
+    const cam = new THREE.Vector3(...state.center).applyMatrix4(this.camera.matrixWorldInverse);
+    if (cam.z > -0.05) return null;
+    const rb = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    const w = Math.max(1, rb.x), h = Math.max(1, rb.y);
+    const e = this.camera.matrixWorldInverse.elements;
+    // V * C * V^T, computed directly (V is a rotation).
+    const C = state.covariance;
+    const V = [e[0], e[4], e[8], e[1], e[5], e[9], e[2], e[6], e[10]];
+    const tmp = new Array(9).fill(0), cv = new Array(9).fill(0);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) tmp[i * 3 + j] += V[i * 3 + k] * C[k * 3 + j];
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) cv[i * 3 + j] += tmp[i * 3 + k] * V[j * 3 + k];
+    const fx = 0.5 * w * this.camera.projectionMatrix.elements[0];
+    const fy = 0.5 * h * this.camera.projectionMatrix.elements[5];
+    const z = -cam.z, z2 = z * z;
+    const J = [fx / z, 0, fx * cam.x / z2, 0, fy / z, fy * cam.y / z2, 0, 0, 0];
+    const jc = new Array(9).fill(0), c2 = new Array(9).fill(0);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) jc[i * 3 + j] += J[i * 3 + k] * cv[k * 3 + j];
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) c2[i * 3 + j] += jc[i * 3 + k] * J[j * 3 + k];
+    const a = c2[0] + 0.32, b = c2[1], c = c2[4] + 0.32;
+    const mid = 0.5 * (a + c), disc = Math.sqrt(Math.max(1e-6, mid * mid - (a * c - b * b)));
+    const l1 = Math.max(1e-5, mid + disc), l2 = Math.max(1e-5, mid - disc);
+    const ax = Math.abs(b) > 1e-9 ? new THREE.Vector2(b, l1 - a).normalize() : new THREE.Vector2(1, 0);
+    const center = new THREE.Vector3(...state.center).project(this.camera);
+    return {
+      centerPx: [(center.x * 0.5 + 0.5) * w, (-center.y * 0.5 + 0.5) * h],
+      sigmaPx: [Math.sqrt(l1), Math.sqrt(l2)],
+      angleRad: Math.atan2(ax.y, ax.x),
+      depthMm: z,
+      viewportPx: [w, h],
+    };
   }
 
   /** Nearest visible Gaussian centre in screen space, with depth as the tie-breaker. */

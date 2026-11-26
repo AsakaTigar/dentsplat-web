@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Vec3 } from '../engine/gaussian.ts';
+import type { DentSplatViewer } from '../engine/Viewer.ts';
 
 const COLORS = ['#ef4444', '#22c55e', '#38bdf8'];
 
@@ -51,6 +52,54 @@ export function ShAppearancePlot({ sh1, base }: { sh1: number[]; base: Vec3 }) {
     ctx.fillText(`l=1 ΔRGB · 方位角 0–360° · |Δ|max ${max.toFixed(3)} · base ${base.map((x) => x.toFixed(2)).join('/')}`, padL, h - 3);
   }, [sh1, base]);
   return <canvas ref={ref} className="gauss-plot" aria-label="SH1 appearance across view directions" />;
+}
+
+export function ProjectionPlot({ viewer, index }: { viewer: DentSplatViewer | null; index: number }) {
+  const ref = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c || !viewer) return;
+    let raf = 0;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = 268, h = 112;
+    c.width = w * dpr; c.height = h * dpr;
+    c.style.width = `${w}px`; c.style.height = `${h}px`;
+    const ctx = c.getContext('2d')!;
+    const draw = () => {
+      raf = requestAnimationFrame(draw);
+      const p = viewer.projectedGaussian(index);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(148,163,184,0.35)';
+      ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
+      if (!p) {
+        ctx.fillStyle = 'rgba(148,163,184,0.75)';
+        ctx.font = '10px ui-monospace, Menlo, monospace';
+        ctx.fillText('Gaussian behind camera / no projection', 9, h / 2);
+        return;
+      }
+      const s = Math.min((w - 18) / p.viewportPx[0], (h - 18) / p.viewportPx[1]);
+      const cx = 9 + p.centerPx[0] * s, cy = 9 + p.centerPx[1] * s;
+      const ax = Math.max(1.2, p.sigmaPx[0] * s), ay = Math.max(1.2, p.sigmaPx[1] * s);
+      if (cx >= 0 && cx <= w && cy >= 0 && cy <= h) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(p.angleRad);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.ellipse(0, 0, ax, ay, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(148,163,184,0.85)';
+      ctx.font = '9px ui-monospace, Menlo, monospace';
+      ctx.fillText(`screen 1σ ≈ ${p.sigmaPx[0].toFixed(1)} × ${p.sigmaPx[1].toFixed(1)} px · z ${p.depthMm.toFixed(1)} mm`, 8, h - 6);
+    };
+    draw();
+    return () => cancelAnimationFrame(raf);
+  }, [viewer, index]);
+  return <canvas ref={ref} className="gauss-plot" aria-label="Live projected Gaussian ellipse" />;
 }
 
 export default function GaussianPlot({ sigmas, unit = 'mm' }: { sigmas: Vec3; unit?: string }) {
