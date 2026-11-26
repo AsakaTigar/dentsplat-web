@@ -1750,7 +1750,7 @@ export default function App() {
                           <span><b>F@0.5 recall</b><em>{(first.fscore.recall * 100).toFixed(1)} → {(last.fscore.recall * 100).toFixed(1)}%</em></span>
                           <span><b>normal |n·n|</b><em>{first.normal_abs_dot?.mean.toFixed(3) ?? '—'} → {last.normal_abs_dot?.mean.toFixed(3) ?? '—'}</em></span>
                         </div>
-                        <p className="source-note timeline-warning">这次独立重训的高斯数量持续增加，但中心到网格的 mean 与 F precision 变差、recall 略升：优化目标改善渲染覆盖，不等价于高斯中心更贴网格。曲线按同一步的实际 checkpoint 复算，未做筛点。</p>
+                        <p className="source-note timeline-warning">这次独立重训的高斯数量持续增加，但中心到网格的 mean 与 F precision 变差、recall 略升：数量增加不等价于高斯中心更贴网格。训练器未输出 loss/PSNR，因此这里不对渲染质量作因果判断；数值按同一步的实际 checkpoint 复算，未做筛点。</p>
                       </>
                     );
                   })()}
