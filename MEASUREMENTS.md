@@ -32,9 +32,9 @@ therefore quantify the **renderer and the codec on real geometry**, and still no
 | window state | **hidden** automation window: canvas 428×1, dpr 1, `document.visibilityState = hidden` |
 | bundle | Vite hashes the filenames, so they move whenever `src/` does; the deployed build at the 2026-11-25 Pages cut is `index-Be3AvOjj.js` 913,440 B (gzip 249 kB) + `index-CmGWE3vc.css` 10,860 B, whole `dist/` 6,286,521 B. The 1440p capture session ran `index-DUqMfPP2.js` / 911,891 B — same app, before the Pages subpath and phone-breakpoint changes |
 | page build gate | `npm run check` → dspk round-trip, label sync, GPU-name parser, 4 page-probe self-tests, 23 nifti-probe mock checks, `test:claims` (this file, `brief/technical-brief.html` **and the walkthrough's captions and cards** re-derived from the captures and the artefacts on disk), `test:claims:mut` (one cited value corrupted at a time, each caught by the named check), pycheck, `tsc --noEmit`; exit 0 |
-| the one-page Brief | `npm run brief` renders `brief/technical-brief.html` to PDF through headless Edge and asserts `/Count 1`; `npm run brief:selftest` proves the gate by rendering a 300 mm-filler variant and requiring it to fail. Output: `Downloads/DentSplat-Technical-Brief-20261125.pdf` |
-| the 60-second walkthrough | `npm run demo` cuts `brief/demo/frames.json` — ten renders, each re-hashed before ffmpeg ever sees it — around two headless-Edge cards, then asks ffprobe for the codec, size, duration and frame count of the file it just wrote; `npm run demo:selftest` proves the card-fit gate by injecting a 400 px filler and requiring the bottom-edge marker to disappear. Output: `Downloads/DentSplat-demo-60s-20261125.mp4` beside its `.PROVENANCE.md` (§8) |
-| method + core code, one file | `node tools/build-method-doc.mjs` assembles `docs/method-doc.template.md` and 62 source files into `Downloads/DentSplat-方法与核心代码-20261125.md`, each listing carrying its line count and full sha256; `--verify` re-hashes the delivered blocks *and* the working tree (run by `npm run check`), `--selftest` proves both legs fail on tampering and on drift |
+| the one-page Brief | `npm run brief` renders `brief/technical-brief.html` to PDF through headless Edge and asserts `/Count 1`; `npm run brief:selftest` proves the gate by rendering a 300 mm-filler variant and requiring it to fail. Output: `local output directory/DentSplat-Technical-Brief-20261125.pdf` |
+| the 60-second walkthrough | `npm run demo` cuts `brief/demo/frames.json` — ten renders, each re-hashed before ffmpeg ever sees it — around two headless-Edge cards, then asks ffprobe for the codec, size, duration and frame count of the file it just wrote; `npm run demo:selftest` proves the card-fit gate by injecting a 400 px filler and requiring the bottom-edge marker to disappear. Output: `local output directory/DentSplat-demo-60s-20261125.mp4` beside its `.PROVENANCE.md` (§8) |
+| method + core code, one file | `node tools/build-method-doc.mjs` assembles `docs/method-doc.template.md` and 62 source files into `local output directory/DentSplat-方法与核心代码-20261125.md`, each listing carrying its line count and full sha256; `--verify` re-hashes the delivered blocks *and* the working tree (run by `npm run check`), `--selftest` proves both legs fail on tampering and on drift |
 | asset digests | `tools/out/PROVENANCE.md` (`node tools/sha-assets.mjs --write`) |
 | tooling | `node tools/summarize-perf.mjs tools/out/perf-*.json`, `node tools/summarize-bench.mjs tools/out/bench-*.json` |
 
@@ -313,7 +313,7 @@ page feel slow, and nothing about frame rate.
 
 ## 8. The 60-second walkthrough, cut from the app's own renders
 
-`node brief/demo/build.mjs` (also `npm run demo`) produces `Downloads/DentSplat-demo-60s-20261125.mp4` —
+`node brief/demo/build.mjs` (also `npm run demo`) produces `local output directory/DentSplat-demo-60s-20261125.mp4` —
 2,489,309 B, sha256 `c4306565710665d3…`, cut at 2026-11-25 08:47 local, which the sidecar
 `…mp4.PROVENANCE.md` prints as `2026-11-25T00:47Z`: the same instant, one UTC, one UTC+8 (§1 is local).
 Re-cutting changes those bytes, so nothing here gates them; what is gated is what the video *claims*.
