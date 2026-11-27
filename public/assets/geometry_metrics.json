@@ -2,8 +2,8 @@
   "schema": "dentsplat-geometry-audit-v2",
   "generated_at": "2026-11-26T20:17:38.490Z",
   "source_mesh": {
-    "path": "D:/Aodou/.cache/tmp/poseidon/c125/000125_MODEL_mandible.stl",
-    "obj_cache": "D:/Aodou/.cache/tmp/poseidon/obj/000125_lower.obj",
+    "path": "Poseidon3D case 000125 source mesh (local source file; not redistributed)",
+    "obj_cache": "Local OBJ preprocessing cache (not redistributed)",
     "triangles": 190724,
     "vertices": 95324,
     "sha256_obj": "4256b51a9d12626fc8317406e53184e3010cc38a61572d0b8bed18e5ff0e5e53",
