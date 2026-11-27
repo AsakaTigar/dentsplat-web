@@ -967,6 +967,7 @@ export default function App() {
       history.replaceState(null, '', `#METHOD_${method.toUpperCase()}`);
       setLoading(false);
     } catch (e) {
+      if ((e as { name?: string })?.name === 'AbortError') { setLoading(false); return; }
       setErr(`${spec.label} 加载失败: ${String(e)}`);
       setLoading(false);
     }
@@ -1002,6 +1003,7 @@ export default function App() {
       setLabMode('rgb');
       setLoading(false);
     } catch (e) {
+      if ((e as { name?: string })?.name === 'AbortError') { setLoading(false); return; }
       setErr(`四表示对照加载失败: ${String(e)}`);
       setLoading(false);
     }
