@@ -454,9 +454,10 @@ export default function App() {
     (async () => {
       try {
         setLoading(true); setErr(null); setBench(null); setCompressionBench(null); setCustomAssetName(null); setLocalLayerIds([]);
-        const [rep, mf] = await Promise.all([
+        const [rep, mf, cov] = await Promise.all([
           fetch(`${import.meta.env.BASE_URL}assets/report.json`).then((r) => r.json()),
           fetch(spec.metaUrl).then((r) => r.json()),
+          fetch(`${import.meta.env.BASE_URL}assets/compression_coverage.json`).then((r) => r.json()),
         ]);
         const useTenX = tenX && caseId === 'B';
         const useMethodCompare = methodCompare && caseId === 'A2';
@@ -481,7 +482,17 @@ export default function App() {
           const abUrl = (file: string) => `${import.meta.env.BASE_URL}assets/${file.split('/').pop()}`;
           scene = {
             full: ablation.uniform, pruned: ablation.anatomy, bytes_ratio: 1,
-            proxy: source.proxy, compression_fidelity_mm: {}, metrics: source.metrics ?? {},
+            proxy: source.proxy,
+            compression_fidelity_mm: {
+              coverage_gap_mean: cov.uniform.mean_mm,
+              coverage_gap_p95: cov.uniform.p95_mm,
+              uniform_coverage_gap_mean: cov.uniform.mean_mm,
+              uniform_coverage_gap_p95: cov.uniform.p95_mm,
+              anatomy_coverage_gap_mean: cov.anatomy.mean_mm,
+              anatomy_coverage_gap_p95: cov.anatomy.p95_mm,
+              definition: cov.definition,
+            },
+            metrics: source.metrics ?? {},
           };
           fullUrl = abUrl(ablation.uniform.file);
           prunedUrl = abUrl(ablation.anatomy.file);
@@ -1254,7 +1265,7 @@ export default function App() {
   }), []);
 
   // Evidence-linked findings. Numbers shown here all come from report.json / meta.json of the
-  // current case; anything not measured is labelled TBD rather than filled with a placeholder.
+  // current case; anything not measured is shown as an em dash rather than filled with a placeholder.
   const findings = useMemo<EvidenceFinding[]>(() => {
     const list: EvidenceFinding[] = [];
     if (isLocal) {
@@ -1270,7 +1281,7 @@ export default function App() {
       list.push(
         {
           id: 'ian-38', fdi: 38, title: 'Mandibular Canal Proximity', subtitle: '38/48 智齿与下牙槽神经管空间关系',
-          status: 'caution', metric: ian != null ? `IAN ${ian.toFixed(2)} mm` : 'IAN TBD',
+          status: 'caution', metric: ian != null ? `IAN ${ian.toFixed(2)} mm` : 'IAN —',
           evidence: '由 DentVoxel v4 case 0095 的 0.3 mm 体素分割直接量测（非诊断结论）；点击切入神经管透视与冠状剖切。',
           action: () => focusCanal(),
         },
@@ -1884,7 +1895,7 @@ export default function App() {
                             <b>{c.shortTitle}</b>
                             <small>
                               {c.modality}
-                              {sc ? ` · ${fmtInt(sc.full.splats)} splats · ${fmtMB(sc.full.bytes)} MB` : ' · metrics TBD'}
+                              {sc ? ` · ${fmtInt(sc.full.splats)} splats · ${fmtMB(sc.full.bytes)} MB` : ' · metrics —'}
                             </small>
                           </span>
                           <span className={'cr-tag ' + cls}>{c.tag}</span>
@@ -2520,11 +2531,13 @@ export default function App() {
                 <dd>{report ? `${fmtInt(report.pruned.splats)} splats · ${fmtMB(report.pruned.bytes)} MB · SH${report.pruned.sh_degree}` : '—'}</dd>
                 <dt>ratio</dt>
                 <dd>{tenX ? '1.00× · equal bytes' : ratio ? `${ratio.toFixed(2)}× smaller` : '—'}</dd>
-                <dt>coverage gap</dt>
+                <dt>{tenX ? 'coverage holes (Full→10×)' : 'coverage gap'}</dt>
                 <dd>
-                  {report && report.compression_fidelity_mm.coverage_gap_mean != null
-                    ? `${report.compression_fidelity_mm.coverage_gap_mean} mm mean · p95 ${report.compression_fidelity_mm.coverage_gap_p95} mm`
-                    : 'TBD'}
+                  {!report ? '—' : tenX
+                    ? `Uniform ${Number(report.compression_fidelity_mm.uniform_coverage_gap_mean).toFixed(3)} / p95 ${Number(report.compression_fidelity_mm.uniform_coverage_gap_p95).toFixed(3)} mm · Anatomy ${Number(report.compression_fidelity_mm.anatomy_coverage_gap_mean).toFixed(3)} / p95 ${Number(report.compression_fidelity_mm.anatomy_coverage_gap_p95).toFixed(3)} mm`
+                    : report.compression_fidelity_mm.coverage_gap_mean != null
+                      ? `${report.compression_fidelity_mm.coverage_gap_mean} mm mean · p95 ${report.compression_fidelity_mm.coverage_gap_p95} mm`
+                      : '—'}
                 </dd>
                 <dt>live PSNR</dt>
                 <dd>{bench ? `${bench.psnr} dB · 掩膜内 ${bench.psnrInMask} dB · MAE ${bench.mae}` : '—'}</dd>
