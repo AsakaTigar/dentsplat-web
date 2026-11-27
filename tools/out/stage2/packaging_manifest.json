@@ -1,0 +1,367 @@
+{
+  "schema": "dentsplat-stage2-packaging-v1",
+  "generated_at": "2026-11-27T01:23:55.163Z",
+  "coordinate_pipeline": "normalized gsplat PLY -> inverse COLMAP transform + R_y(-90) viewer PLY -> SH0 web PLY -> DSPK; labels were transferred in the original STL frame before packaging and kept in PLY row order",
+  "rows": [
+    {
+      "case": "maxilla",
+      "method": "2dgs",
+      "step": 1000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/maxilla_packaged/2dgs_step1000/point_cloud_1000.dspk",
+      "sha256": "a5b5fb7f7e23f8e48b23e74d0a72262e186a7e8ab4c889a11575264a59ba13a6",
+      "bytes": 430239,
+      "splats": 21470,
+      "sh_degree": 0,
+      "labels": {
+        "status": "transferred",
+        "assigned_fraction": 0.1815,
+        "assigned_mean_distance_mm": 0.3695,
+        "fdi_histogram": {
+          "0": 17574,
+          "11": 346,
+          "12": 282,
+          "13": 281,
+          "15": 290,
+          "16": 384,
+          "17": 326,
+          "21": 348,
+          "22": 284,
+          "23": 306,
+          "25": 312,
+          "26": 405,
+          "27": 332
+        },
+        "reference_sha256": "4f4b1bd8c51daca51d84cd1ffc0ba159b861b2c74e3db4e03fb71cd833fdbc0c"
+      }
+    },
+    {
+      "case": "maxilla",
+      "method": "2dgs",
+      "step": 15000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/maxilla_packaged/2dgs_step15000/point_cloud_15000.dspk",
+      "sha256": "7c63efd8e9b2ecc1ce66ec8dd949f7e9b450c1a1f77ddf5d5eb241ed948ffe8f",
+      "bytes": 664163,
+      "splats": 33166,
+      "sh_degree": 0,
+      "labels": {
+        "status": "transferred",
+        "assigned_fraction": 0.2564,
+        "assigned_mean_distance_mm": 0.1888,
+        "fdi_histogram": {
+          "0": 24662,
+          "11": 550,
+          "12": 401,
+          "13": 676,
+          "15": 714,
+          "16": 1071,
+          "17": 841,
+          "21": 567,
+          "22": 420,
+          "23": 749,
+          "25": 737,
+          "26": 993,
+          "27": 785
+        },
+        "reference_sha256": "4f4b1bd8c51daca51d84cd1ffc0ba159b861b2c74e3db4e03fb71cd833fdbc0c"
+      }
+    },
+    {
+      "case": "maxilla",
+      "method": "2dgs",
+      "step": 3000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/maxilla_packaged/2dgs_step3000/point_cloud_3000.dspk",
+      "sha256": "322e16261bf871b4a065047dab9c3c5606f9397d3d6f4e0a1033174a678617b7",
+      "bytes": 576059,
+      "splats": 28761,
+      "sh_degree": 0,
+      "labels": {
+        "status": "transferred",
+        "assigned_fraction": 0.2253,
+        "assigned_mean_distance_mm": 0.3108,
+        "fdi_histogram": {
+          "0": 22281,
+          "11": 453,
+          "12": 373,
+          "13": 530,
+          "15": 565,
+          "16": 805,
+          "17": 593,
+          "21": 487,
+          "22": 324,
+          "23": 518,
+          "25": 558,
+          "26": 720,
+          "27": 554
+        },
+        "reference_sha256": "4f4b1bd8c51daca51d84cd1ffc0ba159b861b2c74e3db4e03fb71cd833fdbc0c"
+      }
+    },
+    {
+      "case": "maxilla",
+      "method": "2dgs",
+      "step": 7000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/maxilla_packaged/2dgs_step7000/point_cloud_7000.dspk",
+      "sha256": "951521210426f10d3afafb7c5b0891acb4478245906ecf42cc55eedeaf267b62",
+      "bytes": 662599,
+      "splats": 33088,
+      "sh_degree": 0,
+      "labels": {
+        "status": "transferred",
+        "assigned_fraction": 0.2353,
+        "assigned_mean_distance_mm": 0.2292,
+        "fdi_histogram": {
+          "0": 25302,
+          "11": 552,
+          "12": 412,
+          "13": 652,
+          "15": 652,
+          "16": 946,
+          "17": 744,
+          "21": 550,
+          "22": 395,
+          "23": 673,
+          "25": 670,
+          "26": 878,
+          "27": 662
+        },
+        "reference_sha256": "4f4b1bd8c51daca51d84cd1ffc0ba159b861b2c74e3db4e03fb71cd833fdbc0c"
+      }
+    },
+    {
+      "case": "maxilla",
+      "method": "3dgs",
+      "step": 1000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/maxilla_packaged/3dgs_step1000/point_cloud_1000.dspk",
+      "sha256": "c9d197acc21a2241718b7836d8e5e0bb587605956e1f88db2cfa36144801154b",
+      "bytes": 487019,
+      "splats": 24309,
+      "sh_degree": 0,
+      "labels": {
+        "status": "transferred",
+        "assigned_fraction": 0.2598,
+        "assigned_mean_distance_mm": 0.3223,
+        "fdi_histogram": {
+          "0": 17994,
+          "11": 519,
+          "12": 356,
+          "13": 466,
+          "15": 441,
+          "16": 685,
+          "17": 648,
+          "21": 504,
+          "22": 410,
+          "23": 515,
+          "25": 447,
+          "26": 689,
+          "27": 635
+        },
+        "reference_sha256": "4f4b1bd8c51daca51d84cd1ffc0ba159b861b2c74e3db4e03fb71cd833fdbc0c"
+      }
+    },
+    {
+      "case": "maxilla",
+      "method": "3dgs",
+      "step": 15000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/maxilla_packaged/3dgs_step15000/point_cloud_15000.dspk",
+      "sha256": "e5ce7699016a7f47dd6220b697e8a521b60f0f03c26806849dd6c141ff33ea2c",
+      "bytes": 1600843,
+      "splats": 80000,
+      "sh_degree": 0,
+      "labels": {
+        "status": "transferred",
+        "assigned_fraction": 0.3194,
+        "assigned_mean_distance_mm": 0.1785,
+        "fdi_histogram": {
+          "0": 54448,
+          "11": 1909,
+          "12": 1257,
+          "13": 2727,
+          "15": 2084,
+          "16": 2907,
+          "17": 2515,
+          "21": 1712,
+          "22": 1445,
+          "23": 2238,
+          "25": 2102,
+          "26": 2674,
+          "27": 1982
+        },
+        "reference_sha256": "4f4b1bd8c51daca51d84cd1ffc0ba159b861b2c74e3db4e03fb71cd833fdbc0c"
+      }
+    },
+    {
+      "case": "maxilla",
+      "method": "3dgs",
+      "step": 3000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/maxilla_packaged/3dgs_step3000/point_cloud_3000.dspk",
+      "sha256": "7e13ff8839d0e9d2258bc3c70d9b76c3942ca005c8a879c7675fb01d7d2406f1",
+      "bytes": 1290559,
+      "splats": 64486,
+      "sh_degree": 0,
+      "labels": {
+        "status": "transferred",
+        "assigned_fraction": 0.2805,
+        "assigned_mean_distance_mm": 0.3225,
+        "fdi_histogram": {
+          "0": 46398,
+          "11": 1592,
+          "12": 959,
+          "13": 1905,
+          "15": 1334,
+          "16": 1831,
+          "17": 1728,
+          "21": 1461,
+          "22": 1026,
+          "23": 1579,
+          "25": 1446,
+          "26": 1733,
+          "27": 1494
+        },
+        "reference_sha256": "4f4b1bd8c51daca51d84cd1ffc0ba159b861b2c74e3db4e03fb71cd833fdbc0c"
+      }
+    },
+    {
+      "case": "maxilla",
+      "method": "3dgs",
+      "step": 7000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/maxilla_packaged/3dgs_step7000/point_cloud_7000.dspk",
+      "sha256": "e4f7421ea44558fcb748910c4fb62ab7657a95a6826a698ffb60ccf8300afd87",
+      "bytes": 1600839,
+      "splats": 80000,
+      "sh_degree": 0,
+      "labels": {
+        "status": "transferred",
+        "assigned_fraction": 0.3054,
+        "assigned_mean_distance_mm": 0.2071,
+        "fdi_histogram": {
+          "0": 55564,
+          "11": 1898,
+          "12": 1264,
+          "13": 2574,
+          "15": 1976,
+          "16": 2672,
+          "17": 2408,
+          "21": 1730,
+          "22": 1366,
+          "23": 2097,
+          "25": 1989,
+          "26": 2515,
+          "27": 1947
+        },
+        "reference_sha256": "4f4b1bd8c51daca51d84cd1ffc0ba159b861b2c74e3db4e03fb71cd833fdbc0c"
+      }
+    },
+    {
+      "case": "prostho601",
+      "method": "2dgs",
+      "step": 1000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/prostho601_packaged/2dgs_step1000/point_cloud_1000.dspk",
+      "sha256": "7f81d8cfde96ee092c8963c5ac2efdf51e1af37bfabb20b03fe82e7b9e0ed413",
+      "bytes": 421542,
+      "splats": 21040,
+      "sh_degree": 0,
+      "labels": {
+        "status": "not_available",
+        "reason": "The published ProsthoObjects3D STL has no per-vertex FDI or semantic-layer sidecars; packet is aligned and packaged as unlabelled geometry (all FDI=0), not assigned invented tooth ids."
+      }
+    },
+    {
+      "case": "prostho601",
+      "method": "2dgs",
+      "step": 15000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/prostho601_packaged/2dgs_step15000/point_cloud_15000.dspk",
+      "sha256": "e58b7d20b8d672fc41b34169cf1c9907b2a223935ab4384d1ef4135ce702e0a3",
+      "bytes": 534185,
+      "splats": 26672,
+      "sh_degree": 0,
+      "labels": {
+        "status": "not_available",
+        "reason": "The published ProsthoObjects3D STL has no per-vertex FDI or semantic-layer sidecars; packet is aligned and packaged as unlabelled geometry (all FDI=0), not assigned invented tooth ids."
+      }
+    },
+    {
+      "case": "prostho601",
+      "method": "2dgs",
+      "step": 3000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/prostho601_packaged/2dgs_step3000/point_cloud_3000.dspk",
+      "sha256": "24527ce8f7885bfce5f162f268a43ff9d8aea8cb7db13d4c4410cccaee2e1498",
+      "bytes": 516942,
+      "splats": 25810,
+      "sh_degree": 0,
+      "labels": {
+        "status": "not_available",
+        "reason": "The published ProsthoObjects3D STL has no per-vertex FDI or semantic-layer sidecars; packet is aligned and packaged as unlabelled geometry (all FDI=0), not assigned invented tooth ids."
+      }
+    },
+    {
+      "case": "prostho601",
+      "method": "2dgs",
+      "step": 7000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/prostho601_packaged/2dgs_step7000/point_cloud_7000.dspk",
+      "sha256": "d351f2f5afcf0093fdffc31ca62908c1b1db0cbeb74862066f9fb91ceb13f948",
+      "bytes": 545442,
+      "splats": 27235,
+      "sh_degree": 0,
+      "labels": {
+        "status": "not_available",
+        "reason": "The published ProsthoObjects3D STL has no per-vertex FDI or semantic-layer sidecars; packet is aligned and packaged as unlabelled geometry (all FDI=0), not assigned invented tooth ids."
+      }
+    },
+    {
+      "case": "prostho601",
+      "method": "3dgs",
+      "step": 1000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/prostho601_packaged/3dgs_step1000/point_cloud_1000.dspk",
+      "sha256": "20b5eb9fdc8db86e20fab2a0dab4cc71d5ad6dd7b1bfd4856323ceabe09354f5",
+      "bytes": 486922,
+      "splats": 24309,
+      "sh_degree": 0,
+      "labels": {
+        "status": "not_available",
+        "reason": "The published ProsthoObjects3D STL has no per-vertex FDI or semantic-layer sidecars; packet is aligned and packaged as unlabelled geometry (all FDI=0), not assigned invented tooth ids."
+      }
+    },
+    {
+      "case": "prostho601",
+      "method": "3dgs",
+      "step": 15000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/prostho601_packaged/3dgs_step15000/point_cloud_15000.dspk",
+      "sha256": "eb8d90a8e2d5858c7be0a8588755a1b4898e6de68c847a427647501ab808c90a",
+      "bytes": 1600745,
+      "splats": 80000,
+      "sh_degree": 0,
+      "labels": {
+        "status": "not_available",
+        "reason": "The published ProsthoObjects3D STL has no per-vertex FDI or semantic-layer sidecars; packet is aligned and packaged as unlabelled geometry (all FDI=0), not assigned invented tooth ids."
+      }
+    },
+    {
+      "case": "prostho601",
+      "method": "3dgs",
+      "step": 3000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/prostho601_packaged/3dgs_step3000/point_cloud_3000.dspk",
+      "sha256": "e893c93b0fed7cf9aef9d08a709b19f2db52ca6878f08b1ee9783f104791f6cd",
+      "bytes": 1290462,
+      "splats": 64486,
+      "sh_degree": 0,
+      "labels": {
+        "status": "not_available",
+        "reason": "The published ProsthoObjects3D STL has no per-vertex FDI or semantic-layer sidecars; packet is aligned and packaged as unlabelled geometry (all FDI=0), not assigned invented tooth ids."
+      }
+    },
+    {
+      "case": "prostho601",
+      "method": "3dgs",
+      "step": 7000,
+      "dspk": "E:/dentsplat_work/stage2_packaged/prostho601_packaged/3dgs_step7000/point_cloud_7000.dspk",
+      "sha256": "cd7b86f8b9f48121ba960cafd2c15cd6f41d85b1d967c74a5fa79725372b0679",
+      "bytes": 1600742,
+      "splats": 80000,
+      "sh_degree": 0,
+      "labels": {
+        "status": "not_available",
+        "reason": "The published ProsthoObjects3D STL has no per-vertex FDI or semantic-layer sidecars; packet is aligned and packaged as unlabelled geometry (all FDI=0), not assigned invented tooth ids."
+      }
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schema": "dentsplat-crosscase-geometry-v1",
+  "generated_at": "2026-11-27T01:22:34.115Z",
+  "mesh": {
+    "path": "E:/dentsplat_work/case_maxilla/decimated.obj",
+    "sha256": "fe864111a64de9bdf729ec16636193ffea724372420a19eb18229b937e707945",
+    "triangles": 40478,
+    "vertices": 20238,
+    "role": "decimated surface that rendered the training views (face count verified against render_meta.json)"
+  },
+  "normalization": {
+    "path": "E:/dentsplat_work/case_maxilla/transform.json",
+    "source_axis": "COLMAP world frame (the STL frame the renderer used)",
+    "inverse_scale": 0.0072783882568010095,
+    "note": "points and rotations mapped by R^T and translation; scales shifted by -log(s). No viewer-frame R_y(-90) is applied here, so distances are measured in the original STL frame."
+  },
+  "methods": {
+    "3dgs": {
+      "file": "E:/dentsplat_work/out_s2_maxilla_3dgs/ply/point_cloud_2999.ply",
+      "count": 64486,
+      "cloud_to_mesh": {
+        "mean_mm": 0.4373,
+        "p50_mm": 0.272,
+        "p95_mm": 1.372,
+        "max_mm": 49.8296
+      },
+      "mesh_to_cloud": {
+        "mean_mm": 0.3877,
+        "p50_mm": 0.3473,
+        "p95_mm": 0.8034,
+        "max_mm": 1.8201
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.7582,
+        "recall": 0.7496
+      },
+      "normal_abs_dot": {
+        "mean": 0.5419,
+        "p50": 0.5466,
+        "p10": 0.0895
+      }
+    }
+  },
+  "caveat": "Cloud→mesh is exact point-to-triangle distance against the decimated training mesh. Mesh→cloud uses 120,000 deterministic area-weighted samples of that same mesh. Appearance in training was a synthetic height/facing material rendered from this geometry, not a patient photograph."
+}

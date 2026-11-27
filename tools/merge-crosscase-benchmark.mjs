@@ -29,6 +29,22 @@ const summary = (curve) => {
   };
 };
 
+const checkpointGeometry = (caseKey, geomKey, step) => {
+  const path = `tools/out/stage2/geometry_checkpoints/${caseKey}_${geomKey}_${step}.json`;
+  const doc = JSON.parse(readFileSync(path, 'utf8'));
+  const g = doc.methods[geomKey];
+  return {
+    cloud_to_mesh: g.cloud_to_mesh,
+    mesh_to_cloud: g.mesh_to_cloud,
+    fscore: g.fscore,
+    normal_abs_dot: g.normal_abs_dot,
+  };
+};
+const trainingWithGeometry = (curve, caseKey, geomKey) => {
+  const t = summary(curve);
+  return { ...t, curve: t.curve.map((p) => ({ ...p, geometry: checkpointGeometry(caseKey, geomKey, p.step) })) };
+};
+
 const cases = [
   {
     key: 'maxilla',
@@ -55,6 +71,7 @@ const cases = [
 ];
 
 const out = [];
+const packageManifest = JSON.parse(readFileSync('tools/out/stage2/packaging_manifest.json', 'utf8'));
 for (const c of cases) {
   const geom = JSON.parse(readFileSync(c.geometryFile, 'utf8'));
   const methods = {};
@@ -65,7 +82,7 @@ for (const c of cases) {
     methods[name] = {
       label: name === 'gsplat-3dgs-mcmc' ? 'gsplat MCMC 3DGS' : 'gsplat 2DGS surfels',
       config: bench.methods[name].config,
-      training: summary(curve),
+      training: trainingWithGeometry(curve, c.key, r.geomKey),
       geometry: {
         cloud_to_mesh: g.cloud_to_mesh,
         mesh_to_cloud: g.mesh_to_cloud,
@@ -86,10 +103,19 @@ for (const c of cases) {
       sha256: geom.mesh.sha256,
     },
     methods,
-    packaging: {
-      status: 'training_and_geometry_only',
-      reason: 'No per-vertex FDI / layer sidecars are published for these STLs, so there is nothing to transfer or encode; the 000125 benchmark case remains the labelled container example.',
-    },
+    packaging: (() => {
+      const packets = packageManifest.rows.filter((r) => r.case === c.key);
+      const labelled = packets.every((r) => r.labels.status === 'transferred');
+      return {
+        status: labelled ? 'packaged_with_fdi_labels' : 'packaged_unlabelled',
+        pipeline: packageManifest.coordinate_pipeline,
+        packet_count: packets.length,
+        packets,
+        reason: c.key === 'maxilla'
+          ? 'FDI labels transferred from Poseidon3D exported_case_ortho23_000272_REGIONS_FACES_QUADRANT_NUMBERING_before_model_trimming_maxilla.pkl (300k area samples, original STL frame, nearest labelled sample within 0.75 mm).'
+          : 'ProsthoObjects3D 601 has no per-vertex FDI / semantic-layer sidecars; the packet is aligned and packaged as unlabelled geometry (all FDI=0), with no invented tooth ids.',
+      };
+    })(),
   });
 }
 

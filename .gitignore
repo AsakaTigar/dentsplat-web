@@ -41,4 +41,14 @@ tools/out/*.log
 
 # Stage-2 viewer-frame clouds are derived artefacts (51 MB); keep only the audit JSONs.
 tools/out/stage2/viewer/
+tools/out/stage2/maxilla_packaged/
+tools/out/stage2/prostho601_packaged/
+tools/out/stage2/frames/
+tools/out/stage2/frames_test/
+tools/out/stage2/frames_video/
+tools/out/stage2/segments/
+tools/out/stage2/combined/
+tools/out/stage2/edge-profile/
+tools/out/stage2/*.png
+tools/out/stage2/*.jpg
 tools/out/stage2/*.log
