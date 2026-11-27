@@ -9,9 +9,9 @@
     "sh_degree": 1,
     "export_every": 1000,
     "independent_rerun": true,
-    "note": "独立重训：step 0 为 COLMAP sparse points，1k–15k 为 Brush 导出的真实高斯；最终 28,694 splats，与已发布 28,691 的差异来自 Brush 非确定性训练。"
+    "note": "Independent rerun: step 0 contains COLMAP sparse points; 1k–15k are genuine Gaussian exports from Brush. The final 28,694 splats differ from the published 28,691 because Brush training is non-deterministic."
   },
-  "metrics_note": "训练器未输出 loss/PSNR 行；本时间轴只展示真实导出的高斯数量、字节和可加载模型，不画示意曲线。",
+  "metrics_note": "The trainer did not output loss/PSNR rows; this timeline shows only real exported Gaussian counts, byte sizes and loadable models, with no illustrative curves.",
   "steps": [
     {
       "step": 0,

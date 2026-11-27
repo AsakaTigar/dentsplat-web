@@ -1,16 +1,19 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>DentSplat — 口腔 3D Gaussian Splatting 临床原型</title>
+<title>DentSplat — Clinical 3D Gaussian Splatting</title>
 <meta name="description" content="Zero-install browser 3D Gaussian Splatting for dental data: FDI tooth-level semantics, shader-level clipping and section caps, CBCT layer transparency, mm-accurate measurement and compression fidelity audit." />
 <meta name="color-scheme" content="dark" />
 <link rel="icon" href="./favicon.ico" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet" />
 <style>
   :root { color-scheme: dark; }
-  html, body { margin: 0; height: 100%; background: #0b0f17; color: #dbe7f5;
-    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  html, body { margin: 0; height: 100%; background: #0A0B0E; color: #EAECEF;
+    font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   #boot { position: fixed; inset: 0; display: grid; place-content: center; gap: 10px; text-align: center; }
   #boot b { color: #38bdf8; letter-spacing: .18em; font-size: 12px; }
   #boot .bar { width: 220px; height: 2px; background: #16233a; overflow: hidden; border-radius: 2px; }
@@ -22,7 +25,7 @@
 <body>
   <div id="root"></div>
   <div id="boot"><b>DENTSPLAT</b><div class="bar"><i></i></div>
-    <span style="font-size:11px;color:#64748b">loading splat engine…</span></div>
+    <span style="font-size:11px;color:#64748b">Loading splat engine…</span></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

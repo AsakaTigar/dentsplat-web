@@ -49,7 +49,7 @@ export function ShAppearancePlot({ sh1, base }: { sh1: number[]; base: Vec3 }) {
     }
     ctx.fillStyle = 'rgba(148,163,184,0.8)';
     ctx.font = '9px ui-monospace, Menlo, monospace';
-    ctx.fillText(`l=1 ΔRGB · 方位角 0–360° · |Δ|max ${max.toFixed(3)} · base ${base.map((x) => x.toFixed(2)).join('/')}`, padL, h - 3);
+    ctx.fillText(`l=1 ΔRGB · azimuth 0–360° · |Δ|max ${max.toFixed(3)} · base ${base.map((x) => x.toFixed(2)).join('/')}`, padL, h - 3);
   }, [sh1, base]);
   return <canvas ref={ref} className="gauss-plot" aria-label="SH1 appearance across view directions" />;
 }

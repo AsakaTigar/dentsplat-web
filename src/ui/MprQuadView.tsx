@@ -36,7 +36,7 @@ async function loadVolume(url: string): Promise<MprVolume> {
         // browser has already inflated the body; only run DecompressionStream when the HTTP
         // layer did not. This keeps the same asset working on Vite preview and GitHub Pages.
         if (r.headers.get('Content-Encoding')?.toLowerCase().includes('gzip')) return r.arrayBuffer();
-        if (typeof DecompressionStream === 'undefined') throw new Error('当前浏览器不支持 DecompressionStream("gzip")');
+        if (typeof DecompressionStream === 'undefined') throw new Error('This browser does not support DecompressionStream("gzip")');
         const stream = new Blob([await r.arrayBuffer()]).stream().pipeThrough(new DecompressionStream('gzip'));
         return new Response(stream).arrayBuffer();
       }),
@@ -205,7 +205,7 @@ function MprSlice({ plane, volume, cursor, maskVisible, windowLevel, onCursorCha
       <div className="mpr-slice-head">
         <b>{spec.label}</b>
         <span className="mpr-slice-position">{spec.fixedName} {coord(cursor[spec.fixed])}</span>
-        <div className="mpr-window-level" title="右键拖动：横向调整窗宽，纵向调整窗位">
+        <div className="mpr-window-level" title="Right-drag: horizontal adjusts window width; vertical adjusts window level">
           <span>W {Math.round(windowLevel.width)}</span>
           <span>L {Math.round(windowLevel.level)}</span>
         </div>
@@ -271,7 +271,7 @@ function MprSlice({ plane, volume, cursor, maskVisible, windowLevel, onCursorCha
           <span>10 mm</span><i />
         </div>
       )}
-      <div className="mpr-slice-foot">滚轮翻片 · 左键定位 · 右键调窗</div>
+      <div className="mpr-slice-foot">Scroll: slices · Left-drag: locate · Right-drag: window</div>
     </div>
   );
 }
@@ -307,9 +307,9 @@ export default function MprQuadView({ cursorMm, onCursorChange, maskVisible, onM
   return (
     <div className="mpr-slices" data-mpr-ready={!!volume} data-cursor-mm={cursorMm.map((v) => v.toFixed(3)).join(',')}>
       <div className="mpr-toolbar">
-        <b>MPR · 原始 CBCT</b>
-        <span>{volume ? `${volume.meta.dims.join('×')} · ${volume.meta.spacing_mm.map((x) => x.toFixed(2)).join('/')} mm` : 'decompressing…'}</span>
-        <label><input type="checkbox" checked={maskVisible} onChange={(e) => onMaskVisibleChange(e.target.checked)} />语义掩码</label>
+        <b>MPR · RAW CBCT</b>
+        <span>{volume ? `${volume.meta.dims.join('×')} · ${volume.meta.spacing_mm.map((x) => x.toFixed(2)).join('/')} mm` : 'Decompressing…'}</span>
+        <label><input type="checkbox" checked={maskVisible} onChange={(e) => onMaskVisibleChange(e.target.checked)} />Semantic mask</label>
       </div>
       {volume ? (
         <div className="mpr-slice-grid">
@@ -327,7 +327,7 @@ export default function MprQuadView({ cursorMm, onCursorChange, maskVisible, onM
           ))}
         </div>
       ) : (
-        <div className={'mpr-status' + (error ? ' err' : '')}>{error ? `MPR 加载失败：${error}` : '正在解压真实 CBCT 体数据…'}</div>
+        <div className={'mpr-status' + (error ? ' err' : '')}>{error ? `MPR load failed: ${error}` : 'Decompressing real CBCT volume…'}</div>
       )}
     </div>
   );

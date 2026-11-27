@@ -30,12 +30,12 @@ function readHeader(bytes: Uint8Array): PlyHeader {
       }
     }
   }
-  if (end < 0) throw new Error('PLY: 找不到 end_header');
+  if (end < 0) throw new Error('PLY: end_header not found');
   const lines = chars.slice(0, end).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  if (lines[0] !== 'ply') throw new Error('PLY: 首行不是 ply');
+  if (lines[0] !== 'ply') throw new Error('PLY: first line must be "ply"');
   const fmt = /^format\s+(\S+)\s+1\.0$/.exec(lines[1] ?? '');
   if (!fmt || (fmt[1] !== 'ascii' && fmt[1] !== 'binary_little_endian')) {
-    throw new Error(`PLY: 仅支持 ascii 或 binary_little_endian，收到 ${lines[1] ?? '?'}`);
+    throw new Error(`PLY: only ascii or binary_little_endian is supported; received ${lines[1] ?? '?'}`);
   }
   let vertexCount = -1;
   let inVertex = false;
@@ -46,18 +46,18 @@ function readHeader(bytes: Uint8Array): PlyHeader {
       inVertex = tok[1] === 'vertex';
       if (inVertex) {
         vertexCount = Number(tok[2]);
-        if (!Number.isInteger(vertexCount) || vertexCount < 0) throw new Error('PLY: vertex 数无效');
+        if (!Number.isInteger(vertexCount) || vertexCount < 0) throw new Error('PLY: invalid vertex count');
       }
       continue;
     }
     if (tok[0] === 'property' && inVertex) {
-      if (tok[1] === 'list') throw new Error('PLY: vertex 属性不支持 list');
+      if (tok[1] === 'list') throw new Error('PLY: list vertex properties are not supported');
       const size = TYPE_SIZE[tok[1]];
-      if (!size) throw new Error(`PLY: 未知标量类型 ${tok[1]}`);
+      if (!size) throw new Error(`PLY: unknown scalar type ${tok[1]}`);
       props.push({ name: tok[2], type: tok[1], size });
     }
   }
-  if (!props.length) throw new Error('PLY: 没有 vertex 属性');
+  if (!props.length) throw new Error('PLY: no vertex properties');
   const offsets: Record<string, number> = {};
   let stride = 0;
   for (const p of props) { offsets[p.name] = stride; stride += p.size; }
@@ -96,7 +96,7 @@ export function parseGaussianPly(buffer: ArrayBuffer, fileName = 'local.ply'): P
   const body = bytes.subarray(h.bodyOffset);
   const need = h.vertexCount * h.stride;
   if (binary && body.byteLength < need) {
-    throw new Error(`PLY: 顶点数据不完整 (有 ${body.byteLength} B, 需要 ${need} B)`);
+    throw new Error(`PLY: incomplete vertex data (${body.byteLength} B available; ${need} B required)`);
   }
   const dv = binary ? new DataView(body.buffer, body.byteOffset, body.byteLength) : null;
   const ascii = binary ? null : new TextDecoder('latin1').decode(body).trim().split(/\s+/);
@@ -203,10 +203,10 @@ export function parseGaussianPly(buffer: ArrayBuffer, fileName = 'local.ply'): P
       unit: 'unknown',
       source: 'local PLY',
       note: hasTwoScales
-        ? '官方 2DGS 双切向尺度；第三轴使用 1% viewer-only 薄厚度，未冒充训练出的厚度。'
+        ? 'Official 2DGS dual tangential scales; the third axis uses a 1% viewer-only thickness, not a trained thickness.'
         : hasScale
-          ? '原始 FP32 高斯属性，未经过 DSPK 量化；PLY 无 FDI/解剖层语义。'
-          : '简单点云 PLY；无 scale/rot 字段，使用各向同性显示尺度。',
+          ? 'Original FP32 Gaussian attributes without DSPK quantisation; the PLY contains no FDI or anatomical-layer semantics.'
+          : 'Simple point-cloud PLY with no scale/rot fields; an isotropic display scale is used.',
       ply: {
         format: h.format, fields: h.props.map((p) => p.name), stride: h.stride,
         sh_degree: shDegree, gaussian_fields: hasScale && hasRot,

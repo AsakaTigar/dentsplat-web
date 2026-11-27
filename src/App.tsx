@@ -124,6 +124,32 @@ function VectorHudOverlay({ viewerRef }: { viewerRef: RefObject<DentSplatViewer 
   );
 }
 
+function ViewportGuides({ viewerRef, visible }: { viewerRef: RefObject<DentSplatViewer | null>; visible: boolean }) {
+  const [guide, setGuide] = useState<{ axes: { label: string; x: number; y: number }[]; scalePx: number }>({ axes: [], scalePx: 60 });
+  useEffect(() => {
+    if (!visible) return;
+    let raf = 0, last = 0;
+    const tick = (t: number) => {
+      if (t - last > 45) { last = t; setGuide(viewerRef.current?.getViewportGuide() ?? { axes: [], scalePx: 60 }); }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [viewerRef, visible]);
+  if (!visible) return null;
+  const axisClass = (label: string) => label === 'L' || label === 'R' ? 'axis-x' : label === 'S' || label === 'I' ? 'axis-y' : 'axis-z';
+  return (
+    <div className="viewport-guides" aria-hidden="true">
+      <div className="physical-scale" style={{ '--scale-width': `${guide.scalePx}px` } as React.CSSProperties}><span>10 mm</span><i /></div>
+      <svg className="orientation-gizmo" viewBox="0 0 72 72">
+        <circle cx="36" cy="36" r="27" />
+        {guide.axes.map((a) => <line key={a.label} x1="36" y1="36" x2={a.x} y2={a.y} className={axisClass(a.label)} />)}
+        {guide.axes.map((a) => <text key={a.label} x={a.x} y={a.y}>{a.label}</text>)}
+      </svg>
+    </div>
+  );
+}
+
 function SplitWipe({ viewerRef, ratio, onRatio }: { viewerRef: RefObject<DentSplatViewer | null>; ratio: number; onRatio: (v: number) => void }) {
   const drag = useRef(false);
   useEffect(() => { if (viewerRef.current) viewerRef.current.splitRatio = ratio; }, [ratio, viewerRef]);
@@ -139,7 +165,7 @@ function SplitWipe({ viewerRef, ratio, onRatio }: { viewerRef: RefObject<DentSpl
         type="button"
         className="split-wipe-handle"
         style={{ left: `${ratio * 100}%` }}
-        aria-label="拖动分屏比例"
+        aria-label="Drag to adjust split ratio"
         onPointerDown={(e) => { drag.current = true; e.currentTarget.setPointerCapture(e.pointerId); }}
       >◂ ▸</button>
     </div>
@@ -165,14 +191,14 @@ type DiskBaseline = {
 type RailTab = 'findings' | 'lab' | 'methods' | 'recon' | 'layers' | 'slice' | 'audit' | 'source';
 
 const LAB_MODES: { id: LabMode; label: string; note: string }[] = [
-  { id: 'rgb', label: 'RGB', note: 'EWA 高斯光栅化最终图像' },
-  { id: 'ellipsoid', label: 'Ellipsoids', note: '真实协方差 1σ 椭球表面' },
-  { id: 'centers', label: 'Centers', note: '高斯中心点云' },
-  { id: 'wire', label: 'Wireframe', note: '1σ 椭球线框' },
-  { id: 'opacity', label: 'Opacity', note: '逐高斯不透明度图' },
-  { id: 'scale', label: 'Scale', note: '逐高斯尺度图' },
-  { id: 'normal', label: 'Normal', note: '椭球最小主轴近似法线' },
-  { id: 'depth', label: 'Depth', note: '相机空间深度图' },
+  { id: 'rgb', label: 'RGB', note: 'Final EWA Gaussian rasterisation' },
+  { id: 'ellipsoid', label: 'Ellipsoids', note: 'True-covariance 1σ surfaces' },
+  { id: 'centers', label: 'Centers', note: 'Gaussian center point cloud' },
+  { id: 'wire', label: 'Wireframe', note: '1σ ellipsoid wireframes' },
+  { id: 'opacity', label: 'Opacity', note: 'Per-Gaussian opacity map' },
+  { id: 'scale', label: 'Scale', note: 'Per-Gaussian scale map' },
+  { id: 'normal', label: 'Normal', note: 'Approximate normals from ellipsoid minor axes' },
+  { id: 'depth', label: 'Depth', note: 'Camera-space depth map' },
 ];
 
 type EvidenceFinding = {
@@ -191,30 +217,30 @@ const fmtInt = (n: number) => n.toLocaleString('en-US');
 const hashCase = () => location.hash.replace(/^#/, '').split(/[,/]/)[0];
 
 const COHORT_TABS: { id: 'all' | CaseCohort; label: string }[] = [
-  { id: 'all', label: '全部 10 例' },
+  { id: 'all', label: 'All 10 cases' },
   { id: 'ios', label: 'IOS 3DGS' },
-  { id: 'cbct', label: 'CBCT 贴面' },
+  { id: 'cbct', label: 'CBCT surfels' },
 ];
 
 const LOCAL_LAYER_NAMES: Record<number, string> = {
-  0: '牙龈 / 背景', 1: '牙体 / 釉质', 2: '牙根 / 牙本质', 3: '牙槽骨',
-  4: '下颌神经管', 5: '其他组织', 6: '牙髓', 7: '上颌窦', 8: '修复体',
+  0: 'Gingiva / Background', 1: 'Teeth / Enamel', 2: 'Roots / Dentine', 3: 'Alveolar Bone',
+  4: 'IAN Canal', 5: 'Other Tissue', 6: 'Pulp', 7: 'Maxillary Sinus', 8: 'Restoration',
 };
 
 // Deliberately simulated VLM prose. The numeric verdict is never read from this table: it is
 // recomputed from the loaded 3DGS centres at click time.
 const AUDIT_CLAIMS: AuditClaim[] = [
   {
-    id: 'vlm-38', tooth: 38, layer: 4, title: '左下第三磨牙 / IAN',
-    claim: 'VLM：#38 根尖至下牙槽神经管最小中心距约 0.06 mm。', claimed: 0.06,
+    id: 'vlm-38', tooth: 38, layer: 4, title: 'Mandibular left third molar / IAN',
+    claim: 'Simulated VLM: #38 root apex–to–IAN canal minimum center distance ≈ 0.06 mm.', claimed: 0.06,
   },
   {
-    id: 'vlm-48-true', tooth: 48, layer: 4, title: '右下第三磨牙 / IAN',
-    claim: 'VLM：#48 根尖至下牙槽神经管最小中心距约 0.18 mm。', claimed: 0.18,
+    id: 'vlm-48-true', tooth: 48, layer: 4, title: 'Mandibular right third molar / IAN',
+    claim: 'Simulated VLM: #48 root apex–to–IAN canal minimum center distance ≈ 0.18 mm.', claimed: 0.18,
   },
   {
-    id: 'vlm-48-hallucination', tooth: 48, layer: 4, title: '右下第三磨牙 / 幻觉陷阱',
-    claim: 'VLM：#48 根尖距神经管仅 1.10 mm，因此存在极高神经损伤风险。', claimed: 1.10,
+    id: 'vlm-48-hallucination', tooth: 48, layer: 4, title: 'Mandibular right third molar / hallucination check',
+    claim: 'Simulated VLM: The #48 root apex is only 1.10 mm from the canal, implying an extremely high risk of nerve injury.', claimed: 1.10,
   },
 ];
 
@@ -222,8 +248,8 @@ function parseFdiInfo(fdi: number, raw?: ToothMeta) {
   if (!fdi) return null;
   const q = Math.floor(fdi / 10);
   const pos = raw?.pos ?? (fdi % 10);
-  const arch = raw?.arch === 'lower' ? 'Lower (下颌)' : raw?.arch === 'upper' ? 'Upper (上颌)' : raw?.arch ?? (q === 1 || q === 2 ? 'Upper (上颌)' : 'Lower (下颌)');
-  const side = raw?.side ?? (q === 1 || q === 4 ? 'Right (右)' : 'Left (左)');
+  const arch = raw?.arch === 'lower' ? 'Lower' : raw?.arch === 'upper' ? 'Upper' : raw?.arch ?? (q === 1 || q === 2 ? 'Upper' : 'Lower');
+  const side = raw?.side ?? (q === 1 || q === 4 ? 'Right' : 'Left');
   const coords = raw?.centroid_mm ?? raw?.at;
   return { arch, side, pos, coords };
 }
@@ -863,7 +889,7 @@ export default function App() {
       setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
       setSelected(0); setHidden([]); setIsolate(false); setMeasures([]); setProbe(null); setActiveFindingId(null);
       const head = new DataView(await file.arrayBuffer());
-      if (head.getUint32(0, true) !== 0x4b505344) throw new Error('不是有效的 DSPK 文件');
+      if (head.getUint32(0, true) !== 0x4b505344) throw new Error('Not a valid DSPK file');
       const count = head.getUint32(8, true), shDegree = (head.getUint8(5) & 1) ? 1 : 0;
       v.caseId = 'LOCAL';
       await v.loadCase({
@@ -889,7 +915,7 @@ export default function App() {
       history.replaceState(null, '', '#LOCAL');
       setLoading(false);
     } catch (e) {
-      setErr(`本地 DSPK 加载失败: ${String(e)}`);
+      setErr(`Local DSPK load failed: ${String(e)}`);
       setLoading(false);
     } finally {
       URL.revokeObjectURL(blobUrl);
@@ -921,7 +947,7 @@ export default function App() {
       });
       setAlphas({ 5: 1 });
       setLocalLayerIds([5]);
-      setPlyNote(`${info.gaussianFields ? 'FP32 3DGS PLY' : 'Point PLY'} · ${info.format} · SH${info.shDegree} · ${info.fields.length} 字段 · 无 FDI/解剖语义`);
+      setPlyNote(`${info.gaussianFields ? 'FP32 3DGS PLY' : 'Point PLY'} · ${info.format} · SH${info.shDegree} · ${info.fields.length} fields · no FDI/anatomical semantics`);
       setCustomAssetName(file.name);
       setLabMode('centers');
       setRailTab('lab');
@@ -929,7 +955,7 @@ export default function App() {
       history.replaceState(null, '', '#LOCAL');
       setLoading(false);
     } catch (e) {
-      setErr(`本地 PLY 加载失败: ${String(e)}`);
+      setErr(`Local PLY load failed: ${String(e)}`);
       setLoading(false);
     }
   }, []);
@@ -949,7 +975,7 @@ export default function App() {
       });
       await loadLocalPly(new File([buf], 'sample_case05_fp32.ply'));
     } catch (e) {
-      setErr(`示例 PLY 加载失败: ${String(e)}`);
+      setErr(`Sample PLY load failed: ${String(e)}`);
       setLoading(false);
     }
   }, [loadLocalPly]);
@@ -980,7 +1006,7 @@ export default function App() {
       for (const [fs, s] of Object.entries(sums)) {
         const f = Number(fs);
         const q = Math.floor(f / 10);
-        teeth[`FDI_${f}`] = { fdi: f, arch: f < 30 ? 'upper' : 'lower', side: q === 1 || q === 4 ? 'Right (右)' : 'Left (左)', pos: f % 10, at: [s[0] / s[3], s[1] / s[3], s[2] / s[3]], centroid_mm: [s[0] / s[3], s[1] / s[3], s[2] / s[3]] };
+        teeth[`FDI_${f}`] = { fdi: f, arch: f < 30 ? 'upper' : 'lower', side: q === 1 || q === 4 ? 'Right' : 'Left', pos: f % 10, at: [s[0] / s[3], s[1] / s[3], s[2] / s[3]], centroid_mm: [s[0] / s[3], s[1] / s[3], s[2] / s[3]] };
       }
       setReport({
         full: { splats: diskBaseline.splats, bytes: diskBaseline.bytes, mb: +(diskBaseline.bytes / 1048576).toFixed(2), sh_degree: 0, bytes_per_splat: 20 },
@@ -997,7 +1023,7 @@ export default function App() {
       history.replaceState(null, '', '#METHODS');
       setLoading(false);
     } catch (e) {
-      setErr(`disk baseline 加载失败: ${String(e)}`);
+      setErr(`Disk baseline load failed: ${String(e)}`);
       setLoading(false);
     }
   }, [diskBaseline]);
@@ -1032,7 +1058,7 @@ export default function App() {
       const teeth: Record<string, ToothMeta> = {};
       for (const [fs, s] of Object.entries(sums)) {
         const f = Number(fs), q = Math.floor(f / 10);
-        teeth[`FDI_${f}`] = { fdi: f, arch: f < 30 ? 'upper' : 'lower', side: q === 1 || q === 4 ? 'Right (右)' : 'Left (左)', pos: f % 10, at: [s[0] / s[3], s[1] / s[3], s[2] / s[3]], centroid_mm: [s[0] / s[3], s[1] / s[3], s[2] / s[3]] };
+        teeth[`FDI_${f}`] = { fdi: f, arch: f < 30 ? 'upper' : 'lower', side: q === 1 || q === 4 ? 'Right' : 'Left', pos: f % 10, at: [s[0] / s[3], s[1] / s[3], s[2] / s[3]], centroid_mm: [s[0] / s[3], s[1] / s[3], s[2] / s[3]] };
       }
       setReport({
         full: { splats: spec.splats, bytes: spec.bytes, mb: +(spec.bytes / 1048576).toFixed(2), sh_degree: 0, bytes_per_splat: 20 },
@@ -1050,7 +1076,7 @@ export default function App() {
       setLoading(false);
     } catch (e) {
       if ((e as { name?: string })?.name === 'AbortError') { setLoading(false); return; }
-      setErr(`${spec.label} 加载失败: ${String(e)}`);
+      setErr(`Failed to load ${spec.label}: ${String(e)}`);
       setLoading(false);
     }
   }, []);
@@ -1086,7 +1112,7 @@ export default function App() {
       setLoading(false);
     } catch (e) {
       if ((e as { name?: string })?.name === 'AbortError') { setLoading(false); return; }
-      setErr(`四表示对照加载失败: ${String(e)}`);
+      setErr(`Failed to load four-way comparison: ${String(e)}`);
       setLoading(false);
     }
   }, [allScenes]);
@@ -1140,7 +1166,7 @@ export default function App() {
       history.replaceState(null, '', '#TIMELINE');
       setLoading(false);
     } catch (e) {
-      setErr(`时间轴 checkpoint 加载失败: ${String(e)}`);
+      setErr(`Failed to load timeline checkpoint: ${String(e)}`);
       setLoading(false);
     } finally {
       setTimelineBusy(false);
@@ -1341,9 +1367,9 @@ export default function App() {
     const list: EvidenceFinding[] = [];
     if (isLocal) {
       return [{
-        id: 'local-preview', fdi: 0, title: 'Local DSPK Preview', subtitle: '独立预览 · 无旧病例代理与元数据',
+        id: 'local-preview', fdi: 0, title: 'Local DSPK Preview', subtitle: 'Independent preview · no prior case proxy or metadata',
         status: 'info', metric: report ? `${fmtInt(report.full.splats)} splats` : '—',
-        evidence: '当前只加载文件本身的高斯与内嵌语义；旧病例 proxy、牙位元数据、MPR、发现列表和测量已清空。逐牙拾取仅在文件包含 FDI 且可见时可用。',
+        evidence: 'Only Gaussians and embedded semantics from the file are loaded. Prior case proxies, tooth metadata, MPR, findings and measurements are cleared. Per-tooth picking is available only when FDI labels are present and visible.',
         action: () => setRailTab('source'),
       }];
     }
@@ -1351,27 +1377,27 @@ export default function App() {
       const ian = typeof report?.metrics?.ian_48_min_mm === 'number' ? report.metrics.ian_48_min_mm : null;
       list.push(
         {
-          id: 'ian-38', fdi: 38, title: 'Mandibular Canal Proximity', subtitle: '38/48 智齿与下牙槽神经管空间关系',
+          id: 'ian-38', fdi: 38, title: 'Mandibular Canal Proximity', subtitle: 'Spatial relationship of third molars 38/48 to the IAN canal',
           status: 'caution', metric: ian != null ? `IAN ${ian.toFixed(2)} mm` : 'IAN —',
-          evidence: '由 DentVoxel v4 case 0095 的 0.3 mm 体素分割直接量测（非诊断结论）；点击切入神经管透视与冠状剖切。',
+          evidence: 'Measured directly from the 0.3 mm voxel segmentation of DentVoxel v4 case 0095 (not a diagnostic conclusion). Select to open canal transparency and a coronal section.',
           action: () => focusCanal(),
         },
         {
-          id: 'surfel-budget', fdi: 46, title: 'Anatomy-Aware Surfel Budget', subtitle: '牙槽骨 / 牙体牙根 / 神经管 / 上颌窦四层独立编码',
+          id: 'surfel-budget', fdi: 46, title: 'Anatomy-Aware Surfel Budget', subtitle: 'Independent coding of alveolar bone, teeth/roots, nerve canal and maxillary sinus',
           status: 'verified', metric: report ? `${fmtInt(report.full.splats)} splats` : '—',
-          evidence: '四层等值面各自生成法线对齐贴面高斯，层代码写入 DSPK 的 misc 字节；层透明度由 uLayerAlpha 实时控制。',
+          evidence: 'Each of the four isosurfaces generates normal-aligned surfel Gaussians. Layer codes are stored in DSPK misc bytes; layer opacity is controlled in real time by uLayerAlpha.',
           action: () => { setSelected(46); viewerRef.current?.focusTooth(46); },
         },
         {
-          id: 'sinus-floor', fdi: 16, title: 'Maxillary Sinus Floor Context', subtitle: '上颌后牙根尖与上颌窦底毗邻',
+          id: 'sinus-floor', fdi: 16, title: 'Maxillary Sinus Floor Context', subtitle: 'Maxillary posterior root apices adjacent to the sinus floor',
           status: 'info', metric: 'Layer L7',
-          evidence: '上颌窦（L7）与牙槽骨（L3）独立编码，可实时调低骨透明度检查上颌磨牙根尖穿窦风险。',
+          evidence: 'The maxillary sinus (L7) and alveolar bone (L3) are coded independently. Reduce bone opacity to inspect the risk of maxillary molar root penetration into the sinus.',
           action: () => { setSelected(16); setAlphas((a) => ({ ...a, 3: 0.18, 7: 0.55 })); viewerRef.current?.focusTooth(16); },
         },
         {
-          id: 'cbct-clip', fdi: 36, title: 'GLSL Section Cap Cross-Section', subtitle: '三维高斯实体断面封顶剖切',
+          id: 'cbct-clip', fdi: 36, title: 'GLSL Section Cap Cross-Section', subtitle: 'Capped cross-sections through solid 3D Gaussians',
           status: 'verified', metric: 'GLSL Cap',
-          evidence: '在 Vertex Shader 将剖切面窄带内高斯吸附压平并按组织层重着色，避免网格剖切的空壳失真。',
+          evidence: 'Within a narrow band at the clipping plane, the vertex shader flattens Gaussians and recolours them by tissue layer, avoiding the hollow-shell artefact of mesh clipping.',
           action: () => { setClipAxis('y'); setClipOffset(-2); setCap(true); setRailTab('slice'); },
         },
       );
@@ -1382,24 +1408,24 @@ export default function App() {
       const ian = typeof report?.metrics?.ian_48_min_mm === 'number' ? report.metrics.ian_48_min_mm : null;
       list.push(
         {
-          id: 'ian-layer', fdi: canalTooth, title: 'IAN Canal Layer', subtitle: '下牙槽神经管与后牙根尖的空间关系',
+          id: 'ian-layer', fdi: canalTooth, title: 'IAN Canal Layer', subtitle: 'Spatial relationship of the IAN canal and posterior root apices',
           status: ian != null ? 'caution' : 'info',
           metric: ian != null ? `IAN ${ian.toFixed(2)} mm` : 'Layer L4',
           evidence: ian != null
-            ? `${spec.dataset} 的 0.3 mm 标注体素重建；该读数是贴面高斯中心之间的最近距离，不是根尖-神经管表面距离。源体素约 0.3 mm，分割与采样不确定性未计入；两位小数不代表 0.01 mm 准确度，也不构成诊断。`
-            : `${spec.dataset} 的 0.3 mm 标注体素重建；神经管与牙体分层独立编码，可在 Layers 面板调低骨透明度后直视。`,
+            ? `${spec.dataset}, reconstructed from 0.3 mm labelled voxels. This reading is the nearest distance between surfel Gaussian centers, not a root-apex–to–canal surface distance. Source voxels are approximately 0.3 mm; segmentation and sampling uncertainties are not included. Two decimal places do not imply 0.01 mm accuracy, and this is not a diagnosis.`
+            : `${spec.dataset}, reconstructed from 0.3 mm labelled voxels. The canal and teeth are independently layer-coded; reduce bone opacity in Layers to inspect them directly.`,
           action: () => focusCanal(),
         },
         {
-          id: 'sinus-layer', fdi: sinusTooth, title: 'Maxillary Sinus Context', subtitle: '上颌窦底与后牙根尖毗邻区',
+          id: 'sinus-layer', fdi: sinusTooth, title: 'Maxillary Sinus Context', subtitle: 'Maxillary sinus floor and adjacent posterior root apices',
           status: 'info', metric: 'Layer L7',
-          evidence: '上颌窦（L7）与牙槽骨（L3）分层编码；调节透明度可检查后牙根尖与窦底关系，页面不预写任何未量测的距离。',
+          evidence: 'The maxillary sinus (L7) and alveolar bone (L3) are independently layer-coded. Adjust opacity to inspect posterior root apices relative to the sinus floor; no unmeasured distances are prepopulated.',
           action: () => { setSelected(sinusTooth); setAlphas((a) => ({ ...a, 3: 0.18, 7: 0.55 })); if (sinusTooth) viewerRef.current?.focusTooth(sinusTooth); },
         },
         {
-          id: 'cbct-labels', fdi: 0, title: 'Voxel-Read FDI Binding', subtitle: '逐高斯牙位直接回读自 0.3 mm 标注',
+          id: 'cbct-labels', fdi: 0, title: 'Voxel-Read FDI Binding', subtitle: 'Per-Gaussian FDI labels read directly from 0.3 mm annotations',
           status: 'verified', metric: meta ? `${Object.keys(meta.teeth ?? {}).length} FDI` : '—',
-          evidence: 'FDI 不是按位置猜的：每个贴面高斯在表面内侧回读 DentVoxel 分割标签，旁挂文件经行数与 sha 校验后才写入 DSPK。',
+          evidence: 'FDI labels are not inferred from position: each surfel Gaussian reads the DentVoxel segmentation label just inside the surface. Sidecar files are checked by row count and SHA before being written to DSPK.',
           action: () => setRailTab('source'),
         },
       );
@@ -1407,79 +1433,79 @@ export default function App() {
       const firstTooth = Object.values(meta?.teeth ?? {}).map((t) => t.fdi).find((f) => f > 0) ?? 0;
       list.push(
         {
-          id: 'independent-scan', fdi: firstTooth, title: 'Independent Patient Scan', subtitle: '独立真实个体 · 120 视角 / Brush 15,000 步',
+          id: 'independent-scan', fdi: firstTooth, title: 'Independent Patient Scan', subtitle: 'Independent patient · 120 views / 15,000 Brush steps',
           status: 'verified', metric: report ? `${fmtInt(report.full.splats)} splats` : '—',
-          evidence: `${spec.dataset}；与 Case 01/02 不共享任何几何。高光与牙龈细节来自真实口扫网格的 Blender 渲染，不是生成式补全。`,
+          evidence: `${spec.dataset}; shares no geometry with Cases 01/02. Highlights and gingival detail come from Blender renders of the real intraoral scan mesh, not generative completion.`,
           action: () => { if (firstTooth) { setSelected(firstTooth); viewerRef.current?.focusTooth(firstTooth); } },
         },
         {
-          id: 'transferred-labels', fdi: 0, title: 'Cross-Packet FDI Transfer', subtitle: '同源 0.35 mm 采样包 → 训练高斯的最近邻迁移',
+          id: 'transferred-labels', fdi: 0, title: 'Cross-Packet FDI Transfer', subtitle: 'Nearest-neighbour transfer from the same-source 0.35 mm sampling packet to trained Gaussians',
           status: 'info', metric: meta ? `${Object.keys(meta.teeth ?? {}).length} FDI` : '—',
-          evidence: '迁移半径 1.0 mm；超过半径的高斯保留 0 而不被强行指派牙位。迁移件写明参考包与逐行 sha，可复核。',
+          evidence: 'Transfer radius: 1.0 mm. Gaussians beyond the radius retain FDI 0 rather than being assigned a tooth. The transfer records the reference packet and per-row SHA for verification.',
           action: () => setRailTab('source'),
         },
       );
       if (caseId === 'C05') list.push({
-        id: 'c05-label-qa', fdi: 0, title: 'Partial FDI Transfer · Geometry QA', subtitle: '低命中来自训练表面偏差，不是坐标帧错误',
+        id: 'c05-label-qa', fdi: 0, title: 'Partial FDI Transfer · Geometry QA', subtitle: 'Low label coverage reflects trained-surface deviation, not a coordinate-frame error',
         status: 'caution', metric: '26.7% ≤ 1 mm',
-        evidence: '参考采样中位邻距 0.187 mm；训练/参考 bbox 中心与尺度差 <0.1 mm，全 yaw 扫描最佳仅 2.5°。失配是区域性的：FDI 33 的参考点有 91.14% 落在训练点 1 mm 内，而 42/43 为 0%。这是 Brush 表面区域偏差，不是最近邻半径过小；保留 1 mm 保守迁移，未命中 splat 保持 FDI 0。',
+        evidence: 'Median nearest-neighbour distance in the reference sample: 0.187 mm. Train/reference bounding-box centers and scale differ by <0.1 mm; the best full-yaw alignment is only 2.5°. Mismatch is regional: 91.14% of FDI 33 reference points lie within 1 mm of training points, versus 0% for 42/43. This is a regional Brush surface deviation, not an insufficient nearest-neighbour radius. The conservative 1 mm transfer is retained; unmatched splats keep FDI 0.',
         action: () => setRailTab('source'),
       });
     } else if (caseId === 'A') {
       list.push({
-        id: 'sampled-baseline', fdi: 0, title: 'Untrained Surface Baseline', subtitle: '同一 000125 的 0.35 mm 采样包 · SH0',
+        id: 'sampled-baseline', fdi: 0, title: 'Untrained Surface Baseline', subtitle: '0.35 mm sampling packet from the same 000125 scan · SH0',
         status: 'info', metric: report ? `${fmtInt(report.full.splats)} splats` : '—',
-        evidence: '与 Case 01 同源但未经过 Brush 优化；把训练前后的边缘锐度、遮挡与高光差异放在同一相机和同一代理坐标系下比较。',
+        evidence: 'From the same source as Case 01 but not Brush-optimised. Compare edge sharpness, occlusion and highlights before and after training using the same camera and proxy coordinate frame.',
         action: () => switchCase('A2'),
       });
     } else if (caseId === 'A2' && meta?.teeth?.FDI_46) {
       list.push(
         {
-          id: 'fdi-46', fdi: 46, title: 'First Molar Occlusal Morphology', subtitle: '右下第一磨牙窝沟与牙尖高光重建',
+          id: 'fdi-46', fdi: 46, title: 'First Molar Occlusal Morphology', subtitle: 'Fissures and cusp highlights of the mandibular right first molar',
           status: 'verified', metric: mbText,
-          evidence: 'Poseidon3D 真实口扫经 120 视角渲染与 Brush 15,000 步训练；FDI 标签最近邻迁移，1.0 mm 内命中 99.5%。',
+          evidence: 'The real Poseidon3D intraoral scan was rendered from 120 views and trained with Brush for 15,000 steps. FDI labels were transferred by nearest neighbour, with 99.5% matched within 1.0 mm.',
           action: () => { setSelected(46); viewerRef.current?.focusTooth(46); },
         },
         {
-          id: 'fdi-36', fdi: 36, title: 'Contralateral Molar Alignment', subtitle: '左下第一磨牙隐形代理网格对齐校验',
-          status: 'verified', metric: '代理网格',
-          evidence: '拾取与毫米测距打在同一坐标系的隐形代理网格上（1 unit = 1 mm），开启线框可肉眼核验 3DGS 与真值重合。',
+          id: 'fdi-36', fdi: 36, title: 'Contralateral Molar Alignment', subtitle: 'Alignment check for the invisible proxy mesh of the mandibular left first molar',
+          status: 'verified', metric: 'Proxy mesh',
+          evidence: 'Picking and millimetre measurements use the same invisible proxy mesh coordinate frame (1 unit = 1 mm). Enable the wireframe to visually verify 3DGS alignment with ground truth.',
           action: () => { setSelected(36); setWire(true); viewerRef.current?.focusTooth(36); },
         },
         {
-          id: 'fdi-41', fdi: 41, title: 'Anterior Incisal Arch Orientation', subtitle: '下颌中切牙切缘与标准正交坐标系',
+          id: 'fdi-41', fdi: 41, title: 'Anterior Incisal Arch Orientation', subtitle: 'Mandibular central incisor edges in the standard orthonormal frame',
           status: 'verified', metric: '+Z Anterior',
-          evidence: '唇侧锁定 +Z、患者右侧 −X、上颌 +Y，保证跨病例预设视角与牙位图完全一致。',
+          evidence: 'Labial +Z, patient right −X and maxillary +Y keep preset views and the odontogram consistent across cases.',
           action: () => { setSelected(41); viewerRef.current?.focusTooth(41); },
         },
       );
     } else if (caseId === 'U') {
       list.push(
         {
-          id: 'palatal-vault', fdi: 0, title: 'Palatal Vault & Rugae', subtitle: '完整腭穹窿与腭皱襞的上颌扫描',
+          id: 'palatal-vault', fdi: 0, title: 'Palatal Vault & Rugae', subtitle: 'Maxillary scan with the complete palatal vault and rugae',
           status: 'verified', metric: '120 views',
-          evidence: 'Poseidon3D 上颌病例（标注 ortho23）独立渲染 120 视角并训练；与病例 01 下颌不共享任何几何。点击回到腭侧仰视。',
+          evidence: 'The Poseidon3D maxillary case (annotation ortho23) was independently rendered from 120 views and trained; it shares no geometry with the mandibular Case 01. Select to return to the palatal inferior view.',
           action: () => goPreset(spec.presets.find((p) => p.id === 'upper') ?? spec.presets[0]),
         },
         {
-          id: 'upper-labels', fdi: 0, title: 'No FDI side-car (by design)', subtitle: '本次转换未迁移逐高斯牙位标签',
+          id: 'upper-labels', fdi: 0, title: 'No FDI side-car (by design)', subtitle: 'Per-Gaussian tooth labels were not transferred in this conversion',
           status: 'caution', metric: 'FDI 0',
-          evidence: '上颌与修复体两例在本轮未写入逐高斯牙位，因此牙位图为空；几何、颜色与透明层数据完整。',
+          evidence: 'No per-Gaussian tooth labels were written for the maxillary or restoration cases in this round, so the odontogram is empty. Geometry, colour and transparent-layer data are complete.',
           action: () => setRailTab('source'),
         },
       );
     } else if (caseId === 'P') {
       list.push(
         {
-          id: 'restorations', fdi: 0, title: 'Twelve Fixed Restorations', subtitle: '7 个全瓷冠 + 5 个扫描杆（ProsthoObjects3D 608）',
+          id: 'restorations', fdi: 0, title: 'Twelve Fixed Restorations', subtitle: '7 all-ceramic crowns + 5 scan bodies (ProsthoObjects3D 608)',
           status: 'verified', metric: '12 units',
-          evidence: '厂商 JSON 包围盒与临床 CSV 牙位标注用于构建对齐代理；DSPK 本身在本轮未附逐高斯标签。',
+          evidence: 'Manufacturer JSON bounding boxes and clinical CSV tooth annotations define the alignment proxy. The DSPK itself has no per-Gaussian labels in this round.',
           action: () => setRailTab('source'),
         },
         {
-          id: 'ceramic-highlight', fdi: 0, title: 'View-Dependent Ceramic Highlight', subtitle: '全瓷与金属高光的视角相关变化',
+          id: 'ceramic-highlight', fdi: 0, title: 'View-Dependent Ceramic Highlight', subtitle: 'View-dependent highlights on ceramic and metal',
           status: 'info', metric: 'SH1',
-          evidence: 'Blender 陶瓷 / 金属材质渲染 120 视角，Brush 以 SH1 训练；开启自动旋转即可观察高光沿表面移动。',
+          evidence: 'Blender rendered 120 views with ceramic/metal materials; Brush trained with SH1. Enable auto-rotation to observe highlights moving across the surface.',
           action: () => setSpin(true),
         },
       );
@@ -1487,11 +1513,11 @@ export default function App() {
     list.push({
       id: 'compress-audit', fdi: 0,
       title: tenX ? 'Uniform vs Anatomy-Aware 10×' : 'Full vs Pruned Fidelity Check',
-      subtitle: tenX ? '同字节预算的解剖感知消融对决' : '同帧分屏与浏览器像素回读',
+      subtitle: tenX ? 'Anatomy-aware ablation at an equal byte budget' : 'Same-frame split with live browser pixel readback',
       status: 'info', metric: tenX ? 'EQUAL BYTES' : ratio ? `${ratio.toFixed(2)}×` : '—',
       evidence: tenX
-        ? '两侧均为 11,100 splats / 322,708 B。Uniform 每 10 取 1；Anatomy-Aware 保留 L4 3,000、L1 7,200、L3 650、L7 250，在牙体与神经管两项同时超过 Uniform，并按各层倍率补偿切向尺度。PSNR / MAE 仍由浏览器实时回读。'
-        : 'Full 与 Pruned 同驻显存，可用同一帧分屏对比；PSNR / MAE 由浏览器回读像素现场计算，不预写数值。',
+        ? 'Both sides contain 11,100 splats / 322,708 B. Uniform retains every 10th splat; Anatomy-Aware retains L4 3,000, L1 7,200, L3 650 and L7 250, exceeding Uniform for both teeth and nerve canal while compensating tangential scale by each layer retention factor. PSNR / MAE remain live browser pixel readbacks.'
+        : 'Full and Pruned reside together in GPU memory for same-frame split comparison. PSNR / MAE are calculated live from browser-read pixels; no values are prepopulated.',
       action: () => { setSplit(true); setRailTab('audit'); },
     });
 
@@ -1499,9 +1525,9 @@ export default function App() {
       if (t.lesion && LESION_LABEL[t.lesion]) {
         const l = LESION_LABEL[t.lesion];
         list.push({
-          id: `lesion-${t.fdi}`, fdi: t.fdi, title: `${l.en} (${l.cn})`, subtitle: `FDI #${t.fdi} 病灶区域`,
+          id: `lesion-${t.fdi}`, fdi: t.fdi, title: l.en, subtitle: `FDI #${t.fdi} lesion region`,
           status: 'caution', metric: l.code,
-          evidence: '牙位级病灶标记与 3D 着色器高亮通道联动，可在右下角开关控制显隐。',
+          evidence: 'Tooth-level lesion markers are linked to the 3D shader highlight channel and controlled by the visibility toggle.',
           action: () => { setSelected(t.fdi); viewerRef.current?.focusTooth(t.fdi); },
         });
       }
@@ -1533,7 +1559,7 @@ export default function App() {
           </button>
           {caseMenuOpen && (
             <div className="case-menu">
-              <input autoFocus value={caseQuery} onChange={(e) => setCaseQuery(e.target.value)} placeholder="搜索病例 / 模态" />
+              <input autoFocus value={caseQuery} onChange={(e) => setCaseQuery(e.target.value)} placeholder="Search cases / modalities" />
               <div className="case-menu-list">
                 {CASES.filter((c) => `${c.code} ${c.title} ${c.cohort}`.toLowerCase().includes(caseQuery.toLowerCase())).map((c) => (
                   <button key={c.id} type="button" className={caseId === c.id ? 'on' : ''} onClick={() => { switchCase(c.id); setCaseMenuOpen(false); setCaseQuery(''); }}>
@@ -1545,7 +1571,7 @@ export default function App() {
           )}
         </div>
 
-        <nav className="clinic-workflows" aria-label={workMode === 'clinic' ? '临床工作流' : '科研工作流'}>
+        <nav className="clinic-workflows" aria-label={workMode === 'clinic' ? 'Clinical workflow' : 'Research workflow'}>
           {workMode === 'clinic' ? (
             <>
               <button type="button" className={clinicWorkflow === '3d' ? 'on' : ''} onClick={() => { setClinicWorkflow('3d'); setMprOn(false); setMode('pick'); setRailTab('findings'); setInspectorOpen(true); }}>3D View</button>
@@ -1564,11 +1590,11 @@ export default function App() {
         </nav>
 
         <div className="clinic-top-actions">
-          <div className="work-mode-switch" aria-label="工作区模式">
+          <div className="work-mode-switch" aria-label="Workspace mode">
             <button type="button" className={workMode === 'clinic' ? 'on' : ''} onClick={() => { setWorkMode('clinic'); setClinicWorkflow('3d'); setMode('pick'); setMprOn(false); setTenX(false); setSplit(false); setMethodCompare(false); setQuadMode(false); setQuadItems([]); viewerRef.current?.clearQuadCompare(); setHeatmap(false); setSpin(false); setVariant('full'); setRailTab('findings'); setInspectorOpen(true); }}>Clinic</button>
             <button type="button" className={workMode === 'research' ? 'on' : ''} onClick={() => { setWorkMode('research'); setRailTab('methods'); setInspectorOpen(true); }}>Research</button>
           </div>
-          <button type="button" className="top-export" onClick={() => shoot()} title="导出当前视图"><Icon name="camera" /><span>Export</span></button>
+          <button type="button" className="top-export" onClick={() => shoot()} title="Export current view"><Icon name="camera" /><span>Export</span></button>
         </div>
       </header>
 
@@ -1590,7 +1616,7 @@ export default function App() {
 
       <div className={'dtx-workspace work-' + workMode + (inspectorOpen ? '' : ' collapsed')}>
         {workMode === 'research' && (
-        <aside className="dtx-scene" aria-label="场景树">
+        <aside className="dtx-scene" aria-label="Scene tree">
           <div className="scene-head"><span>SCENE TREE</span><b>{isLocal ? 'LOCAL' : spec.code.replace('Case ', 'C')}</b></div>
           <div className="scene-scroll">
             <div className="scene-group">DATASET</div>
@@ -1675,7 +1701,7 @@ export default function App() {
           </div>
 
           {workMode === 'research' && (railTab === 'lab' || labMode !== 'rgb') && (
-            <div className="lab-modebar" aria-label="Gaussian 渲染模式">
+            <div className="lab-modebar" aria-label="Gaussian rendering modes">
               <b>GAUSSIAN LAB</b>
               {LAB_MODES.map((m) => (
                 <button
@@ -1710,13 +1736,14 @@ export default function App() {
 
           <canvas id="gl" ref={canvasRef} />
           <VectorHudOverlay viewerRef={viewerRef} />
+          <ViewportGuides viewerRef={viewerRef} visible={!isQuad} />
 
           {workMode === 'clinic' && !mprOn && (
             <div className="clinic-toolbar">
               <button type="button" className={mode === 'pick' ? 'on' : ''} onClick={() => setMode('pick')}><Icon name="pick" />Pick</button>
               <button type="button" className={mode === 'measure' ? 'on' : ''} onClick={() => setMode('measure')}><Icon name="measure" />Measure</button>
               <button type="button" className={clipAxis ? 'on' : ''} onClick={() => { setClipAxis(clipAxis ? null : 'x'); setRailTab('slice'); }}><Icon name="slice" />Section</button>
-              <select value={activePreset} onChange={(e) => { const p = spec.presets.find((x) => x.id === e.target.value); if (p) goPreset(p); }} aria-label="视角预设">
+              <select value={activePreset} onChange={(e) => { const p = spec.presets.find((x) => x.id === e.target.value); if (p) goPreset(p); }} aria-label="View presets">
                 {spec.presets.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
               </select>
               <button type="button" className={wire ? 'on' : ''} onClick={() => setWire((w) => !w)}><Icon name="wire" />Wire</button>
@@ -1732,7 +1759,7 @@ export default function App() {
                   <small>{fmtInt(q.splats)} splats · {fmtMB(q.bytes)} MB</small>
                 </div>
               ))}
-              <button type="button" className="quad-exit" onClick={exitQuadCompare}>退出四视口</button>
+              <button type="button" className="quad-exit" onClick={exitQuadCompare}>Exit four-way view</button>
             </div>
           )}
 
@@ -1750,7 +1777,7 @@ export default function App() {
                     <button type="button" onClick={() => setMeasures((l) => l.filter((_, j) => j !== l.lastIndexOf(m)))}>✕</button>
                   </span>
                 ))}
-                <button type="button" className="m-clear" onClick={() => { setMeasures([]); viewerRef.current?.clearMeasure(); }}>清空</button>
+                <button type="button" className="m-clear" onClick={() => { setMeasures([]); viewerRef.current?.clearMeasure(); }}>Clear</button>
               </div>
             )}
           </div>
@@ -1777,22 +1804,22 @@ export default function App() {
 
           {dragOver && (
             <div className="drop-mask">
-              <div>松开鼠标，立即在本地浏览器加载 <code>.ply</code> / <code>.dspk</code> 高斯模型（数据不离本机）</div>
+              <div>Drop to load <code>.ply</code> / <code>.dspk</code> Gaussian models locally in the browser. Data stays on this device.</div>
             </div>
           )}
 
           {workMode === 'research' && heatmap && (
             <div className="heatmap-legend">
               <b>CLINICAL IMPORTANCE</b>
-              <span><i style={{ background: '#ff3b30' }} />L4 神经管</span>
-              <span><i style={{ background: '#f59e0b' }} />L1 牙体</span>
-              <span><i style={{ background: '#2563eb' }} />L3 牙槽骨</span>
-              <span><i style={{ background: '#38bdf8' }} />L7 上颌窦</span>
+              <span><i style={{ background: '#ff3b30' }} />L4 IAN canal</span>
+              <span><i style={{ background: '#f59e0b' }} />L1 Teeth</span>
+              <span><i style={{ background: '#2563eb' }} />L3 Alveolar bone</span>
+              <span><i style={{ background: '#38bdf8' }} />L7 Maxillary sinus</span>
             </div>
           )}
 
-          {loading && <div className="vp-overlay"><b>DENTSPLAT</b><span>正在解码 DSPK 容器与空间代理…</span></div>}
-          {err && <div className="vp-overlay err">资产加载失败：{err}</div>}
+          {loading && <div className="vp-overlay"><b>DENTSPLAT</b><span>Decoding DSPK container and spatial proxy…</span></div>}
+          {err && <div className="vp-overlay err">Asset load failed: {err}</div>}
           </div>
 
           {mprOn && (
@@ -1806,7 +1833,7 @@ export default function App() {
         </section>
 
         {workMode === 'research' && (
-        <aside className="dtx-rail" aria-label="检视面板切换">
+        <aside className="dtx-rail" aria-label="Inspector panel switcher">
           {([
             ['lab', 'gaussian', 'Gaussian'],
             ['recon', 'source', 'Recon'],
@@ -1850,9 +1877,9 @@ export default function App() {
               onToggleHide={toggleHide}
             />
             <div className="insp-tooth-bar">
-              <button type="button" className={'tbar-btn' + (isolate ? ' on' : '')} onClick={() => setIsolate((i) => !i)}>隔离单牙</button>
-              <button type="button" className="tbar-btn" onClick={() => { setHidden([]); setIsolate(false); }}>显示全口</button>
-              <button type="button" className={'tbar-btn' + (wire ? ' on' : '')} onClick={() => setWire((w) => !w)}>校验线框</button>
+              <button type="button" className={'tbar-btn' + (isolate ? ' on' : '')} onClick={() => setIsolate((i) => !i)}>Isolate tooth</button>
+              <button type="button" className="tbar-btn" onClick={() => { setHidden([]); setIsolate(false); }}>Show full arch</button>
+              <button type="button" className={'tbar-btn' + (wire ? ' on' : '')} onClick={() => setWire((w) => !w)}>Alignment wireframe</button>
             </div>
           </div>
 
@@ -1875,11 +1902,11 @@ export default function App() {
                   <input
                     type="search"
                     className="case-search"
-                    placeholder="搜索病例编号 / 名称 / 模态…"
+                    placeholder="Search case number / name / modality…"
                     value={caseQuery}
                     onChange={(e) => setCaseQuery(e.target.value)}
                   />
-                  <div className="case-list" role="listbox" aria-label="选择 3DGS 病例">
+                  <div className="case-list" role="listbox" aria-label="Select 3DGS case">
                     {pickerCases.map((c) => {
                       const sc = allScenes[c.sceneKey];
                       const cls = c.tag === 'CBCT Surfel' ? 'cbct' : c.tag === 'Sampled IOS' ? 'base' : 'gs';
@@ -1904,7 +1931,7 @@ export default function App() {
                         </button>
                       );
                     })}
-                    {pickerCases.length === 0 && <div className="case-empty">没有匹配的病例</div>}
+                    {pickerCases.length === 0 && <div className="case-empty">No matching cases</div>}
                   </div>
                 </>
               )}
@@ -1912,7 +1939,7 @@ export default function App() {
 
             <div className={'insp-pane' + (railTab === 'recon' ? ' active' : '')}>
               <div className="sec-head"><span>RECONSTRUCTION TIMELINE</span><b>Case 01 · real artifacts only</b></div>
-              <p className="method-intro">只展示仓库里真实存在、可重新加载的阶段产物。没有保存的阶段与训练曲线会明确标为缺失，不用示意曲线补齐。</p>
+              <p className="method-intro">Shows only stage artefacts that exist in the repository and can be reloaded. Missing stages and training curves are marked explicitly; illustrative curves are not used to fill gaps.</p>
 
               <div className="sec-head"><span>BRUSH CHECKPOINTS · LIVE LOAD</span><b>{timeline ? `${timeline.steps.length} steps` : 'loading…'}</b></div>
               {timeline ? (
@@ -1924,9 +1951,9 @@ export default function App() {
                       disabled={timelineBusy}
                       onClick={() => setTimelinePlay((p) => !p)}
                     >
-                      {timelinePlay ? '暂停序列' : '播放训练序列'}
+                      {timelinePlay ? 'Pause sequence' : 'Play training sequence'}
                     </button>
-                    <span className="timeline-hint">1.2 s / step · 真实 checkpoint</span>
+                    <span className="timeline-hint">1.2 s / step · real checkpoint</span>
                   </div>
                   <div className="recon-checkpoints">
                     {timeline.steps.map((s) => (
@@ -1955,7 +1982,7 @@ export default function App() {
                         if (active && timelineStep != null) void loadTimelineStep(active, next);
                       }}
                     />
-                    与已发布最终模型双视口（左 checkpoint / 右 final）
+                    Compare with the published final in two viewports (checkpoint left / final right)
                   </label>
                   <div className="count-curve" aria-label="Gaussian count by checkpoint">
                     {(() => {
@@ -1984,27 +2011,27 @@ export default function App() {
                           <span><b>F@0.5 recall</b><em>{(first.fscore.recall * 100).toFixed(1)} → {(last.fscore.recall * 100).toFixed(1)}%</em></span>
                           <span><b>normal |n·n|</b><em>{first.normal_abs_dot?.mean.toFixed(3) ?? '—'} → {last.normal_abs_dot?.mean.toFixed(3) ?? '—'}</em></span>
                         </div>
-                        <p className="source-note timeline-warning">这次独立重训的高斯数量持续增加，但中心到网格的 mean 与 F precision 变差、recall 略升：数量增加不等价于高斯中心更贴网格。训练器未输出 loss/PSNR，因此这里不对渲染质量作因果判断；数值按同一步的实际 checkpoint 复算，未做筛点。</p>
+                        <p className="source-note timeline-warning">In this independent rerun, Gaussian counts increase, but cloud-to-mesh mean and F-score precision worsen while recall rises slightly: more Gaussians do not imply centers closer to the mesh. The trainer did not output loss/PSNR, so no causal conclusion about rendering quality is made. Values are recomputed from the actual checkpoint at each step without point filtering.</p>
                       </>
                     );
                   })()}
                 </>
-              ) : <p className="source-note">timeline.json 尚未加载。</p>}
+              ) : <p className="source-note">timeline.json has not loaded.</p>}
 
               <ol className="recon-steps">
                 <li className="done">
                   <i>01</i>
-                  <div><b>{allScenes.sceneA_trained?.training?.views ?? 120} 个 Blender 视角</b><span>Poseidon3D 000125 口扫网格 → Cycles 渲染，作为训练输入。</span></div>
+                  <div><b>{allScenes.sceneA_trained?.training?.views ?? 120} Blender views</b><span>Poseidon3D 000125 intraoral scan mesh → Cycles renders used as training input.</span></div>
                 </li>
                 <li className="done">
                   <i>02</i>
-                  <div><b>Surface Sampling · {fmtInt(allScenes.sceneA_ios?.full.splats ?? 59808)} splats</b><span>0.35 mm 同源采样基线，SH0，未经优化。</span></div>
-                  <button type="button" className="tbar-btn" onClick={() => switchCase('A')}>加载</button>
+                  <div><b>Surface Sampling · {fmtInt(allScenes.sceneA_ios?.full.splats ?? 59808)} splats</b><span>Same-source 0.35 mm sampling baseline · SH0 · unoptimised.</span></div>
+                  <button type="button" className="tbar-btn" onClick={() => switchCase('A')}>Load</button>
                 </li>
                 <li className="done">
                   <i>03</i>
-                  <div><b>{allScenes.sceneA_trained?.training?.tool ?? 'Brush v0.3.0'} · {fmtInt(allScenes.sceneA_trained?.training?.steps ?? 15000)} steps</b><span>{fmtInt(allScenes.sceneA_trained?.full.splats ?? 28691)} 个各向异性高斯 · SH{allScenes.sceneA_trained?.full.sh_degree ?? 1} · 标签迁移 99.5% &lt; 1 mm。</span></div>
-                  <button type="button" className="tbar-btn" onClick={() => switchCase('A2')}>加载</button>
+                  <div><b>{allScenes.sceneA_trained?.training?.tool ?? 'Brush v0.3.0'} · {fmtInt(allScenes.sceneA_trained?.training?.steps ?? 15000)} steps</b><span>{fmtInt(allScenes.sceneA_trained?.full.splats ?? 28691)} anisotropic Gaussians · SH{allScenes.sceneA_trained?.full.sh_degree ?? 1} · 99.5% of labels transferred within 1 mm.</span></div>
+                  <button type="button" className="tbar-btn" onClick={() => switchCase('A2')}>Load</button>
                 </li>
                 <li className="done">
                   <i>04</i>
@@ -2016,37 +2043,37 @@ export default function App() {
                 </li>
                 <li className="missing">
                   <i>!</i>
-                  <div><b>Loss / PSNR 曲线</b><span>已通过独立重训导出 1k–15k 的真实高斯 checkpoint；但训练器没有输出可用的 loss 行，因此仍不提供伪造的损失曲线。</span></div>
+                  <div><b>Loss / PSNR curves</b><span>Real Gaussian checkpoints from 1k–15k were exported through an independent rerun, but the trainer produced no usable loss rows; no fabricated loss curve is shown.</span></div>
                 </li>
               </ol>
               <div className="quick-row">
-                <button type="button" className="tbar-btn primary" onClick={startMethodCompare}>采样 ↔ 训练双视口</button>
-                <button type="button" className="tbar-btn" onClick={() => changeLabMode('ellipsoid')}>查看 1σ 椭球</button>
+                <button type="button" className="tbar-btn primary" onClick={startMethodCompare}>Sampling ↔ Training split view</button>
+                <button type="button" className="tbar-btn" onClick={() => changeLabMode('ellipsoid')}>View 1σ ellipsoids</button>
               </div>
-              <p className="source-note">时间轴描述的是 Case 01 的真实产物链：输入视角、未训练采样、Brush 训练结果与两个 DSPK 传输包。它不声称还原每一步优化过程。</p>
+              <p className="source-note">The timeline traces the actual Case 01 artefact chain: input views, untrained sampling, the Brush-trained result and two DSPK packages. It does not claim to reproduce every optimisation step.</p>
             </div>
 
             <div className={'insp-pane' + (railTab === 'methods' ? ' active' : '')}>
               <div className="sec-head"><span>METHOD REGISTRY</span><b>evidence, not labels</b></div>
-              <p className="method-intro">只有存在真实训练/导出资产的方法才标记为 AVAILABLE。切换网页显示模式不会被算作 2DGS、Mip-Splatting 或 R²-Gaussian 的实现。</p>
+              <p className="method-intro">Only methods with real training/export assets are marked AVAILABLE. Switching web display modes is not an implementation of 2DGS, Mip-Splatting or R²-Gaussian.</p>
               <div className="method-list">
                 <div className="method-row ok">
-                  <div><b>Surface Sampling</b><small>0.35 mm 表面采样 · SH0</small></div>
+                  <div><b>Surface Sampling</b><small>0.35 mm surface sampling · SH0</small></div>
                   <span>AVAILABLE</span>
                   <button type="button" className="tbar-btn" onClick={() => switchCase('A')}>Case 10</button>
                 </div>
                 <div className="method-row ok">
-                  <div><b>Surface-Aligned Disks</b><small>mesh-derived covariance baseline · 不是 2DGS · SH0</small></div>
+                  <div><b>Surface-Aligned Disks</b><small>Mesh-derived covariance baseline · not 2DGS · SH0</small></div>
                   <span>BASELINE</span>
                   <button type="button" className="tbar-btn" onClick={() => void loadDiskBaseline()} disabled={!diskBaseline}>{diskBaseline ? 'Load' : '…'}</button>
                 </div>
                 <div className="method-row ok">
-                  <div><b>Brush 3DGS</b><small>15,000 步 · 各向异性 3DGS · SH1</small></div>
+                  <div><b>Brush 3DGS</b><small>15,000 steps · anisotropic 3DGS · SH1</small></div>
                   <span>AVAILABLE</span>
                   <button type="button" className="tbar-btn" onClick={() => switchCase('A2')}>Case 01</button>
                 </div>
                 <div className="method-row ok">
-                  <div><b>CBCT Oriented Surfel</b><small>分割体 → marching-cubes oriented surfels</small></div>
+                  <div><b>CBCT Oriented Surfel</b><small>Segmentation volume → marching-cubes oriented surfels</small></div>
                   <span>AVAILABLE</span>
                   <button type="button" className="tbar-btn" onClick={() => switchCase('B')}>Case 03</button>
                 </div>
@@ -2055,28 +2082,28 @@ export default function App() {
                   <button type="button" className="tbar-btn" onClick={() => void loadMethodDspk('gsplat')}>Load</button>
                 </div>
                 <div className="method-row">
-                  <div><b>Mip-Splatting</b><small>抗混叠 / 多尺度渲染</small></div><span>NOT TRAINED</span>
+                  <div><b>Mip-Splatting</b><small>Anti-aliasing / multi-scale rendering</small></div><span>NOT TRAINED</span>
                 </div>
                 <div className="method-row ok">
-                  <div><b>2DGS</b><small>gsplat 1.6.0 surfel · RTX 5070 Ti · 15k · depth+normal+dist · SH0 web export</small></div><span>AVAILABLE</span>
+                  <div><b>2DGS</b><small>24,198 splats · gsplat 1.6.0 surfel · RTX 5070 Ti · 15k · depth+normal+dist · SH0 web export</small></div><span>AVAILABLE</span>
                   <button type="button" className="tbar-btn" onClick={() => void loadMethodDspk('2dgs')}>Load</button>
                 </div>
                 <div className="method-row">
-                  <div><b>SuGaR</b><small>表面对齐高斯与网格提取</small></div><span>NOT TRAINED</span>
+                  <div><b>SuGaR</b><small>Surface-aligned Gaussians and mesh extraction</small></div><span>NOT TRAINED</span>
                 </div>
                 <div className="method-row">
-                  <div><b>R²-Gaussian</b><small>X-ray 投影几何重建</small></div><span>UNAVAILABLE</span>
+                  <div><b>R²-Gaussian</b><small>X-ray projection geometry reconstruction</small></div><span>UNAVAILABLE</span>
                 </div>
               </div>
               <button type="button" className="tbar-btn primary method-compare-btn" onClick={startMethodCompare}>
-                同源双视口：Surface Sampling ↔ Brush 3DGS
+                Same-source split: Surface Sampling ↔ Brush 3DGS
               </button>
               <button type="button" className="tbar-btn method-compare-btn" onClick={() => void startQuadCompare()}>
-                四表示同步对照：3DGS / 2DGS / Brush / Sampling
+                Synchronised four-way comparison: 3DGS / 2DGS / Brush / Sampling
               </button>
-              <p className="source-note">四视口共用同一相机。3DGS 与 2DGS 网页资产均为本机 RTX 5070 Ti 训练的 15k 步完整输出，装箱时截为 SH0；精确几何审计使用同一批完整 PLY，不把网页截断后的外观当作训练指标。</p>
-              <p className="source-note">Case 01 与 Case 10 来自同一 Poseidon3D 000125 口扫；左侧为 Brush 训练版（28,691 高斯），右侧为未训练采样基线（59,808 高斯）。两视口共用相机、坐标架与时间。</p>
-              {methodCompare && <div className="method-live">METHOD COMPARISON ACTIVE · split camera locked · 左 Brush / 右 Sampling</div>}
+              <p className="source-note">All four viewports share one camera. The 3DGS and 2DGS web assets are full 15k-step outputs trained locally on an RTX 5070 Ti, packaged with SH0 truncation. The exact geometry audit uses the same full PLY files; web-truncated appearance is not treated as a training metric.</p>
+              <p className="source-note">Cases 01 and 10 come from the same Poseidon3D 000125 intraoral scan. Brush-trained output (28,691 Gaussians) is on the left; the untrained sampling baseline (59,808 Gaussians) is on the right. Both viewports share camera, coordinate frame and time.</p>
+              {methodCompare && <div className="method-live">METHOD COMPARISON ACTIVE · split camera locked · Brush left / Sampling right</div>}
 
               <div className="sec-head"><span>GEOMETRY AUDIT · CASE 01</span><b>point→triangle · 120k surface samples</b></div>
               {geometryAudit ? (
@@ -2100,13 +2127,13 @@ export default function App() {
                     ))}
                   </div>
                   <p className="source-note">
-                    {geometryAudit.source_mesh.triangles.toLocaleString()} tri · cloud→mesh 为精确 point-to-triangle，显示 mean / p95；mesh→cloud 使用 120,000 个面积加权表面采样；F@0.5 为 precision / recall。
-                    FP32→DSPK 的 cloud→mesh mean 差：Brush {Math.abs(geometryAudit.methods.brush_3dgs.raw_ply!.cloud_to_mesh.mean_mm - geometryAudit.methods.brush_3dgs.cloud_to_mesh.mean_mm).toFixed(4)} mm，
-                    Sampling {Math.abs(geometryAudit.methods.surface_sampling.raw_ply!.cloud_to_mesh.mean_mm - geometryAudit.methods.surface_sampling.cloud_to_mesh.mean_mm).toFixed(4)} mm。
+                    {geometryAudit.source_mesh.triangles.toLocaleString()} triangles · cloud→mesh uses exact point-to-triangle distances and reports mean / p95; mesh→cloud uses 120,000 area-weighted surface samples; F@0.5 reports precision / recall.
+                    FP32→DSPK cloud→mesh mean difference: Brush {Math.abs(geometryAudit.methods.brush_3dgs.raw_ply!.cloud_to_mesh.mean_mm - geometryAudit.methods.brush_3dgs.cloud_to_mesh.mean_mm).toFixed(4)} mm,
+                    Sampling {Math.abs(geometryAudit.methods.surface_sampling.raw_ply!.cloud_to_mesh.mean_mm - geometryAudit.methods.surface_sampling.cloud_to_mesh.mean_mm).toFixed(4)} mm.
                     {' '}{geometryAudit.caveat}
                   </p>
                 </>
-              ) : <p className="source-note">geometry_metrics.json 尚未加载或不可用。</p>}
+              ) : <p className="source-note">geometry_metrics.json has not loaded or is unavailable.</p>}
 
               {geometryAudit?.training_curves && (
                 <div className="training-curves">
@@ -2136,11 +2163,11 @@ export default function App() {
                       </div>
                     </div>
                   ))}
-                  <p className="source-note">两条曲线使用同一 COLMAP 文件名排序后的每第 8 张留出集；3DGS 最终点位于 step 14999，按 15k 标注。LPIPS 均为 torchmetrics VGG 口径。</p>
+                  <p className="source-note">Both curves use the same held-out set (every 8th image after COLMAP filename sorting); the final 3DGS point is step 14999, labelled as 15k. LPIPS uses the torchmetrics VGG convention.</p>
                 </div>
               )}
 
-              <div className="method-caveat">R²-Gaussian 需要 X 射线投影及成像几何，当前 CBCT 分割体数据不能替代；项目不提供伪造的跨方法结果。</div>
+              <div className="method-caveat">R²-Gaussian requires X-ray projections and imaging geometry; current CBCT segmentation volumes are not a substitute. The project does not provide fabricated cross-method results.</div>
             </div>
 
             <div className={'insp-pane' + (railTab === 'lab' ? ' active' : '')}>
@@ -2150,8 +2177,8 @@ export default function App() {
               </div>
               {!gaussian ? (
                 <div className="lab-empty">
-                  <p>当前模式：<b>{LAB_MODES.find((m) => m.id === labMode)?.label ?? labMode}</b></p>
-                  <p>在视口点击任意高斯中心，读取它的 μ、σ、四元数、旋转矩阵、不透明度、完整 SH、协方差与三维概率密度；也可直接按索引定位。</p>
+                  <p>Current mode: <b>{LAB_MODES.find((m) => m.id === labMode)?.label ?? labMode}</b></p>
+                  <p>Click any Gaussian center in the viewport to inspect its μ, σ, quaternion, rotation matrix, opacity, full SH coefficients, covariance and 3D probability density. You can also locate a Gaussian by index.</p>
                   <div className="gauss-index-picker">
                     <input
                       type="number" min={0} max={Math.max(0, stats.splats - 1)} step={1}
@@ -2160,9 +2187,9 @@ export default function App() {
                       onKeyDown={(e) => { if (e.key === 'Enter') selectGaussianByIndex(gaussIndexInput); }}
                       aria-label="Gaussian index"
                     />
-                    <button type="button" className="tbar-btn" onClick={() => selectGaussianByIndex(gaussIndexInput)}>定位 Gaussian</button>
+                    <button type="button" className="tbar-btn" onClick={() => selectGaussianByIndex(gaussIndexInput)}>Locate Gaussian</button>
                   </div>
-                  <p className="muted">椭球模式按真实 3×3 协方差构建；法线模式显示椭球最小主轴，不是网格表面法线。1σ/2σ/3σ 控件同时改变选中高斯的等值面。</p>
+                  <p className="muted">Ellipsoid mode uses the true 3×3 covariance. Normal mode shows the ellipsoid minor axis, not a mesh surface normal. The 1σ/2σ/3σ controls change the selected Gaussian isosurface.</p>
                 </div>
               ) : (
                 <>
@@ -2185,8 +2212,8 @@ export default function App() {
                   <div className="sec-head"><span>3D PROBABILITY DENSITY</span><b>{labSigma}σ isosurface</b></div>
                   <GaussianDensityPlot center={gaussian.center} covariance={gaussian.covariance} axes={gaussian.axes} alpha={gaussian.alpha} unit={gaussUnit} />
                   <p className="source-note">
-                    G(x)=α·exp(−½·(x−μ)ᵀΣ⁻¹(x−μ))；归一化 PDF 峰值为 {gaussianPdfAt(gaussian.center, gaussian.center, gaussian.covariance).toExponential(2)} {gaussUnit}⁻³。
-                    当前 {labSigma}σ 等值面的幅度为 {isosurfaceAmplitude(gaussian.alpha, labSigma).toFixed(4)}。热图是前两个主特征轴平面的解析切片，不是有限差分近似。
+                    G(x)=α·exp(−½·(x−μ)ᵀΣ⁻¹(x−μ)); normalised PDF peak: {gaussianPdfAt(gaussian.center, gaussian.center, gaussian.covariance).toExponential(2)} {gaussUnit}⁻³.
+                    The current {labSigma}σ isosurface amplitude is {isosurfaceAmplitude(gaussian.alpha, labSigma).toFixed(4)}. The heatmap is an analytic slice through the first two principal-axis planes, not a finite-difference approximation.
                   </p>
                   <div className="sec-head"><span>SCREEN-SPACE PROJECTION</span><b>live camera</b></div>
                   <ProjectionPlot viewer={viewerRef.current} index={gaussian.index} />
@@ -2196,15 +2223,15 @@ export default function App() {
                       className="tbar-btn"
                       onClick={() => setAlphaMix(viewerRef.current?.alphaComposition(gaussian.index, 6) ?? null)}
                     >
-                      分析像素混合
+                      Analyse pixel blending
                     </button>
-                    <span className="timeline-hint">真实场景中 6 mm 邻域</span>
+                    <span className="timeline-hint">6 mm neighbourhood in the actual scene</span>
                   </div>
                   {alphaMix && (
                     <>
                       <div className="alpha-summary">
                         <i style={{ background: `rgb(${alphaMix.color.map((v) => Math.round(v * 255)).join(',')})` }} />
-                        <span>像素覆盖率 α <b>{(alphaMix.coverage * 100).toFixed(1)}%</b> · 前 {alphaMix.contributors.length} 个贡献者</span>
+                        <span>Pixel coverage α <b>{(alphaMix.coverage * 100).toFixed(1)}%</b> · top {alphaMix.contributors.length} contributors</span>
                       </div>
                       <div className="alpha-list">
                         {alphaMix.contributors.map((c) => (
@@ -2216,13 +2243,13 @@ export default function App() {
                           </div>
                         ))}
                       </div>
-                      <p className="source-note">局部合成快照：候选为对象空间 6 mm 邻域内的真实高斯，按当前相机 EWA 投影与深度由远到近累积；不是全射线体素遍历，移动相机后需重算。</p>
+                      <p className="source-note">Local composition snapshot: candidates are actual Gaussians within a 6 mm object-space neighbourhood, accumulated back-to-front using the current camera EWA projection and depth. This is not full-ray voxel traversal; recalculate after moving the camera.</p>
                     </>
                   )}
                   {gaussian.shDegree > 1 && (
-                    <p className="source-note">该文件含 SH{gaussian.shDegree} 字段；导入/导出保留全部 f_rest 系数。{gaussian.shDegree === 3
-                      ? ' FP32 PLY 的 l=2/l=3 已通过顶点纹理在 GPU 评估；DSPK 包仍只携带 DC+l=1。'
-                      : ' 当前 GPU 只评估 DC+l=1；l=2 系数保留但未单独渲染。'}</p>
+                    <p className="source-note">This file contains SH{gaussian.shDegree} fields; import/export preserves all f_rest coefficients.{gaussian.shDegree === 3
+                      ? ' FP32 PLY l=2/l=3 coefficients are evaluated on the GPU via vertex textures; DSPK packages still carry only DC+l=1.'
+                      : ' The current GPU evaluates only DC+l=1; l=2 coefficients are retained but not rendered separately.'}</p>
                   )}
 
                   <div className="sec-head"><span>LIVE EDIT</span><b>writes this Gaussian</b></div>
@@ -2309,7 +2336,7 @@ export default function App() {
                   )}
                   {gaussian.shRest && gaussian.shRestCount > 0 ? (
                     <details className="sh-details" open={gaussian.shDegree > 1}>
-                      <summary>完整 SH 系数 · degree {gaussian.shDegree} · {gaussian.shRestCount} values</summary>
+                      <summary>Full SH coefficients · degree {gaussian.shDegree} · {gaussian.shRestCount} values</summary>
                       <div className="sh-coeff-grid">
                         {([1, 2, 3] as const).filter((degree) => {
                           const width = degree * 2 + 1;
@@ -2331,10 +2358,10 @@ export default function App() {
                           );
                         })}
                       </div>
-                      <p className="source-note">系数按 PLY 原始 channel-major 顺序展示；l=2/l=3 已保留在 FP32 raw 数据中，当前网页渲染器只评估 DC+l=1。</p>
+                      <p className="source-note">Coefficients are shown in the original PLY channel-major order; l=2/l=3 are retained in FP32 raw data, while the current web renderer evaluates only DC+l=1.</p>
                     </details>
                   ) : (
-                    <p className="source-note">当前 DSPK 只携带 DC+l=1；完整 l=2/l=3 系数不可用，不做补零伪造。</p>
+                    <p className="source-note">The current DSPK carries only DC+l=1; full l=2/l=3 coefficients are unavailable and are not replaced with fabricated zeros.</p>
                   )}
 
                   <div className="gauss-index-picker selected-index-picker">
@@ -2345,25 +2372,25 @@ export default function App() {
                       onKeyDown={(e) => { if (e.key === 'Enter') selectGaussianByIndex(gaussIndexInput); }}
                       aria-label="Selected Gaussian index"
                     />
-                    <button type="button" className="tbar-btn" onClick={() => selectGaussianByIndex(gaussIndexInput)}>按索引定位</button>
+                    <button type="button" className="tbar-btn" onClick={() => selectGaussianByIndex(gaussIndexInput)}>Locate by index</button>
                   </div>
 
                   <div className="quick-row gauss-actions">
-                    <button type="button" className="tbar-btn" onClick={() => viewerRef.current?.selectGaussian(gaussian.index, { focus: true })}>聚焦</button>
-                    <button type="button" className={'tbar-btn' + (gaussIsolate ? ' on' : '')} onClick={() => setGaussIsolate((x) => !x)}>{gaussIsolate ? '退出隔离' : '隔离此高斯'}</button>
-                    <button type="button" className="tbar-btn" onClick={resetGaussian} disabled={!gaussOriginal}>重置</button>
-                    <button type="button" className="tbar-btn" onClick={exportPly}>导出 PLY</button>
+                    <button type="button" className="tbar-btn" onClick={() => viewerRef.current?.selectGaussian(gaussian.index, { focus: true })}>Focus</button>
+                    <button type="button" className={'tbar-btn' + (gaussIsolate ? ' on' : '')} onClick={() => setGaussIsolate((x) => !x)}>{gaussIsolate ? 'Exit isolation' : 'Isolate Gaussian'}</button>
+                    <button type="button" className="tbar-btn" onClick={resetGaussian} disabled={!gaussOriginal}>Reset</button>
+                    <button type="button" className="tbar-btn" onClick={exportPly}>Export PLY</button>
                   </div>
                   <p className="source-note">
-                    DSPK 编辑受 16-bit 位置与 8-bit log-scale 量化限制，界面显示的是写回后的实际值；FP32 PLY 保留原始浮点。
-                    {isPlyLocal && ' PLY 不声明长度单位，界面以原始 PLY 单位 (u) 显示，未自动换算为 mm。'}
+                    DSPK editing is limited by 16-bit position and 8-bit log-scale quantisation. The interface shows the actual values written back; FP32 PLY retains the original floating-point values.
+                    {isPlyLocal && ' PLY does not declare a length unit; values are shown in original PLY units (u), without automatic conversion to mm.'}
                   </p>
                 </>
               )}
               {plyNote && <p className="source-note ply-note">{plyNote}</p>}
               <div className="lab-footnote">
                 <b>{LAB_MODES.find((m) => m.id === labMode)?.label}</b> · {LAB_MODES.find((m) => m.id === labMode)?.note}
-                {labInfo?.truncated && <span> · 几何模式为可复现抽样，栏内显示真实渲染数量</span>}
+                {labInfo?.truncated && <span> · Geometry modes use reproducible sampling; the displayed count is the actual rendered number</span>}
               </div>
             </div>
 
@@ -2374,11 +2401,11 @@ export default function App() {
                     <span><Icon name="audit" />REPORT VERIFICATION</span>
                     <b>Clinical Review</b>
                   </div>
-                  <p>模拟 Dental VLM 报告；点击后从当前完整 DSPK 点云现场复算 FDI→神经管最小中心距。容差 0.30 mm，不预写判定。</p>
+                  <p>Simulated Dental VLM report. Select Verify Measurements to recalculate the minimum FDI-to-canal center distance live from the current complete DSPK point cloud. Tolerance: 0.30 mm; verdicts are not prepopulated.</p>
                   <button type="button" className="tbar-btn primary audit-run" disabled={auditing || tenX} onClick={runGeometricAudit}>
-                    {auditing ? '正在遍历三维点对…' : 'Verify Measurements'}
+                    {auditing ? 'Scanning 3D point pairs…' : 'Verify Measurements'}
                   </button>
-                  {tenX && <div className="auditor-note">当前为 10× 对决。退出对决后，审计会使用 111,000 个完整贴面高斯。</div>}
+                  {tenX && <div className="auditor-note">10× comparison is active. Exit it to audit all 111,000 complete surfel Gaussians.</div>}
                   <div className="audit-claims">
                     {auditClaims.map((c) => {
                       const r = c.result;
@@ -2396,8 +2423,8 @@ export default function App() {
                           <span className="audit-claim-text">{c.claim}</span>
                           {r && (
                             <span className="audit-claim-result">
-                              3DGS 实测 {r.distance.toFixed(2)} mm · Δ {delta!.toFixed(2)} mm<br />
-                              证据绑定句：FDI #{c.tooth} → L4 最小贴面中心距 = {r.distance.toFixed(2)} mm（源体素约 0.3 mm；非根尖表面距离，不构成临床诊断）。
+                              3DGS measurement {r.distance.toFixed(2)} mm · Δ {delta!.toFixed(2)} mm<br />
+                              Evidence statement: FDI #{c.tooth} → L4 minimum surfel-center distance = {r.distance.toFixed(2)} mm (source voxels approximately 0.3 mm; not a root-apex surface distance; not a clinical diagnosis).
                             </span>
                           )}
                         </button>
@@ -2410,7 +2437,7 @@ export default function App() {
               <input
                 type="search"
                 className="finding-search"
-                placeholder="筛选牙位号或发现 (如 38, 46, IAN)…"
+                placeholder="Filter by FDI number or finding (e.g. 38, 46, IAN)…"
                 value={findingFilter}
                 onChange={(e) => setFindingFilter(e.target.value)}
               />
@@ -2462,15 +2489,15 @@ export default function App() {
               <div className="sec-head"><span>ANATOMICAL LAYERS (uLayerAlpha)</span></div>
               {!isLocal && spec.cohort === 'cbct' && (
                 <div className="quick-row">
-                  <button type="button" className="tbar-btn" onClick={() => setAlphas((a) => ({ ...a, 3: 0.14, 1: 0.95, 4: 1, 7: 0.12 }))}>透视牙根+神经管</button>
-                  <button type="button" className="tbar-btn" onClick={() => setAlphas((a) => ({ ...a, 3: 0.85, 1: 1, 4: 1, 7: 0.35 }))}>实心骨表面</button>
-                  <button type="button" className="tbar-btn" onClick={() => setAlphas((a) => ({ ...a, 3: 0, 1: 0.35, 4: 1, 7: 0 }))}>仅突出神经管</button>
+                  <button type="button" className="tbar-btn" onClick={() => setAlphas((a) => ({ ...a, 3: 0.14, 1: 0.95, 4: 1, 7: 0.12 }))}>Root / IAN transparency</button>
+                  <button type="button" className="tbar-btn" onClick={() => setAlphas((a) => ({ ...a, 3: 0.85, 1: 1, 4: 1, 7: 0.35 }))}>Solid bone surface</button>
+                  <button type="button" className="tbar-btn" onClick={() => setAlphas((a) => ({ ...a, 3: 0, 1: 0.35, 4: 1, 7: 0 }))}>IAN canal only</button>
                 </div>
               )}
               {displayLayers.map((l) => (
                 <div className="ctrl-item" key={l.id}>
                   <div className="ctrl-label">
-                    <span><i className="color-sq" style={{ background: l.color }} />{l.cn}</span>
+                    <span><i className="color-sq" style={{ background: l.color }} />{l.en}</span>
                     <b>{Math.round(alphaOf(l.id) * 100)}%</b>
                   </div>
                   <input
@@ -2480,7 +2507,7 @@ export default function App() {
                 </div>
               ))}
               <div className="ctrl-item">
-                <div className="ctrl-label"><span>全局不透明度</span><b>{Math.round(opacity * 100)}%</b></div>
+                <div className="ctrl-label"><span>Global opacity</span><b>{Math.round(opacity * 100)}%</b></div>
                 <input type="range" min={0.25} max={1} step={0.01} value={opacity} onChange={(e) => setOpacity(Number(e.target.value))} />
               </div>
             </div>
@@ -2488,7 +2515,7 @@ export default function App() {
             <div className={'insp-pane' + (railTab === 'slice' ? ' active' : '')}>
               <div className="sec-head"><span>SHADER-LEVEL CLIPPING PLANE</span></div>
               <div className="quick-row">
-                {([['x', '冠状 X'], ['y', '水平 Y'], ['z', '矢状 Z'], [null, '关闭']] as [ClipAxis, string][]).map(([a, nm]) => (
+                {([['x', 'Coronal X'], ['y', 'Horizontal Y'], ['z', 'Sagittal Z'], [null, 'Off']] as [ClipAxis, string][]).map(([a, nm]) => (
                   <button
                     key={String(a)}
                     type="button"
@@ -2498,18 +2525,18 @@ export default function App() {
                     {nm}
                   </button>
                 ))}
-                <button type="button" className={'tbar-btn' + (flip ? ' on' : '')} onClick={() => setFlip((f) => !f)}>反向</button>
+                <button type="button" className={'tbar-btn' + (flip ? ' on' : '')} onClick={() => setFlip((f) => !f)}>Flip</button>
               </div>
               <div className="ctrl-item">
-                <div className="ctrl-label"><span>切面偏移</span><b>{clipOffset.toFixed(1)} mm</b></div>
+                <div className="ctrl-label"><span>Section offset</span><b>{clipOffset.toFixed(1)} mm</b></div>
                 <input type="range" min={clipRange[0]} max={clipRange[1]} step={0.5} value={clipOffset} disabled={!clipAxis} onChange={(e) => setClipOffset(Number(e.target.value))} />
               </div>
               <div className="ctrl-item">
-                <div className="ctrl-label"><span>断面封顶带宽 (Cap)</span><b>{clipBand.toFixed(2)} mm</b></div>
+                <div className="ctrl-label"><span>Section cap bandwidth</span><b>{clipBand.toFixed(2)} mm</b></div>
                 <input type="range" min={0} max={4} step={0.05} value={clipBand} disabled={!clipAxis} onChange={(e) => setClipBand(Number(e.target.value))} />
               </div>
               <label className="insp-toggle-row">
-                <span>断面实体化封顶 (Section Cap)</span>
+                <span>Solid section cap</span>
                 <input type="checkbox" checked={cap} onChange={(e) => setCap(e.target.checked)} />
               </label>
 
@@ -2517,7 +2544,7 @@ export default function App() {
                 <>
                   <div className="sec-head" style={{ marginTop: 10 }}><span>MANDIBULAR HINGE MOTION</span></div>
                   <div className="ctrl-item">
-                    <div className="ctrl-label"><span>下颌开口度 (髁突铰链)</span><b>{jaw.toFixed(0)} mm</b></div>
+                    <div className="ctrl-label"><span>Mandibular opening (condylar hinge)</span><b>{jaw.toFixed(0)} mm</b></div>
                     <input type="range" min={0} max={45} step={1} value={jaw} onChange={(e) => setJaw(Number(e.target.value))} />
                   </div>
                 </>
@@ -2542,14 +2569,14 @@ export default function App() {
                       : '—'}
                 </dd>
                 <dt>live PSNR</dt>
-                <dd>{bench ? `${bench.psnr} dB · 掩膜内 ${bench.psnrInMask} dB · MAE ${bench.mae}` : '—'}</dd>
+                <dd>{bench ? `${bench.psnr} dB · in-mask ${bench.psnrInMask} dB · MAE ${bench.mae}` : '—'}</dd>
               </dl>
 
               {tenX && ablation && (
                 <div className="ablation-stats">
                   <div><b>UNIFORM 10×</b><span>L4 800 · L1 6,500 · L3 3,000 · L7 800</span></div>
                   <div><b>ANATOMY-AWARE 10×</b><span>L4 3,000 · L1 7,200 · L3 650 · L7 250</span></div>
-                  <small>L1/L4 均反超 Uniform；L3+L7 合计 900。切向尺度按各层 √k 补偿，法向厚度不变。</small>
+                  <small>L1/L4 both exceed Uniform; L3+L7 total 900. Tangential scales are compensated by √k for each layer; normal thickness is unchanged.</small>
                 </div>
               )}
 
@@ -2565,16 +2592,16 @@ export default function App() {
                       <span>FDI48–L4 {c.clearance_mm?.toFixed(3) ?? '—'} mm · Δ {c.clearance_delta_mm?.toFixed(3) ?? '—'} mm</span>
                     </div>
                   ))}
-                  <small>Full 参考 FDI48–L4 = {compressionBench.referenceClearance?.toFixed(3) ?? '—'} mm。所有 PSNR/MAE 均为同一 Full 参考、固定视角与单层隔离渲染；clearance 仍是贴面中心几何量。</small>
+                  <small>Full-reference FDI48–L4 = {compressionBench.referenceClearance?.toFixed(3) ?? '—'} mm. All PSNR/MAE values use the same Full reference, fixed views and isolated single-layer renders; clearance remains a surfel-center geometric measurement.</small>
                 </div>
               )}
 
               <div className="quick-row">
                 <button type="button" className="tbar-btn primary" onClick={runBench} disabled={benching || !report}>
-                  {benching ? '回读像素中…' : tenX ? '各自对照 Full 复算' : '跑一次 bench(384²)'}
+                  {benching ? 'Reading pixels…' : tenX ? 'Recompute against Full' : 'Run bench (384²)'}
                 </button>
                 <button type="button" className={'tbar-btn' + (split ? ' on' : '')} disabled={tenX} onClick={() => setSplit((s) => !s)}>
-                  同帧分屏
+                  Same-frame split
                 </button>
               </div>
 
@@ -2598,21 +2625,21 @@ export default function App() {
                 <dd>{isLocal ? 'None · splat-only picking' : report?.proxy?.triangles != null && report.proxy.kb != null ? `${(report.proxy.triangles / 1000).toFixed(1)}k tri · ${report.proxy.kb.toFixed(0)} KB` : '—'}</dd>
               </dl>
               <p className="source-note">{isQuad
-                ? '四表示同步对照：COLMAP 稀疏点、Brush 3DGS、Surface Sampling、Mesh-Aligned Disks，四个真实资产共用同一相机；不是 2DGS/Mip-Splatting 训练结果。'
+                ? 'Synchronised four-way comparison of COLMAP sparse points, Brush 3DGS, Surface Sampling and Mesh-Aligned Disks. Four real assets share one camera; these are not 2DGS/Mip-Splatting training results.'
                 : isTimeline
-                  ? `真实 Brush 重训 checkpoint · step ${timelineStep ?? '—'}。该独立重训用于展示训练过程；checkpoint 没有 FDI/层标签，也不继承已发布 Case 01 的 proxy 或报告。`
+                  ? `Real Brush rerun checkpoint · step ${timelineStep ?? '—'}. This independent rerun demonstrates the training process; the checkpoint has no FDI/layer labels and does not inherit the published Case 01 proxy or report.`
                 : isDiskMethod
-                  ? '表示基线：与 Case 10 使用完全相同的 0.35 mm 采样中心、颜色和 FDI，只把协方差替换成沿源网格法线的扁平圆盘（切向 0.30 mm、法向 0.03 mm）。这不是 2DGS 算法，也没有训练过程。'
+                  ? 'Representation baseline: uses the exact same 0.35 mm sampling centers, colours and FDI labels as Case 10, replacing only covariance with flat disks aligned to source-mesh normals (tangential 0.30 mm, normal 0.03 mm). This is not a 2DGS algorithm and has no training process.'
                   : isPlyLocal
-                  ? 'FP32 PLY 本地预览：位置、尺度、旋转、颜色与不透明度直接来自 PLY 浮点字段，不经过 DSPK 8-bit 量化，也不继承牙位/解剖语义。'
+                  ? 'Local FP32 PLY preview: positions, scales, rotations, colours and opacity come directly from PLY floating-point fields without DSPK 8-bit quantisation. No tooth/anatomical semantics are inherited.'
                   : isLocal
-                    ? '独立本地预览：只使用 DSPK 内嵌几何与语义，不继承原病例 proxy、牙位元数据、MPR 或报告。单牙功能按文件实际 FDI 内容开放。'
+                    ? "Independent local preview: uses only geometry and semantics embedded in the DSPK. Original case proxies, tooth metadata, MPR and reports are not inherited. Single-tooth tools depend on the actual FDI content of the file."
                     : spec.blurb}</p>
               <button type="button" className="tbar-btn primary" onClick={() => fileInputRef.current?.click()}>
-                选择本地 .ply / .dspk 进入 Lab
+                Select local .ply / .dspk to open Lab
               </button>
-              <button type="button" className="tbar-btn" onClick={loadSamplePly}>加载示例 FP32 PLY（Case 05, Brush）</button>
-              <p className="source-note">支持 binary/ascii 3DGS <code>.ply</code> 与量化 <code>.dspk</code>；文件仅在浏览器内存解码，不上传服务器。PLY 坐标架不做隐式重定向，若旋转异常请先核对训练器导出坐标。</p>
+              <button type="button" className="tbar-btn" onClick={loadSamplePly}>Load sample FP32 PLY (Case 05, Brush)</button>
+              <p className="source-note">Supports binary/ascii 3DGS <code>.ply</code> and quantised <code>.dspk</code>. Files are decoded only in browser memory and are not uploaded. PLY coordinate frames are not implicitly redirected; if orientation appears incorrect, check the trainer's export coordinates.</p>
             </div>
           </div>
         </aside>

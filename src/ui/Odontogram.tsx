@@ -81,8 +81,8 @@ export default function Odontogram({ teeth, selected, hidden, onSelect, onToggle
                   data-fdi={fdi}
                   title={
                     t
-                      ? `FDI ${fdi}${lesion ? ' · ' + lesion.cn : ''}（左键定位，右键隐藏）`
-                      : `FDI ${fdi} · 当前扫描未包含`
+                      ? `FDI ${fdi}${lesion ? ' · ' + lesion.en : ''} · Left-click: locate · Right-click: show/hide`
+                      : `FDI ${fdi} · Not present in this scan`
                   }
                   onClick={() => has(fdi) && onSelect(fdi)}
                   onContextMenu={(e) => {
@@ -104,15 +104,15 @@ export default function Odontogram({ teeth, selected, hidden, onSelect, onToggle
       ))}
 
       <div className="odo-stepper">
-        <button type="button" className="step-arrow" onClick={() => stepTooth(-1)} title="上一颗牙">‹</button>
+        <button type="button" className="step-arrow" onClick={() => stepTooth(-1)} title="Previous tooth">‹</button>
         <div className="step-readout">
           <span>Tooth</span>
           <b>{selected > 0 ? selected : 'All'}</b>
           {selected > 0 && (
-            <button type="button" className="step-clear" onClick={() => onSelect(0)} title="取消单牙选中">✕</button>
+            <button type="button" className="step-clear" onClick={() => onSelect(0)} title="Clear tooth selection">✕</button>
           )}
         </div>
-        <button type="button" className="step-arrow" onClick={() => stepTooth(1)} title="下一颗牙">›</button>
+        <button type="button" className="step-arrow" onClick={() => stepTooth(1)} title="Next tooth">›</button>
       </div>
     </div>
   );

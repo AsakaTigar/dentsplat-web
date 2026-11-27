@@ -370,7 +370,7 @@ void main() {
     a = max(a, 0.55);
   } else if (vSel > 0.0) {
     float edge = smoothstep(0.45, 1.35, sqrt(r2));
-    col = mix(col, uHighlight, 0.22 * vSel);
+    col = mix(col, uHighlight, 0.13 * vSel);
     col += uHighlight * edge * vSel * uOutline;
   } else if (uShowLesions == 1 && vLesion > 0.0) {
     float edge = smoothstep(0.5, 1.4, sqrt(r2));

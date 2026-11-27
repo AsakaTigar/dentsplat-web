@@ -470,6 +470,7 @@ async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) 
       this.prunedBytes = this.fullBytes;
       this.applyUniforms();
       this.forceSort = true;
+      this.fitQuadComparison();
       return this.quadLayers.map((l, i) => ({ name: items[i].name, splats: l.cloud.count, bytes: items[i].bytes }));
     } finally {
       if (this.loadAbort === ac) this.loadAbort = null;
@@ -485,6 +486,63 @@ async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) 
     }
     this.quadCompare = false;
     this.forceSort = true;
+  }
+
+  /** Centre every comparison tile on the union bounds and fit the full dental arch. */
+  fitQuadComparison() {
+    if (!this.quadCompare || !this.quadLayers.length) return;
+    const bounds = new THREE.Box3();
+    for (const l of this.quadLayers) {
+      bounds.expandByPoint(new THREE.Vector3(...l.cloud.bboxMin));
+      bounds.expandByPoint(new THREE.Vector3(...l.cloud.bboxMax));
+    }
+    const sphere = bounds.getBoundingSphere(new THREE.Sphere());
+    const r = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    const aspect = Math.max(0.25, (r.x / 2) / Math.max(1, r.y / 2));
+    const vFov = THREE.MathUtils.degToRad(this.camera.fov);
+    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
+    const limitingFov = Math.min(vFov, hFov);
+    const radius = Math.max(50, sphere.radius / Math.sin(limitingFov / 2) * 1.12);
+    this.target.copy(sphere.center);
+    this.theta = 0;
+    this.phi = 0.12;
+    this.radius = radius;
+    this.goal = null;
+    this.camera.position.set(
+      this.target.x + this.radius * Math.sin(this.theta) * Math.cos(this.phi),
+      this.target.y + this.radius * Math.sin(this.phi),
+      this.target.z + this.radius * Math.cos(this.theta) * Math.cos(this.phi),
+    );
+    this.camera.lookAt(this.target);
+    this.camera.updateMatrixWorld();
+  }
+
+  /** Screen-space anatomical axes and an exact 10 mm scale for the PACS viewport guide. */
+  getViewportGuide() {
+    const [w, h] = this.canvasSize();
+    const inv = this.camera.quaternion.clone().invert();
+    const axes: { label: string; x: number; y: number }[] = [];
+    const directions: [string, [number, number, number]][] = [
+      ['R', [-1, 0, 0]], ['L', [1, 0, 0]],
+      ['I', [0, -1, 0]], ['S', [0, 1, 0]],
+      ['P', [0, 0, -1]], ['A', [0, 0, 1]],
+    ];
+    for (const [label, dir] of directions) {
+      const v = new THREE.Vector3(...dir).applyQuaternion(inv);
+      axes.push({ label, x: 36 + v.x * 22, y: 36 - v.y * 22 });
+    }
+    // Depth labels can nearly coincide in a frontal view; separate them without changing axis direction.
+    for (let i = 0; i < axes.length; i++) for (let j = i + 1; j < axes.length; j++) {
+      const a = axes[i], b = axes[j];
+      const dx = a.x - b.x, dy = a.y - b.y, d = Math.hypot(dx, dy);
+      if (d >= 9) continue;
+      const ux = d > 0.1 ? dx / d : 0, uy = d > 0.1 ? dy / d : (a.y < b.y ? -1 : 1);
+      const push = (9 - d) / 2;
+      a.x += ux * push; a.y += uy * push;
+      b.x -= ux * push; b.y -= uy * push;
+    }
+    const pixelsPerMm = h / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2) * Math.max(1, this.radius));
+    return { axes, scalePx: pixelsPerMm * 10 };
   }
 
   private disposeLayers() {
@@ -922,7 +980,7 @@ async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) 
     this.updateGizmo();
   }
 
-  jawGap = 0; sheen = 1; outline = 0.9; showLesions = true; opacity = 1; isolateTooth = false;
+  jawGap = 0; sheen = 1; outline = 0.45; showLesions = true; opacity = 1; isolateTooth = false;
   hiddenTeeth: number[] = [];
   visMode: 0 | 1 = 0;
   /** Per-anatomical-layer transparency (the four CBCT sliders live here). */

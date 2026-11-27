@@ -189,7 +189,7 @@ export class SplatLayer {
         uOpacityScale: { value: opts.opacityScale ?? 1 },
         uDebug: { value: 0 },
         uVisMode: { value: 0 },
-        uOutline: { value: 0.9 },
+        uOutline: { value: 0.45 },
         uShowLesions: { value: 1 },
         uInspectIndex: { value: -1 },
         uInspectOnly: { value: 0 },
