@@ -4,7 +4,7 @@
   "density": 1,
   "unit": "mm",
   "coordinate_system": "glTF_Y_up",
-  "note": "SYNTHETIC preview assets; identical contract to pipeline output",
+  "note": "Curated public demo assets. Per-scene source_note and provenance record source data, processing, and license; some IOS appearance is procedural or optimized from synthetic Blender views, while CBCT scenes use oriented surfel representations derived from labeled volumes.",
   "scenes": {
     "sceneA_ios": {
       "full": {
