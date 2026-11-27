@@ -1549,7 +1549,7 @@ export default function App() {
           ) : (
             <>
               <button type="button" className={isQuad ? 'on' : ''} onClick={() => void startQuadCompare()}>4-Way Compare</button>
-              <button type="button" className={tenX ? 'on' : ''} onClick={() => { if (!tenX) toggleTenX(); }}>10× Compression</button>
+              <button type="button" className={tenX ? 'on' : ''} onClick={() => { if (isQuad) { setQuadMode(false); setQuadItems([]); viewerRef.current?.clearQuadCompare(); } if (!tenX) toggleTenX(); }}>10× Compression</button>
               <button type="button" className={railTab === 'methods' ? 'on' : ''} onClick={() => { setRailTab('methods'); setInspectorOpen(true); }}>Training Curves</button>
               <button type="button" className={railTab === 'lab' ? 'on' : ''} onClick={() => { setRailTab('lab'); setInspectorOpen(true); if (labMode === 'rgb') changeLabMode('centers'); }}>Inspector</button>
             </>
