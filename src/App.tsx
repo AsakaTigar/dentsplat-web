@@ -1636,7 +1636,7 @@ export default function App() {
               <i className="scene-branch" /><span><b>CBCT MPR</b><small>{mprOn ? 'Case 03 active' : 'axial / coronal / sagittal'}</small></span>
             </button>
             <button type="button" className="scene-node" onClick={focusCanal}>
-              <i className="scene-branch" /><span><b>IAN Canal Focus</b><small>inferior alveolar nerve</small></span>
+              <i className="scene-branch" /><span><b>IAN Canal View</b><small>inferior alveolar nerve</small></span>
             </button>
           </div>
         </aside>

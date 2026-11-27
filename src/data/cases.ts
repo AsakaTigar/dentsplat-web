@@ -76,7 +76,7 @@ const CBCT_PRESETS: ViewPreset[] = [
   { id: 'right', label: '右侧位', sub: 'Right', theta: -88, phi: 6, radius: 148, target: [0, -1, 12] },
   { id: 'upper', label: '上颌牙合面', sub: 'Upper', theta: 0, phi: 82, radius: 118, target: [0, -1, 12] },
   { id: 'lower', label: '下颌牙合面', sub: 'Lower', theta: 0, phi: -82, radius: 118, target: [0, -1, 12] },
-  { id: 'ian', label: '38–神经管关系', sub: 'IAN Canal', theta: -50, phi: -14, radius: 90, target: [30, -9, -9] },
+  { id: 'ian', label: '38–神经管关系', sub: 'IAN Canal View', theta: -50, phi: -14, radius: 90, target: [30, -9, -9] },
 ];
 
 const CBCT_COHORT_PRESETS: ViewPreset[] = [
@@ -85,7 +85,7 @@ const CBCT_COHORT_PRESETS: ViewPreset[] = [
   { id: 'right', label: '右侧位', sub: 'Right', theta: -88, phi: 6, radius: 158, target: [0, 0, 2] },
   { id: 'upper', label: '上颌牙合面', sub: 'Upper', theta: 0, phi: 82, radius: 128, target: [0, 0, 2] },
   { id: 'lower', label: '下颌牙合面', sub: 'Lower', theta: 0, phi: -82, radius: 128, target: [0, 0, 2] },
-  { id: 'ian', label: '下颌后牙–神经管', sub: 'IAN Canal', theta: -50, phi: -14, radius: 138, target: [0, -2, -4] },
+  { id: 'ian', label: '下颌后牙–神经管', sub: 'IAN Canal View', theta: -50, phi: -14, radius: 138, target: [0, -2, -4] },
 ];
 
 const POSEIDON_URL = 'https://zenodo.org/records/15608906';
@@ -159,7 +159,7 @@ export const CASES: CaseSpec[] = [
     blurb:
       '牙槽骨、牙体牙根、下牙槽神经管与上颌窦四层等值面，法线对齐生成 111,000 个贴面高斯（s3 = 0.2 s1），烘焙三点医学光照与曲率 AO。' +
       '这是三例真实 CBCT 体数据中的第一例：含上下颌，下颌铰链只在这类体数据上出现，单颌口扫不提供张口。',
-    moneyShot: '调低牙槽骨透明度，或点 38–神经管特写，直视阻生智齿牙根与神经管的真实空间关系。',
+    moneyShot: '调低牙槽骨透明度，或打开 IAN Canal View，直视阻生智齿牙根与神经管的真实空间关系。',
     fullUrl: asset('sceneB_dentvoxel_full.dspk'),
     prunedUrl: asset('sceneB_dentvoxel_pruned.dspk'),
     proxyUrl: asset('proxy_B_dentvoxel.glb'),
