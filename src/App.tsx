@@ -290,6 +290,7 @@ export default function App() {
   const [split, setSplit] = useState(false);
   const [splitRatio, setSplitRatio] = useState(0.5);
   const [workMode, setWorkMode] = useState<'clinic' | 'research'>('clinic');
+  const [clinicWorkflow, setClinicWorkflow] = useState<'3d' | 'mpr' | 'measure' | 'verify'>('3d');
   const [caseMenuOpen, setCaseMenuOpen] = useState(false);
   const [methodCompare, setMethodCompare] = useState(false);
   const [tenX, setTenX] = useState(false);
@@ -591,8 +592,10 @@ export default function App() {
         const [hCase, hPreset] = location.hash.replace(/^#/, '').split(/[,/]/);
         if (CASES.some((c) => c.id === hCase) && hCase !== caseId) { setCaseId(hCase); return; }
         const want = spec.presets.find((p) => p.id === hPreset);
-        setActivePreset(want ? want.id : spec.presets[0].id);
-        v.flyTo(want ?? spec.presets[0]);
+        const preset = want ?? spec.presets[0];
+        const viewPreset = useTenX ? { ...preset, radius: Math.max(190, preset.radius) } : preset;
+        setActivePreset(preset.id);
+        v.flyTo(viewPreset);
         setLoading(false);
       } catch (e) {
         // A newer case selection aborts the previous DSPK/proxy fetches; that is expected, not an
@@ -773,7 +776,11 @@ export default function App() {
   }, [ablation, spec, tenX]);
 
   const toggleTenX = useCallback(() => {
-    if (isLocal) return;
+    // Four-way comparison uses the local-asset guard to protect its render loop,
+    // but it must still be able to transition back into the packaged Case B ablation.
+    if (isLocal && customAssetName !== 'quad:4') return;
+    setQuadMode(false); setQuadItems([]); viewerRef.current?.clearQuadCompare();
+    setCustomAssetName(null);
     setLabMode('rgb'); setMethodCompare(false); setGaussian(null); setGaussOriginal(null); setGaussIsolate(false);
     viewerRef.current?.clearGaussianSelection();
     if (caseId !== 'B') {
@@ -782,11 +789,11 @@ export default function App() {
       return;
     }
     const next = !tenX;
-    if (next) setMprOn(false);
+    if (next) { setMprOn(false); history.replaceState(null, '', '#B'); }
     setTenX(next); setSplit(next); setVariant('full'); setBench(null); setCompressionBench(null);
     setAuditClaims(AUDIT_CLAIMS.map((c) => ({ ...c, status: 'pending' as const })));
     viewerRef.current?.clearAudit();
-  }, [caseId, isLocal, switchCase, tenX]);
+  }, [caseId, customAssetName, isLocal, switchCase, tenX]);
 
   const toggleMpr = useCallback(() => {
     if (isLocal) return;
@@ -1541,15 +1548,15 @@ export default function App() {
         <nav className="clinic-workflows" aria-label={workMode === 'clinic' ? '临床工作流' : '科研工作流'}>
           {workMode === 'clinic' ? (
             <>
-              <button type="button" className={!mprOn && mode === 'pick' ? 'on' : ''} onClick={() => { setMprOn(false); setMode('pick'); setRailTab('findings'); setInspectorOpen(true); }}>3D View</button>
-              <button type="button" className={mprOn ? 'on' : ''} onClick={() => { if (!mprOn) toggleMpr(); }}>MPR</button>
-              <button type="button" className={mode === 'measure' ? 'on' : ''} onClick={() => { setMode('measure'); setRailTab('findings'); setInspectorOpen(true); }}>Measure</button>
-              <button type="button" className={railTab === 'findings' && mode === 'pick' ? 'on' : ''} onClick={() => { if (caseId !== 'B') switchCase('B'); setMode('pick'); setRailTab('findings'); setInspectorOpen(true); }}>Verify</button>
+              <button type="button" className={clinicWorkflow === '3d' ? 'on' : ''} onClick={() => { setClinicWorkflow('3d'); setMprOn(false); setMode('pick'); setRailTab('findings'); setInspectorOpen(true); }}>3D View</button>
+              <button type="button" className={clinicWorkflow === 'mpr' ? 'on' : ''} onClick={() => { setClinicWorkflow('mpr'); if (!mprOn) toggleMpr(); }}>MPR</button>
+              <button type="button" className={clinicWorkflow === 'measure' ? 'on' : ''} onClick={() => { setClinicWorkflow('measure'); setMprOn(false); setMode('measure'); setRailTab('findings'); setInspectorOpen(true); }}>Measure</button>
+              <button type="button" className={clinicWorkflow === 'verify' ? 'on' : ''} onClick={() => { setClinicWorkflow('verify'); if (caseId !== 'B') switchCase('B'); setMprOn(false); setMode('pick'); setRailTab('findings'); setInspectorOpen(true); }}>Verify</button>
             </>
           ) : (
             <>
               <button type="button" className={isQuad ? 'on' : ''} onClick={() => void startQuadCompare()}>4-Way Compare</button>
-              <button type="button" className={tenX ? 'on' : ''} onClick={() => { if (isQuad) { setQuadMode(false); setQuadItems([]); viewerRef.current?.clearQuadCompare(); } if (!tenX) toggleTenX(); }}>10× Compression</button>
+              <button type="button" className={tenX ? 'on' : ''} onClick={toggleTenX}>10× Compression</button>
               <button type="button" className={railTab === 'methods' ? 'on' : ''} onClick={() => { setRailTab('methods'); setInspectorOpen(true); }}>Training Curves</button>
               <button type="button" className={railTab === 'lab' ? 'on' : ''} onClick={() => { setRailTab('lab'); setInspectorOpen(true); if (labMode === 'rgb') changeLabMode('centers'); }}>Inspector</button>
             </>
@@ -1558,7 +1565,7 @@ export default function App() {
 
         <div className="clinic-top-actions">
           <div className="work-mode-switch" aria-label="工作区模式">
-            <button type="button" className={workMode === 'clinic' ? 'on' : ''} onClick={() => { setWorkMode('clinic'); setMprOn(false); setTenX(false); setSplit(false); setMethodCompare(false); setQuadMode(false); setQuadItems([]); viewerRef.current?.clearQuadCompare(); setHeatmap(false); setSpin(false); setVariant('full'); setRailTab('findings'); setInspectorOpen(true); }}>Clinic</button>
+            <button type="button" className={workMode === 'clinic' ? 'on' : ''} onClick={() => { setWorkMode('clinic'); setClinicWorkflow('3d'); setMode('pick'); setMprOn(false); setTenX(false); setSplit(false); setMethodCompare(false); setQuadMode(false); setQuadItems([]); viewerRef.current?.clearQuadCompare(); setHeatmap(false); setSpin(false); setVariant('full'); setRailTab('findings'); setInspectorOpen(true); }}>Clinic</button>
             <button type="button" className={workMode === 'research' ? 'on' : ''} onClick={() => { setWorkMode('research'); setRailTab('methods'); setInspectorOpen(true); }}>Research</button>
           </div>
           <button type="button" className="top-export" onClick={() => shoot()} title="导出当前视图"><Icon name="camera" /><span>Export</span></button>
