@@ -4,14 +4,14 @@
 
 一句话：把真实牙科 3DGS / CBCT 资产压进自描述容器 `.dspk`，在浏览器里观察、检查和修改每一个高斯，并把不同表示、压缩与几何误差放到同一套可复算的坐标和相机下比较。
 
-当前页面包含 **10 个真实资产条目**：6 个 Brush 训练的 IOS 3DGS、3 个 DentVoxel CBCT 贴面、1 个同源未训练表面采样基线。数据来源、许可和已知边界写在每个病例的 Data 面板与 `public/assets/report.json` 中。这里没有任何诊断准确性结论。
+当前页面包含 **10 个公开展示资产条目**：6 个 Brush 训练的 IOS 3DGS、3 个 DentVoxel CBCT 贴面表示、1 个同源未训练表面采样基线。数据来源、许可和已知边界写在每个病例的 Data 面板与 `public/assets/report.json` 中。这里没有任何诊断准确性结论。
 
 ## 能做什么
 
 - **Gaussian Lab**：RGB、真实 1/2/3σ 高斯椭球、中心点云、椭球线框、Opacity、Scale、估计法线与深度八种视图；椭球按真实协方差 `Σ = R diag(s²) Rᵀ` 构造。
 - **Gaussian Inspector**：点击单个高斯，读取 μ、σ、四元数、不透明度、DC 颜色、SH1 系数、协方差与特征轴；可实时编辑位置、尺度和不透明度，并导出当前高斯云为标准 3DGS PLY。
 - **FP32 PLY 导入**：浏览器直读 binary/ascii 3DGS PLY，位置/尺度/旋转/颜色/不透明度走 FP32 着色器路径，不先量化成 DSPK；SH3 的 l=2/l=3 通过顶点浮点纹理在 GPU 评估，SH0–SH3 系数可无损导出。PLY 不声明长度单位时界面以原始单位 `u` 展示。
-- **同源方法对照**：Case 01（Brush 3DGS）与 Case 10（0.35 mm Surface Sampling）共用相机分屏；Methods 还能一键打开四个真实表示的 2×2 同相机对照：COLMAP 稀疏点、Brush 3DGS、Surface Sampling、Mesh-Aligned Disks。网格几何审计同时给出 DSPK 与 FP32 两行，以分离传输量化与重建误差。
+- **同源方法对照**：Case 01（Brush 3DGS）与 Case 10（0.35 mm Surface Sampling）共用相机分屏；Methods 提供 gsplat Vanilla 3DGS、gsplat 2DGS surfel、Brush 3DGS、Surface Sampling 的 2×2 同相机对照。四个资产的高斯数量与 SH 阶数不同，因此这是同源同视角的表示比较，不是等字节或等高斯预算对比。另提供 Surface-Aligned Disks 几何基线；它不是 2DGS 算法实现。网格几何审计同时给出 DSPK 与 FP32 两行，以分离传输量化与重建误差。
 - **重建产物时间轴**：除已发布的最终资产外，使用同一 120 视角数据和 Brush 独立重训了一次，导出 1k / 2k / 3k / 5k / 10k / 15k 六个真实高斯 checkpoint（25,581 → 28,694 splats），可直接在网页加载对比；训练 loss 行未输出，因此不画示意曲线。
 - **压缩与研究对比**：10× 等字节 Uniform / Anatomy-Aware、Full 参考 PSNR/MAE、逐层误差、FDI 中心距变化，以及 160×140×128 CBCT MPR。
 - **临床辅助仍保留**：FDI 牙位、三轴剖切、测量、MPR、AI 报告审计只作为辅助视图，不再占据产品中心。
@@ -22,8 +22,8 @@
 | --- | --- |
 | 训练资产 | Poseidon3D 000125 → 120 Blender 视角 → Brush v0.3.0 15,000 步 → 28,691 个 SH1 高斯 |
 | 同源基线 | 0.35 mm 表面采样 → 59,808 高斯，SH0 |
-| 几何审计（精确 point→triangle） | Brush cloud→mesh mean **0.168 mm**（p95 0.469），F@0.5 mm **95.9 / 94.7%**；Sampling **0.0002 mm**（p95 0.0004），F@0.5 **100 / 99.97%**；mesh→cloud 使用 120k 面积加权采样 |
-| FP32→DSPK 传输差 | cloud→mesh mean 差 **0.0000 mm**（Brush / Sampling 均为 4 位小数） |
+| 几何审计（精确 point→triangle，F@0.5 mm） | Brush：mean **0.168 mm** / p95 **0.469 mm** / precision-recall **95.9 / 94.7%**；gsplat 3DGS：**0.370 / 1.544 mm** / **79.2 / 76.5%**；2DGS：**0.416 / 1.643 mm** / **72.9 / 65.0%**；Sampling：**0.0002 / 0.0004 mm** / **100 / 99.97%**。mesh→cloud 使用 120k 面积加权采样 |
+| gsplat 训练结果（同一 held-out split） | 105 train / 15 test，15k steps：3DGS MCMC **38.54 dB / 0.9855 / 0.02245**（PSNR / SSIM / LPIPS，80k splats）；2DGS **38.48 dB / 0.9842 / 0.02340**（24,198 splats） |
 | 10× 同字节预算 | Uniform 22.28 dB overall；Anatomy 19.75 dB overall，但 L4 27.63→35.84 dB、FDI48–L4 clearance 0.724→0.427 mm |
 | Brush 独立重训时间轴 | S0: 25,000 COLMAP sparse points；1k: 25,581 splats / 742,552 B → 15k: 28,694 splats / 832,830 B；7 个 DSPK 阶段可在 Reconstruction 面板逐步加载、1.2 s/步播放，并与已发布最终模型双视口对比 |
 | 时间轴几何（同网格） | 1k → 15k：cloud→mesh mean 0.078→0.166 mm，F@0.5 precision 99.8→95.6%，recall 96.2→94.8%，normal 0.613→0.606；高斯数量增加不等于中心更贴网格 |
@@ -33,7 +33,7 @@
 
 ## 不证明什么
 
-- **没有 2DGS / Mip-Splatting / SuGaR / R²-Gaussian 训练结果**：Methods 页只把已有真实导出标为 AVAILABLE；切换网页显示模式不算算法实现。R²-Gaussian 需要 X 射线投影几何，当前 CBCT 分割体不能替代。
+- **方法范围**：当前包含 Brush 3DGS、gsplat Vanilla 3DGS MCMC、gsplat 2DGS surfel，以及 Surface Sampling / Surface-Aligned Disks 几何基线。Mip-Splatting 与 SuGaR 尚未训练；R²-Gaussian 暂不可用，因为它需要 X 射线投影几何，当前 CBCT 分割体不能替代。切换网页显示模式不等于实现一种新算法。
 - **时间轴来自独立重训**：已发布 Case 01 本身没有保存中间 checkpoint；网页里的 1k–15k 序列是一次独立 Brush 重训（最终 28,694 vs 已发布 28,691），两者不能当作同一条训练轨迹。Brush 未输出 loss/PSNR 行，所以没有伪造的曲线。
 - **SH 高阶的边界**：DSPK 容器仍只携带 DC + l=1；FP32 PLY 的 SH3 已用顶点浮点纹理评估 l=2/l=3（真实 Brush SH3 PLY 29,521 splats 已验证加载），但独立 SH2 文件没有专用 l=2 路径。
 - **单机单卡单浏览器**：RTX 5070 Ti / ANGLE-D3D11 / Chromium；低端集显、移动端和远程桌面未做性能结论。
@@ -76,13 +76,7 @@ node tools/ply2dspk.ts --in output/<case>/web_assets/cbct_layers.ply \
 node tools/check-glb.mjs output/<case>/web_assets/proxy_B.glb --min-teeth 26
 ```
 
-**换资产必须重测。** `report.json` 里的 PSNR、覆盖间隙和体积比是在**当前合成资产**上测出来的；替换成真实病例后，这些数字与页面上的模型不再对应，必须重跑浏览器探针的 `bench()` 并更新 `MEASUREMENTS.md` 与简报，或者在重测前把该场景的指标卡明确标成"未测"。把旧数字留在新资产旁边，比没有数字更糟。
-
-## 训练交接包（gsplat 未跑完的那一步）
-
-`Downloads/DentSplat-training-bundle-20261125.tar.gz`（3,734,216 B，sha256 `1d20dee2…`，120 张 1024² Cycles 渲染 + COLMAP 文本 + 代理 GLB + 脚本）。解包后 `bash run_all.sh` 会建 venv、装 torch/gsplat、跑 15k 步训练、再剪枝绑标签。
-
-**如实说明**：这个包没有在任何机器上端到端跑完过。本次会话把 V100 的 torch 装好、gsplat 克隆到一半就被跳板机的凭据级限流掐断；渲染与 COLMAP 是在本机真跑的。所以包里给的是"应当得到"的路径，不是已有的结果。
+**换资产必须重测。** `report.json` 与 `geometry_metrics.json` 中的指标只对应各自记录的资产版本、坐标帧与评估口径；替换模型、标签、坐标变换或裁剪策略后，必须重新运行浏览器 pixel readback 与 point-to-triangle audit，并更新 `MEASUREMENTS.md` 和相关指标文件。未重测的项目应标为“未测”，不能沿用旧数值。
 
 ## 仓库结构
 
@@ -106,8 +100,7 @@ MEASUREMENTS.md    每个数字的仪器、口径与反例
 - **Scene B（在售资产）**：DentVoxel v4 case 0095（<https://figshare.com/articles/dataset/DentVoxel_a_fully_annotated_dental_CBCT_dataset_with_38_instance_anatomical_structures/31239889>，CC BY 4.0）。
   真实患者 CBCT，440×440×344 / 0.3 mm，39 类标注（牙位即 FDI，左右下颌神经管与上颌窦独立）；`pipeline/dentvoxel_to_tf3.py` 把它映射到渲染端的四层，`tools/ziprange.mjs` 只从 8.8 GB 的发布包里取这一例。
 - ToothFairy3 / ODIN2025 语义口径（CC BY-NC-SA 4.0）仍是手册里的对照，需要 ditto 账号；仓库不含任何患者原始数据。
-- 本仓库不包含上述数据集的原始文件。两个场景的几何与 FDI 语义都来自真实公开病例（CC BY 4.0）；
-  外观（颜色/光照）是程序化烘焙，不是训练出来的 3DGS 外观。仅用于学术研究与演示。
+- 本仓库不包含数据集原始 NIfTI、原始扫描网格或完整训练输入。公开分发的是按来源许可整理的 DSPK / GLB 派生展示资产与评估元数据。Brush 训练场景的外观由 120 张合成 Blender 视角优化；CBCT surfel 场景则由分割体表面与烘焙显示属性生成，两者的表示和生成流程不同。仅用于学术研究与演示。
 - Scene B 已改为 **oriented-surfel** 包（`pipeline/cbct_surfel.py`）：Marching Cubes 曲面、Poisson
   抽稀采样、四元数对齐法线、s3 = 0.2 s1、SH1 + 曲率 AO。blob 审计的前后对照在
   `tools/out/blob_audit_before.json` 与 `tools/out/blob_audit_after.json`
