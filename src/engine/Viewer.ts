@@ -29,6 +29,21 @@ export type ViewPreset = {
 
 export type PickerHit = { fdi: number; point: THREE.Vector3; meshName: string } | null;
 
+export type VectorHudEntry = {
+  kind: 'measure' | 'audit';
+  a: [number, number];
+  b: [number, number];
+  label: string;
+  color: string;
+};
+
+type VectorHudSource = {
+  a: THREE.Vector3;
+  b: THREE.Vector3;
+  label: string;
+  color: string;
+};
+
 export type BenchPair = {
   /** Mean over the whole frame, background included. 999 = bit-identical (PSNR is undefined at MSE 0). */
   psnr: number;
@@ -238,6 +253,12 @@ export class DentSplatViewer {
   private loadAbort: AbortController | null = null;
   variant: 'full' | 'pruned' = 'full';
   splitCompare = false;
+  private _splitRatio = 0.5;
+  get splitRatio(): number { return this._splitRatio; }
+  set splitRatio(value: number) {
+    const ratio = Number(value);
+    this._splitRatio = Number.isNaN(ratio) ? 0.5 : Math.min(0.9, Math.max(0.1, ratio));
+  }
   measureMode: 'off' | 'measure' | 'pick' = 'pick';
   /** Which case is loaded; set by App on every case switch, read by the HUD and the checks. */
   caseId = 'A2';
@@ -262,6 +283,8 @@ export class DentSplatViewer {
   measurePts: THREE.Vector3[] = [];
   private measureGroup = new THREE.Group();
   private auditGroup = new THREE.Group();
+  private measureHud: VectorHudSource | null = null;
+  private auditHud: VectorHudSource | null = null;
   private gizmo = new THREE.Group();
   private labGroup = new THREE.Group();
   private inspectGroup = new THREE.Group();
@@ -777,9 +800,8 @@ async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) 
   private drawMeasure(a: THREE.Vector3, b: THREE.Vector3) {
     const g = new THREE.BufferGeometry().setFromPoints([a, b]);
     const line = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x7dd3fc }));
-    const label = this.makeLabel(`${a.distanceTo(b).toFixed(1)} mm`);
-    label.position.copy(a).lerp(b, 0.5).add(new THREE.Vector3(0, 1.6, 0));
-    this.measureGroup.add(line, label);
+    this.measureHud = { a: a.clone(), b: b.clone(), label: `${a.distanceTo(b).toFixed(1)} mm`, color: '#7dd3fc' };
+    this.measureGroup.add(line);
   }
 
   private makeLabel(text: string) {
@@ -804,12 +826,10 @@ async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) 
   clearMeasure() {
     for (const o of [...this.measureGroup.children]) {
       this.measureGroup.remove(o);
-      const anyO = o as THREE.Mesh & THREE.Sprite;
-      anyO.geometry?.dispose?.();
-      (anyO.material as THREE.SpriteMaterial | undefined)?.map?.dispose?.();
-      disposeMaterial(anyO.material);
+      disposeObject(o);
     }
     this.measurePts = [];
+    this.measureHud = null;
   }
 
   /** Nearest splat-centre clearance; this is not a root-apex surface distance. */
@@ -845,22 +865,38 @@ async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) 
       dot.renderOrder = 960;
       this.auditGroup.add(dot);
     }
-    const label = this.makeLabel(`${audit.distance.toFixed(2)} mm`);
-    label.position.copy(mid).add(new THREE.Vector3(0, 3.2, 0));
-    label.renderOrder = 1000;
-    this.auditGroup.add(label);
+    this.auditHud = { a: a.clone(), b: b.clone(), label: `${audit.distance.toFixed(2)} mm`, color: '#22d3ee' };
     this.autoRotate = false;
-    this.goal = { theta: -0.9, phi: -0.18, radius: 46, target: mid };
+    this.goal = { theta: -0.9, phi: -0.18, radius: Math.max(28, 64), target: mid };
   }
 
   clearAudit() {
     for (const o of [...this.auditGroup.children]) {
       this.auditGroup.remove(o);
-      const anyO = o as THREE.Mesh & THREE.Sprite;
-      anyO.geometry?.dispose?.();
-      (anyO.material as THREE.SpriteMaterial | undefined)?.map?.dispose?.();
-      disposeMaterial(anyO.material);
+      disposeObject(o);
     }
+    this.auditHud = null;
+  }
+
+  /** Project the latest measurement/audit pair for a crisp DOM/SVG overlay, in CSS pixels. */
+  getVectorHud(): VectorHudEntry[] {
+    const rect = this.canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return [];
+    this.camera.updateMatrixWorld();
+    const project = (point: THREE.Vector3): [number, number] | null => {
+      const inCamera = point.clone().applyMatrix4(this.camera.matrixWorldInverse);
+      if (inCamera.z >= -this.camera.near) return null;
+      const p = point.clone().project(this.camera);
+      if (p.z < -1 || p.z > 1 || p.x < -1 || p.x > 1 || p.y < -1 || p.y > 1) return null;
+      return [(p.x * 0.5 + 0.5) * rect.width, (-p.y * 0.5 + 0.5) * rect.height];
+    };
+    const out: VectorHudEntry[] = [];
+    for (const [kind, source] of [['measure', this.measureHud], ['audit', this.auditHud]] as const) {
+      if (!source) continue;
+      const a = project(source.a), b = project(source.b);
+      if (a && b) out.push({ kind, a, b, label: source.label, color: source.color });
+    }
+    return out;
   }
 
   // ------------------------------------------------------------------ state
@@ -1487,7 +1523,7 @@ async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) 
 
       if (this.splitCompare) {
         // Two independent viewports, identical camera and projection, different packets.
-        const fw = Math.floor(r.x / 2);
+        const fw = Math.floor(r.x * this.splitRatio);
         this.camera.aspect = fw / r.y; this.camera.updateProjectionMatrix();
         this.renderer.setScissorTest(true);
         this.renderer.setViewport(0, 0, fw, r.y);
@@ -1879,11 +1915,11 @@ async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) 
     // Split comparison has to be honoured offscreen too, otherwise a captured "split" frame is
     // really a single-packet frame and the compression slide would be illustrating nothing.
     const split = this.splitCompare && !!this.layer && !!this.layerAlt;
-    const half = Math.floor(w / 2);
-    const vp = split ? new THREE.Vector2(half, h) : new THREE.Vector2(w, h);
+    const splitWidth = Math.floor(w * this.splitRatio);
+    const vp = split ? new THREE.Vector2(splitWidth, h) : new THREE.Vector2(w, h);
     let sorted: boolean;
     if (split) {
-      for (const l of [this.layer!, this.layerAlt!]) (l.u.uViewportPx.value as THREE.Vector2).set(half, h);
+      for (const l of [this.layer!, this.layerAlt!]) (l.u.uViewportPx.value as THREE.Vector2).set(splitWidth, h);
       this.layer!.update(this.camera.matrixWorldInverse, vp, true);
       this.layerAlt!.update(this.camera.matrixWorldInverse, vp, true);
       sorted = true;
@@ -1894,14 +1930,14 @@ async loadQuadComparison(items: { name: string; url: string; bytes: number }[]) 
     this.renderer.setRenderTarget(rt);
     this.renderer.setClearColor(0x070b12, 1);
     if (split) {
-      this.camera.aspect = half / h;
+      this.camera.aspect = splitWidth / h;
       this.camera.updateProjectionMatrix();
       this.renderer.setScissorTest(true);
-      this.renderer.setViewport(0, 0, half, h);
-      this.renderer.setScissor(0, 0, half, h);
+      this.renderer.setViewport(0, 0, splitWidth, h);
+      this.renderer.setScissor(0, 0, splitWidth, h);
       this.renderOne(this.layer);
-      this.renderer.setViewport(half, 0, w - half, h);
-      this.renderer.setScissor(half, 0, w - half, h);
+      this.renderer.setViewport(splitWidth, 0, w - splitWidth, h);
+      this.renderer.setScissor(splitWidth, 0, w - splitWidth, h);
       this.renderOne(this.layerAlt);
       this.renderer.setScissorTest(false);
       this.renderer.setViewport(0, 0, w, h);

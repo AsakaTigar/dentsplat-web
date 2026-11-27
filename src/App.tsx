@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 import type * as THREE from 'three';
 import { DentSplatViewer } from './engine/Viewer.ts';
 import type { AlphaComposition, BenchResult, ClearanceAudit, ClipAxis, CompressionBenchResult, LabInfo, LabMode, PickerHit, ProbeResult, Stats, ViewPreset } from './engine/Viewer.ts';
@@ -84,6 +85,66 @@ type GeometryAudit = {
   }[];
   caveat: string;
 };
+
+type VectorHudItem = { kind: 'measure' | 'audit'; a: [number, number]; b: [number, number]; label: string; color: string };
+
+function VectorHudOverlay({ viewerRef }: { viewerRef: RefObject<DentSplatViewer | null> }) {
+  const [items, setItems] = useState<VectorHudItem[]>([]);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  useEffect(() => {
+    let raf = 0, last = 0;
+    const tick = (t: number) => {
+      if (t - last > 45) {
+        last = t;
+        setItems(viewerRef.current?.getVectorHud() ?? []);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [viewerRef]);
+  return (
+    <svg ref={svgRef} className="vector-hud" aria-hidden="true">
+      {items.map((h, i) => {
+        const mx = (h.a[0] + h.b[0]) / 2, my = (h.a[1] + h.b[1]) / 2;
+        const lx = Math.max(54, Math.min(mx + 34, (svgRef.current?.clientWidth ?? 800) - 54));
+        const ly = Math.max(42, Math.min(my - 26, (svgRef.current?.clientHeight ?? 600) - 42));
+        return (
+          <g key={`${h.kind}-${i}`} className="vector-hud-item">
+            <line x1={h.a[0]} y1={h.a[1]} x2={h.b[0]} y2={h.b[1]} stroke={h.color} strokeWidth="1.5" />
+            <line x1={mx} y1={my} x2={lx} y2={ly} stroke={h.color} strokeWidth="1" opacity=".75" />
+            <circle cx={h.a[0]} cy={h.a[1]} r="3.5" fill="none" stroke={h.color} strokeWidth="1.5" />
+            <circle cx={h.b[0]} cy={h.b[1]} r="3.5" fill="none" stroke={h.color} strokeWidth="1.5" />
+            <rect x={lx - 42} y={ly - 13} width="84" height="26" rx="8" className="vector-hud-pill" />
+            <text x={lx} y={ly + 4} textAnchor="middle" fill="#eaf6fb">{h.label}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function SplitWipe({ viewerRef, ratio, onRatio }: { viewerRef: RefObject<DentSplatViewer | null>; ratio: number; onRatio: (v: number) => void }) {
+  const drag = useRef(false);
+  useEffect(() => { if (viewerRef.current) viewerRef.current.splitRatio = ratio; }, [ratio, viewerRef]);
+  const move = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!drag.current) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    onRatio(Math.max(0.1, Math.min(0.9, (e.clientX - r.left) / r.width)));
+  };
+  return (
+    <div className="split-wipe" onPointerMove={move} onPointerUp={() => { drag.current = false; }} onPointerCancel={() => { drag.current = false; }}>
+      <div className="split-wipe-line" style={{ left: `${ratio * 100}%` }} />
+      <button
+        type="button"
+        className="split-wipe-handle"
+        style={{ left: `${ratio * 100}%` }}
+        aria-label="拖动分屏比例"
+        onPointerDown={(e) => { drag.current = true; e.currentTarget.setPointerCapture(e.pointerId); }}
+      >◂ ▸</button>
+    </div>
+  );
+}
 
 type TimelineStep = {
   step: number; file: string; bytes: number; splats: number; sha256: string;
@@ -227,6 +288,9 @@ export default function App() {
   const [alphas, setAlphas] = useState<Record<number, number>>({});
   const [variant, setVariant] = useState<'full' | 'pruned'>('full');
   const [split, setSplit] = useState(false);
+  const [splitRatio, setSplitRatio] = useState(0.5);
+  const [workMode, setWorkMode] = useState<'clinic' | 'research'>('clinic');
+  const [caseMenuOpen, setCaseMenuOpen] = useState(false);
   const [methodCompare, setMethodCompare] = useState(false);
   const [tenX, setTenX] = useState(false);
   const [heatmap, setHeatmap] = useState(false);
@@ -1452,161 +1516,73 @@ export default function App() {
 
   return (
     <div className="dtx-shell">
-      <header className="dtx-menubar">
-        <div className="dtx-brand">
-          <span className="dtx-mark" />
-          <b>DentSplat Lab</b>
-          <em>Dental Gaussian Splatting Lab</em>
+      <header className="clinic-topbar">
+        <div className="clinic-brand"><span className="clinic-brand-mark" /><b>DentSplat</b></div>
+
+        <div className="case-switcher">
+          <button type="button" className="case-switcher-trigger" aria-expanded={caseMenuOpen} onClick={() => setCaseMenuOpen((v) => !v)}>
+            <span>{spec.code} · {spec.cohort === 'cbct' ? 'CBCT 0.3 mm' : 'IOS'} · {spec.cohort === 'cbct' ? 'Full Arch' : 'Intra-oral Scan'}</span>
+            <i>{caseMenuOpen ? '−' : '+'}</i>
+          </button>
+          {caseMenuOpen && (
+            <div className="case-menu">
+              <input autoFocus value={caseQuery} onChange={(e) => setCaseQuery(e.target.value)} placeholder="搜索病例 / 模态" />
+              <div className="case-menu-list">
+                {CASES.filter((c) => `${c.code} ${c.title} ${c.cohort}`.toLowerCase().includes(caseQuery.toLowerCase())).map((c) => (
+                  <button key={c.id} type="button" className={caseId === c.id ? 'on' : ''} onClick={() => { switchCase(c.id); setCaseMenuOpen(false); setCaseQuery(''); }}>
+                    <b>{c.code}</b><span>{c.title}</span><small>{c.cohort === 'cbct' ? 'CBCT' : 'IOS'}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        <nav className="dtx-workflows" aria-label="Gaussian Splatting 工作区">
-          <button type="button" className={railTab === 'lab' ? 'on' : ''} onClick={() => { setRailTab('lab'); setInspectorOpen(true); if (labMode === 'rgb') changeLabMode('centers'); }}>Gaussian Lab</button>
-          <button type="button" className={railTab === 'recon' ? 'on' : ''} onClick={() => { setRailTab('recon'); setInspectorOpen(true); setPickerOpen(false); }}>Reconstruction</button>
-          <button type="button" className={railTab === 'methods' ? 'on' : ''} onClick={() => { setRailTab('methods'); setInspectorOpen(true); setPickerOpen(false); }}>Methods</button>
-          <button type="button" className={railTab === 'findings' && mode === 'pick' ? 'on' : ''} onClick={() => { setMode('pick'); setRailTab('findings'); setInspectorOpen(true); }}>Diagnose</button>
-          <button type="button" className={mode === 'measure' ? 'on' : ''} onClick={() => { setMode(mode === 'measure' ? 'pick' : 'measure'); setRailTab('findings'); setInspectorOpen(true); }}>Measure</button>
-          <button type="button" className={railTab === 'slice' ? 'on' : ''} onClick={() => { setRailTab('slice'); setInspectorOpen(true); }}>Slice &amp; Cap</button>
-          <button type="button" className={railTab === 'layers' ? 'on' : ''} onClick={() => { setRailTab('layers'); setInspectorOpen(true); }}>3D Anatomy</button>
-          <button type="button" className={railTab === 'audit' ? 'on' : ''} onClick={() => { setRailTab('audit'); setInspectorOpen(true); }}>Compression</button>
+        <nav className="clinic-workflows" aria-label={workMode === 'clinic' ? '临床工作流' : '科研工作流'}>
+          {workMode === 'clinic' ? (
+            <>
+              <button type="button" className={!mprOn && mode === 'pick' ? 'on' : ''} onClick={() => { setMprOn(false); setMode('pick'); setRailTab('findings'); setInspectorOpen(true); }}>3D View</button>
+              <button type="button" className={mprOn ? 'on' : ''} onClick={() => { if (!mprOn) toggleMpr(); }}>MPR</button>
+              <button type="button" className={mode === 'measure' ? 'on' : ''} onClick={() => { setMode('measure'); setRailTab('findings'); setInspectorOpen(true); }}>Measure</button>
+              <button type="button" className={railTab === 'findings' && mode === 'pick' ? 'on' : ''} onClick={() => { if (caseId !== 'B') switchCase('B'); setMode('pick'); setRailTab('findings'); setInspectorOpen(true); }}>Verify</button>
+            </>
+          ) : (
+            <>
+              <button type="button" className={isQuad ? 'on' : ''} onClick={() => void startQuadCompare()}>4-Way Compare</button>
+              <button type="button" className={tenX ? 'on' : ''} onClick={() => { if (!tenX) toggleTenX(); }}>10× Compression</button>
+              <button type="button" className={railTab === 'methods' ? 'on' : ''} onClick={() => { setRailTab('methods'); setInspectorOpen(true); }}>Training Curves</button>
+              <button type="button" className={railTab === 'lab' ? 'on' : ''} onClick={() => { setRailTab('lab'); setInspectorOpen(true); if (labMode === 'rgb') changeLabMode('centers'); }}>Inspector</button>
+            </>
+          )}
         </nav>
 
-        <div className="dtx-spacer" />
-        <span className="dtx-patient-pill">{caseBadge}</span>
+        <div className="clinic-top-actions">
+          <div className="work-mode-switch" aria-label="工作区模式">
+            <button type="button" className={workMode === 'clinic' ? 'on' : ''} onClick={() => { setWorkMode('clinic'); setMprOn(false); setTenX(false); setSplit(false); setMethodCompare(false); setQuadMode(false); setQuadItems([]); viewerRef.current?.clearQuadCompare(); setHeatmap(false); setSpin(false); setVariant('full'); setRailTab('findings'); setInspectorOpen(true); }}>Clinic</button>
+            <button type="button" className={workMode === 'research' ? 'on' : ''} onClick={() => { setWorkMode('research'); setRailTab('methods'); setInspectorOpen(true); }}>Research</button>
+          </div>
+          <button type="button" className="top-export" onClick={() => shoot()} title="导出当前视图"><Icon name="camera" /><span>Export</span></button>
+        </div>
       </header>
 
-      <div className="dtx-ribbon">
-        <div className="rib-group">
-          <button type="button" className={'rib-btn' + (mode === 'pick' ? ' on' : '')} onClick={() => setMode('pick')}>
-            <Icon name="pick" /><span>3D 拾取</span>
-          </button>
-          <button type="button" className={'rib-btn' + (mode === 'measure' ? ' on' : '')} onClick={() => setMode(mode === 'measure' ? 'pick' : 'measure')}>
-            <Icon name="measure" /><span>mm 测距</span>
-          </button>
-          <button type="button" className={'rib-btn' + (wire ? ' on' : '')} onClick={() => setWire((w) => !w)}>
-            <Icon name="wire" /><span>对齐线框</span>
-          </button>
+      {workMode === 'research' && (
+        <div className="research-toolbar">
+          <button type="button" className={variant === 'full' && !split ? 'on' : ''} disabled={tenX || methodCompare} onClick={() => { setVariant('full'); setSplit(false); }}>Full</button>
+          <button type="button" className={variant === 'pruned' && !split ? 'on' : ''} disabled={tenX || methodCompare} onClick={() => { setVariant('pruned'); setSplit(false); }}>Pruned</button>
+          <button type="button" className={split ? 'on' : ''} disabled={tenX || methodCompare} onClick={() => setSplit((s) => !s)}>Split</button>
+          <button type="button" className={tenX ? 'on' : ''} disabled={isLocal} onClick={toggleTenX}>10× Budget Allocation</button>
+          <button type="button" className={heatmap ? 'on' : ''} onClick={() => setHeatmap((h) => !h)}>Anatomical Weight Map</button>
+          <button type="button" onClick={runBench} disabled={benching || !report}>{benching ? 'Measuring…' : 'Pixel Readback'}</button>
+          <i />
+          <button type="button" className={spin ? 'on' : ''} onClick={() => setSpin((s) => !s)}>Auto Rotate</button>
+          <button type="button" onClick={resetView}>Reset</button>
+          <button type="button" onClick={() => fileInputRef.current?.click()}>Load PLY / DSPK</button>
+          <input ref={fileInputRef} type="file" accept=".dspk,.ply" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void loadLocalFile(f); e.target.value = ''; }} />
         </div>
+      )}
 
-        <i className="rib-div" />
-
-        <div className="rib-group">
-          <button type="button" className={'rib-btn' + (clipAxis !== null ? ' on' : '')} onClick={() => {
-            if (clipAxis) setClipAxis(null);
-            else { setClipAxis('x'); setClipOffset(0); setRailTab('slice'); setInspectorOpen(true); }
-          }}>
-            <Icon name="slice" /><span>三轴剖切</span>
-          </button>
-          <button type="button" className={'rib-btn' + (cap && clipAxis !== null ? ' on' : '')} onClick={() => setCap((c) => !c)}>
-            <Icon name="cap" /><span>断面封顶</span>
-          </button>
-          <button type="button" className={'rib-btn' + (spec.cohort === 'cbct' && activePreset === 'ian' ? ' on' : '')} onClick={focusCanal}>
-            <Icon name="nerve" /><span>神经管特写</span>
-          </button>
-        </div>
-
-        <i className="rib-div" />
-
-        <div className="rib-group">
-          <button type="button" className={'rib-btn' + (variant === 'full' && !split ? ' on' : '')} disabled={tenX || methodCompare} onClick={() => { setVariant('full'); setSplit(false); }}>
-            <Icon name="layers" /><span>Full 完整</span>
-          </button>
-          <button type="button" className={'rib-btn' + (variant === 'pruned' && !split ? ' on' : '')} disabled={tenX || methodCompare} onClick={() => { setVariant('pruned'); setSplit(false); }}>
-            <Icon name="layers" /><span>Pruned 剪枝</span>
-          </button>
-          <button type="button" className={'rib-btn' + (split ? ' on' : '')} disabled={tenX || methodCompare} onClick={() => setSplit((s) => !s)}>
-            <Icon name="split" /><span>同屏对比</span>
-          </button>
-          <button
-            type="button"
-            className={'rib-btn' + (tenX ? ' on' : '')}
-            disabled={isLocal}
-            title={tenX ? '退出 10× 对决并恢复完整 Case 03' : '自动切换 Case 03 并运行同预算对决'}
-            onClick={toggleTenX}
-          >
-            <Icon name="split" /><span>10× 解剖压缩</span>
-          </button>
-          <button type="button" className={'rib-btn' + (heatmap ? ' on' : '')} onClick={() => setHeatmap((h) => !h)}>
-            <Icon name="heat" /><span>重要性热力图</span>
-          </button>
-          <button
-            type="button"
-            className={'rib-btn' + (mprOn ? ' on' : '')}
-            disabled={isLocal}
-            title={mprOn ? '关闭四视口 MPR' : '自动切换 Case 03 并开启 3DGS + 原始 CBCT 四视口'}
-            onClick={toggleMpr}
-          >
-            <Icon name="slice" /><span>四视口 MPR</span>
-          </button>
-          <button type="button" className={'rib-btn' + (benching ? ' on' : '')} onClick={runBench} disabled={benching || !report}>
-            <Icon name="bench" /><span>{benching ? '审计中…' : 'PSNR 审计'}</span>
-          </button>
-        </div>
-
-        <i className="rib-div" />
-
-        <div className="rib-group">
-          <button type="button" className={'rib-btn' + (spin ? ' on' : '')} onClick={() => setSpin((s) => !s)}>
-            <Icon name="reset" /><span>自动旋转</span>
-          </button>
-          <button type="button" className="rib-btn" onClick={resetView}>
-            <Icon name="reset" /><span>重置视图</span>
-          </button>
-          <button type="button" className="rib-btn" onClick={() => shoot()}>
-            <Icon name="camera" /><span>导出影像</span>
-          </button>
-          <button type="button" className="rib-btn" onClick={() => shoot(3840)} title="离屏渲染 3840px 宽 PNG（约 4K），不改变当前画布尺寸">
-            <Icon name="camera" /><span>4K 截图</span>
-          </button>
-          <button type="button" className="rib-btn" onClick={saveReview} title="保存病例、牙位、切片坐标、测量与审计结果为 JSON">
-            <Icon name="audit" /><span>保存记录</span>
-          </button>
-          <button type="button" className="rib-btn" onClick={() => fileInputRef.current?.click()} title="本地加载 FP32 .ply 或 .dspk 文件（Research Mode，零上传）">
-            <Icon name="upload" /><span>载入 PLY/DSPK</span>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".dspk,.ply"
-            hidden
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void loadLocalFile(f);
-              e.target.value = '';
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="dtx-subtabs">
-        <div className="cohort-tabs" role="tablist" aria-label="病例类别">
-          {COHORT_TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={cohort === t.id}
-              className={'subtab cohort-tab' + (cohort === t.id ? ' on' : '')}
-              onClick={() => {
-                setCohort(t.id);
-                setCaseQuery('');
-                setPickerOpen(true);
-                if (t.id !== 'all' && spec.cohort !== t.id) {
-                  const first = CASES.find((c) => c.cohort === t.id);
-                  if (first) switchCase(first.id);
-                }
-              }}
-            >
-              <span className="subtab-dot" />
-              {t.label}
-              {t.id !== 'all' && <small>{cohortCounts[t.id]}</small>}
-            </button>
-          ))}
-        </div>
-        <div className="dtx-spacer" />
-        <div className="subtab-info">{isQuad ? `QUAD · ${quadItems.map((q) => `${q.name} ${fmtInt(q.splats)}`).join(' / ')}` : isTimeline ? `TIMELINE · step ${timelineStep ?? '—'} · ${report ? `${fmtInt(report.full.splats)} splats` : ''}` : isDiskMethod ? `METHOD BASELINE · ${report ? `${fmtInt(report.full.splats)} disks` : ''}` : isLocal ? `LOCAL ${isPlyLocal ? 'FP32 PLY' : 'DSPK'} · ${customAssetName}` : `${spec.code} · ${spec.title}`}</div>
-      </div>
-
-      <div className={'dtx-workspace' + (inspectorOpen ? '' : ' collapsed')}>
+      <div className={'dtx-workspace work-' + workMode + (inspectorOpen ? '' : ' collapsed')}>
+        {workMode === 'research' && (
         <aside className="dtx-scene" aria-label="场景树">
           <div className="scene-head"><span>SCENE TREE</span><b>{isLocal ? 'LOCAL' : spec.code.replace('Case ', 'C')}</b></div>
           <div className="scene-scroll">
@@ -1657,6 +1633,7 @@ export default function App() {
             </button>
           </div>
         </aside>
+        )}
 
         <section
           className={'dtx-viewport' + (mprOn ? ' mpr-mode' : '') + (mode === 'measure' ? ' is-measure' : '') + (dragOver ? ' is-drag' : '')}
@@ -1673,29 +1650,24 @@ export default function App() {
           <div className="vp-header">
             <div className="hud vp-title">
               <span className="vp-green-sq" />
-              <b>{isQuad ? 'Quad Comparison' : railTab === 'lab' ? 'Gaussian Lab' : railTab === 'methods' ? 'Method Comparison' : railTab === 'recon' ? 'Reconstruction Timeline' : '3DGS Viewer'}</b>
-              <span className="vp-sep">|</span>
-              <span className="vp-stat"><b className={stats.fps >= 55 ? 'ok' : ''}>{stats.fps}</b> FPS</span>
-              <span className="vp-stat">{fmtInt(stats.splats)} splats</span>
-              <span className="vp-stat">{fmtMB(stats.bytes)} MB</span>
-              <span className="vp-stat muted">{stats.gpu}</span>
+              <b>{isQuad ? 'Quad Comparison' : mprOn ? 'MPR' : railTab === 'lab' ? 'Gaussian Inspector' : railTab === 'methods' ? 'Method Comparison' : railTab === 'recon' ? 'Reconstruction Timeline' : '3D View'}</b>
+              {workMode === 'research' && <>
+                <span className="vp-sep">|</span>
+                <span className="vp-stat"><b className={stats.fps >= 55 ? 'ok' : ''}>{stats.fps}</b> FPS</span>
+                <span className="vp-stat">{fmtInt(stats.splats)} splats</span>
+                <span className="vp-stat">{fmtMB(stats.bytes)} MB</span>
+                <span className="vp-stat muted">{stats.gpu}</span>
+              </>}
             </div>
 
-            <div className="vp-presets">
+            {workMode === 'research' && <div className="vp-presets">
               {spec.presets.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={activePreset === p.id ? 'on' : ''}
-                  onClick={() => goPreset(p)}
-                >
-                  {p.label}
-                </button>
+                <button key={p.id} type="button" className={activePreset === p.id ? 'on' : ''} onClick={() => goPreset(p)}>{p.label}</button>
               ))}
-            </div>
+            </div>}
           </div>
 
-          {(railTab === 'lab' || labMode !== 'rgb') && (
+          {workMode === 'research' && (railTab === 'lab' || labMode !== 'rgb') && (
             <div className="lab-modebar" aria-label="Gaussian 渲染模式">
               <b>GAUSSIAN LAB</b>
               {LAB_MODES.map((m) => (
@@ -1730,6 +1702,20 @@ export default function App() {
           )}
 
           <canvas id="gl" ref={canvasRef} />
+          <VectorHudOverlay viewerRef={viewerRef} />
+
+          {workMode === 'clinic' && !mprOn && (
+            <div className="clinic-toolbar">
+              <button type="button" className={mode === 'pick' ? 'on' : ''} onClick={() => setMode('pick')}><Icon name="pick" />Pick</button>
+              <button type="button" className={mode === 'measure' ? 'on' : ''} onClick={() => setMode('measure')}><Icon name="measure" />Measure</button>
+              <button type="button" className={clipAxis ? 'on' : ''} onClick={() => { setClipAxis(clipAxis ? null : 'x'); setRailTab('slice'); }}><Icon name="slice" />Section</button>
+              <select value={activePreset} onChange={(e) => { const p = spec.presets.find((x) => x.id === e.target.value); if (p) goPreset(p); }} aria-label="视角预设">
+                {spec.presets.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+              </select>
+              <button type="button" className={wire ? 'on' : ''} onClick={() => setWire((w) => !w)}><Icon name="wire" />Wire</button>
+              <button type="button" onClick={resetView}><Icon name="reset" />Reset</button>
+            </div>
+          )}
 
           {isQuad && (
             <div className="quad-overlay">
@@ -1762,22 +1748,22 @@ export default function App() {
             )}
           </div>
 
-          {split && (
+          {(split || tenX || methodCompare || timelineCompare) && (
             <>
-              <div className="split-rule" />
+              <SplitWipe viewerRef={viewerRef} ratio={splitRatio} onRatio={setSplitRatio} />
               <span className="split-tag l">
                 {isTimeline && timelineCompare
-                  ? `BRUSH CHECKPOINT ${timelineStep ?? '—'} · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)`
+                  ? `BRUSH CHECKPOINT ${timelineStep ?? '—'}`
                   : methodCompare
-                    ? `BRUSH 3DGS · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)`
-                    : tenX ? `UNIFORM 10× · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)` : `FULL · ${fmtInt(report?.full.splats ?? 0)} splats (${fmtMB(report?.full.bytes ?? 0)} MB)`}
+                    ? 'BRUSH 3DGS'
+                    : tenX ? 'UNIFORM 10×' : 'FULL'}
               </span>
               <span className="split-tag r">
                 {isTimeline && timelineCompare
-                  ? `PUBLISHED FINAL · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)`
+                  ? 'PUBLISHED FINAL'
                   : methodCompare
-                    ? `SURFACE SAMPLING · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)`
-                    : tenX ? `ANATOMY-AWARE 10× · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)` : `PRUNED (${ratio.toFixed(2)}×) · ${fmtInt(report?.pruned.splats ?? 0)} splats (${fmtMB(report?.pruned.bytes ?? 0)} MB)`}
+                    ? 'SURFACE SAMPLING'
+                    : tenX ? 'ANATOMY-AWARE 10×' : 'PRUNED'}
               </span>
             </>
           )}
@@ -1788,7 +1774,7 @@ export default function App() {
             </div>
           )}
 
-          {heatmap && (
+          {workMode === 'research' && heatmap && (
             <div className="heatmap-legend">
               <b>CLINICAL IMPORTANCE</b>
               <span><i style={{ background: '#ff3b30' }} />L4 神经管</span>
@@ -1812,6 +1798,7 @@ export default function App() {
           )}
         </section>
 
+        {workMode === 'research' && (
         <aside className="dtx-rail" aria-label="检视面板切换">
           {([
             ['lab', 'gaussian', 'Gaussian'],
@@ -1837,8 +1824,16 @@ export default function App() {
             </button>
           ))}
         </aside>
+        )}
 
         <aside className="dtx-inspector">
+          {workMode === 'clinic' && (
+            <div className="clinic-inspector-tabs">
+              <button type="button" className={railTab === 'findings' ? 'on' : ''} onClick={() => setRailTab('findings')}>Findings</button>
+              <button type="button" className={railTab === 'layers' ? 'on' : ''} onClick={() => setRailTab('layers')}>Layers</button>
+              <button type="button" className={railTab === 'slice' ? 'on' : ''} onClick={() => setRailTab('slice')}>Slice</button>
+            </div>
+          )}
           <div className="insp-odontogram">
             <Odontogram
               teeth={meta?.teeth ?? {}}
@@ -2369,12 +2364,12 @@ export default function App() {
               {caseId === 'B' && (
                 <div className="evidence-auditor">
                   <div className="auditor-head">
-                    <span><Icon name="audit" />AI REPORT AUDIT</span>
-                    <b>BIBM × ToothXpert</b>
+                    <span><Icon name="audit" />REPORT VERIFICATION</span>
+                    <b>Clinical Review</b>
                   </div>
                   <p>模拟 Dental VLM 报告；点击后从当前完整 DSPK 点云现场复算 FDI→神经管最小中心距。容差 0.30 mm，不预写判定。</p>
                   <button type="button" className="tbar-btn primary audit-run" disabled={auditing || tenX} onClick={runGeometricAudit}>
-                    {auditing ? '正在遍历三维点对…' : 'Run 3D Geometric Audit'}
+                    {auditing ? '正在遍历三维点对…' : 'Verify Measurements'}
                   </button>
                   {tenX && <div className="auditor-note">当前为 10× 对决。退出对决后，审计会使用 111,000 个完整贴面高斯。</div>}
                   <div className="audit-claims">
@@ -2390,7 +2385,7 @@ export default function App() {
                           disabled={!r || tenX}
                           onClick={() => focusAuditClaim(c)}
                         >
-                          <span className="audit-claim-top"><b>{c.title}</b><em>{!r ? 'PENDING' : c.status === 'verified' ? 'VERIFIED' : 'HALLUCINATION CAUGHT'}</em></span>
+                          <span className="audit-claim-top"><b>{c.title}</b><em>{!r ? 'PENDING' : c.status === 'verified' ? 'VERIFIED' : 'DISCREPANCY FLAGGED'}</em></span>
                           <span className="audit-claim-text">{c.claim}</span>
                           {r && (
                             <span className="audit-claim-result">
@@ -2617,9 +2612,9 @@ export default function App() {
       </div>
 
       <footer className="dtx-statusbar">
-        <span>Drag: Orbit · Right-Drag: Pan · Scroll: Zoom · Double-Click: Focus · R: Reset</span>
+        <span>{workMode === 'clinic' ? '1 unit = 1 mm · 0.3 mm ISO · Medical Coordinate Frame' : 'Drag: Orbit · Right-Drag: Pan · Scroll: Zoom · Double-Click: Focus · R: Reset'}</span>
         <span className="dtx-spacer" />
-        <span>Sort {stats.sortMs.toFixed(2)} ms · Custom WebGL2 EWA Engine · Zero Third-Party Viewer</span>
+        {workMode === 'research' && <span>Sort {stats.sortMs.toFixed(2)} ms · {fmtInt(stats.splats)} splats · {stats.gpu}</span>}
       </footer>
     </div>
   );
