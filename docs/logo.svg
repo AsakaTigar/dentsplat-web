@@ -1,13 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="520" height="120">
-  <rect width="520" height="120" rx="14" fill="#ffffff" />
-
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="520" height="120" role="img" aria-label="DentSplat">
   <g transform="translate(54, 18)">
     <ellipse cx="42" cy="42" rx="34" ry="18" transform="rotate(-32 42 42)" fill="none" stroke="#2563eb" stroke-width="5.5" />
-    <ellipse cx="42" cy="42" rx="34" ry="18" transform="rotate(32 42 42)" fill="none" stroke="#0ea5e9" stroke-width="5.5" opacity="0.85" />
+    <ellipse cx="42" cy="42" rx="34" ry="18" transform="rotate(32 42 42)" fill="none" stroke="#0ea5e9" stroke-width="5.5" opacity="0.88" />
     <circle cx="42" cy="42" r="7.5" fill="#1d4ed8" />
     <circle cx="67" cy="24" r="3.5" fill="#0ea5e9" />
     <circle cx="17" cy="60" r="3.5" fill="#2563eb" />
   </g>
-
   <text x="166" y="76" font-family="Georgia, 'Times New Roman', serif" font-size="52" font-weight="700" letter-spacing="1.2" fill="#0f172a">DentSplat</text>
 </svg>
