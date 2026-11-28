@@ -1,0 +1,546 @@
+{
+  "schema": "dentsplat-geometry-audit-v2",
+  "generated_at": "2026-11-26T20:17:38.490Z",
+  "source_mesh": {
+    "path": "Poseidon3D case 000125 source mesh (local source file; not redistributed)",
+    "obj_cache": "Local OBJ preprocessing cache (not redistributed)",
+    "triangles": 190724,
+    "vertices": 95324,
+    "sha256_obj": "4256b51a9d12626fc8317406e53184e3010cc38a61572d0b8bed18e5ff0e5e53",
+    "frame": {
+      "upAxisInSource": 2,
+      "anteriorAxis": 0,
+      "anteriorSideAxis": 1,
+      "anteriorSign": 1,
+      "toApp": "[side-centre, up-centre, sign*(fwd-centre)]"
+    },
+    "sample_note": "cloud→mesh is exact point-to-triangle nearest distance; mesh→cloud uses 120,000 deterministic area-weighted surface samples"
+  },
+  "methods": {
+    "brush_3dgs": {
+      "file": "public/assets/sceneA_trained_full.dspk",
+      "count": 28691,
+      "cloud_to_mesh": {
+        "mean_mm": 0.1676,
+        "p50_mm": 0.1208,
+        "p95_mm": 0.4689,
+        "max_mm": 3.3761
+      },
+      "mesh_to_cloud": {
+        "mean_mm": 0.2912,
+        "p50_mm": 0.2809,
+        "p95_mm": 0.5035,
+        "max_mm": 0.9803
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.9591,
+        "recall": 0.9474
+      },
+      "normal_abs_dot": {
+        "mean": 0.6084,
+        "p50": 0.6676,
+        "p10": 0.1316
+      },
+      "raw_ply": {
+        "file": "tools/out/case125/brush_run/caseA_15000.ply",
+        "frame": "R_y(-90) into viewer frame",
+        "count": 28691,
+        "cloud_to_mesh": {
+          "mean_mm": 0.1676,
+          "p50_mm": 0.1207,
+          "p95_mm": 0.4689,
+          "max_mm": 3.3761
+        },
+        "mesh_to_cloud": {
+          "mean_mm": 0.2912,
+          "p50_mm": 0.2809,
+          "p95_mm": 0.5036,
+          "max_mm": 0.9799
+        },
+        "fscore": {
+          "threshold_mm": 0.5,
+          "precision": 0.9592,
+          "recall": 0.9473
+        },
+        "normal_abs_dot": {
+          "mean": 0.6085,
+          "p50": 0.6675,
+          "p10": 0.1323
+        }
+      }
+    },
+    "surface_sampling": {
+      "file": "public/assets/sceneA_poseidon_full.dspk",
+      "count": 59808,
+      "cloud_to_mesh": {
+        "mean_mm": 0.0002,
+        "p50_mm": 0.0001,
+        "p95_mm": 0.0004,
+        "max_mm": 0.0007
+      },
+      "mesh_to_cloud": {
+        "mean_mm": 0.1644,
+        "p50_mm": 0.1565,
+        "p95_mm": 0.311,
+        "max_mm": 0.5811
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 1,
+        "recall": 0.9997
+      },
+      "normal_abs_dot": {
+        "mean": 0.3878,
+        "p50": 0.3237,
+        "p10": 0.0431
+      },
+      "raw_ply": {
+        "file": "tools/out/poseidon/poseidon125_full.ply",
+        "frame": "already in viewer frame",
+        "count": 59808,
+        "cloud_to_mesh": {
+          "mean_mm": 0,
+          "p50_mm": 0,
+          "p95_mm": 0,
+          "max_mm": 0
+        },
+        "mesh_to_cloud": {
+          "mean_mm": 0.1644,
+          "p50_mm": 0.1565,
+          "p95_mm": 0.311,
+          "max_mm": 0.5809
+        },
+        "fscore": {
+          "threshold_mm": 0.5,
+          "precision": 1,
+          "recall": 0.9997
+        },
+        "normal_abs_dot": null
+      }
+    },
+    "gsplat_3dgs": {
+      "file": "tools/out/real_train/gsplat_80k_norm/point_cloud_15000_viewer.ply",
+      "frame": "inverse gsplat normalization then R_y(-90) into viewer frame",
+      "count": 80000,
+      "cloud_to_mesh": {
+        "mean_mm": 0.3697,
+        "p50_mm": 0.1299,
+        "p95_mm": 1.5444,
+        "max_mm": 6.5163
+      },
+      "mesh_to_cloud": {
+        "mean_mm": 0.4229,
+        "p50_mm": 0.2807,
+        "p95_mm": 1.3427,
+        "max_mm": 2.785
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.7923,
+        "recall": 0.7645
+      },
+      "normal_abs_dot": {
+        "mean": 0.6723,
+        "p50": 0.7716,
+        "p10": 0.1795
+      },
+      "training": {
+        "method": "3dgs-gsplat-mcmc-local",
+        "split": {
+          "protocol": "test_every=8",
+          "train_images": 105,
+          "test_images": 15
+        },
+        "steps": [
+          1000,
+          3000,
+          7000,
+          15000
+        ],
+        "curve": [
+          {
+            "step": 1000,
+            "source_step": 999,
+            "train_loss": 0.012401559390127659,
+            "test_psnr": 33.909751892089844,
+            "test_ssim": 0.9758346080780029,
+            "test_lpips": 0.06339993327856064,
+            "num_gaussians": 30387,
+            "train_sec": 28.008
+          },
+          {
+            "step": 3000,
+            "source_step": 2999,
+            "train_loss": 0.010239318013191223,
+            "test_psnr": 35.299400329589844,
+            "test_ssim": 0.9792175889015198,
+            "test_lpips": 0.047432903200387955,
+            "num_gaussians": 80000,
+            "train_sec": 69.491
+          },
+          {
+            "step": 7000,
+            "source_step": 6999,
+            "train_loss": 0.006897989194840193,
+            "test_psnr": 38.05300521850586,
+            "test_ssim": 0.9848511219024658,
+            "test_lpips": 0.02626524120569229,
+            "num_gaussians": 80000,
+            "train_sec": 156.58
+          },
+          {
+            "step": 15000,
+            "source_step": 14999,
+            "train_loss": 0.0030583501793444157,
+            "test_psnr": 38.53783416748047,
+            "test_ssim": 0.9854586720466614,
+            "test_lpips": 0.022450285032391548,
+            "num_gaussians": 80000,
+            "train_sec": 321.422
+          }
+        ],
+        "final_test_psnr": 38.53783416748047,
+        "final_test_ssim": 0.9854586720466614,
+        "final_test_lpips": 0.022450285032391548,
+        "train_sec": 321.422,
+        "num_gaussians": 80000
+      }
+    },
+    "surfel_2dgs": {
+      "file": "tools/out/real_train/2dgs_norm/point_cloud_15000_viewer.ply",
+      "frame": "R_y(-90) into viewer frame; two trained tangent scales plus declared 1% viewer-only thickness",
+      "count": 24198,
+      "cloud_to_mesh": {
+        "mean_mm": 0.4157,
+        "p50_mm": 0.1768,
+        "p95_mm": 1.6428,
+        "max_mm": 4.7476
+      },
+      "mesh_to_cloud": {
+        "mean_mm": 0.5147,
+        "p50_mm": 0.3964,
+        "p95_mm": 1.3967,
+        "max_mm": 2.1757
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.7293,
+        "recall": 0.6495
+      },
+      "normal_abs_dot": {
+        "mean": 0.7368,
+        "p50": 0.8507,
+        "p10": 0.2684
+      },
+      "training": {
+        "method": "2dgs-gsplat-local",
+        "split": {
+          "protocol": "test_every=8",
+          "train_images": 105,
+          "test_images": 15
+        },
+        "steps": [
+          1000,
+          3000,
+          7000,
+          15000
+        ],
+        "curve": [
+          {
+            "step": 1000,
+            "source_step": 999,
+            "train_loss": 0.01194339245557785,
+            "test_psnr": 33.30451202392578,
+            "test_ssim": 0.9707083106040955,
+            "test_lpips": 0.06341046094894409,
+            "num_gaussians": 24116,
+            "train_sec": 24.596
+          },
+          {
+            "step": 3000,
+            "source_step": 2999,
+            "train_loss": 0.009629416279494762,
+            "test_psnr": 35.9703369140625,
+            "test_ssim": 0.9794152975082397,
+            "test_lpips": 0.03565790876746178,
+            "num_gaussians": 26134,
+            "train_sec": 65.235
+          },
+          {
+            "step": 7000,
+            "source_step": 6999,
+            "train_loss": 0.0063876258209347725,
+            "test_psnr": 38.18770217895508,
+            "test_ssim": 0.9834651350975037,
+            "test_lpips": 0.02401627041399479,
+            "num_gaussians": 26863,
+            "train_sec": 141.689
+          },
+          {
+            "step": 15000,
+            "source_step": 14999,
+            "train_loss": 0.046603549271821976,
+            "test_psnr": 38.4803581237793,
+            "test_ssim": 0.9842242002487183,
+            "test_lpips": 0.023402879014611244,
+            "num_gaussians": 24198,
+            "train_sec": 281.698
+          }
+        ],
+        "final_test_psnr": 38.4803581237793,
+        "final_test_ssim": 0.9842242002487183,
+        "final_test_lpips": 0.023402879014611244,
+        "train_sec": 281.698,
+        "num_gaussians": 24198
+      }
+    }
+  },
+  "training_curves": {
+    "3dgs-gsplat-mcmc": {
+      "method": "3dgs-gsplat-mcmc-local",
+      "split": {
+        "protocol": "test_every=8",
+        "train_images": 105,
+        "test_images": 15
+      },
+      "steps": [
+        1000,
+        3000,
+        7000,
+        15000
+      ],
+      "curve": [
+        {
+          "step": 1000,
+          "source_step": 999,
+          "train_loss": 0.012401559390127659,
+          "test_psnr": 33.909751892089844,
+          "test_ssim": 0.9758346080780029,
+          "test_lpips": 0.06339993327856064,
+          "num_gaussians": 30387,
+          "train_sec": 28.008
+        },
+        {
+          "step": 3000,
+          "source_step": 2999,
+          "train_loss": 0.010239318013191223,
+          "test_psnr": 35.299400329589844,
+          "test_ssim": 0.9792175889015198,
+          "test_lpips": 0.047432903200387955,
+          "num_gaussians": 80000,
+          "train_sec": 69.491
+        },
+        {
+          "step": 7000,
+          "source_step": 6999,
+          "train_loss": 0.006897989194840193,
+          "test_psnr": 38.05300521850586,
+          "test_ssim": 0.9848511219024658,
+          "test_lpips": 0.02626524120569229,
+          "num_gaussians": 80000,
+          "train_sec": 156.58
+        },
+        {
+          "step": 15000,
+          "source_step": 14999,
+          "train_loss": 0.0030583501793444157,
+          "test_psnr": 38.53783416748047,
+          "test_ssim": 0.9854586720466614,
+          "test_lpips": 0.022450285032391548,
+          "num_gaussians": 80000,
+          "train_sec": 321.422
+        }
+      ],
+      "final_test_psnr": 38.53783416748047,
+      "final_test_ssim": 0.9854586720466614,
+      "final_test_lpips": 0.022450285032391548,
+      "train_sec": 321.422,
+      "num_gaussians": 80000
+    },
+    "2dgs-surfel": {
+      "method": "2dgs-gsplat-local",
+      "split": {
+        "protocol": "test_every=8",
+        "train_images": 105,
+        "test_images": 15
+      },
+      "steps": [
+        1000,
+        3000,
+        7000,
+        15000
+      ],
+      "curve": [
+        {
+          "step": 1000,
+          "source_step": 999,
+          "train_loss": 0.01194339245557785,
+          "test_psnr": 33.30451202392578,
+          "test_ssim": 0.9707083106040955,
+          "test_lpips": 0.06341046094894409,
+          "num_gaussians": 24116,
+          "train_sec": 24.596
+        },
+        {
+          "step": 3000,
+          "source_step": 2999,
+          "train_loss": 0.009629416279494762,
+          "test_psnr": 35.9703369140625,
+          "test_ssim": 0.9794152975082397,
+          "test_lpips": 0.03565790876746178,
+          "num_gaussians": 26134,
+          "train_sec": 65.235
+        },
+        {
+          "step": 7000,
+          "source_step": 6999,
+          "train_loss": 0.0063876258209347725,
+          "test_psnr": 38.18770217895508,
+          "test_ssim": 0.9834651350975037,
+          "test_lpips": 0.02401627041399479,
+          "num_gaussians": 26863,
+          "train_sec": 141.689
+        },
+        {
+          "step": 15000,
+          "source_step": 14999,
+          "train_loss": 0.046603549271821976,
+          "test_psnr": 38.4803581237793,
+          "test_ssim": 0.9842242002487183,
+          "test_lpips": 0.023402879014611244,
+          "num_gaussians": 24198,
+          "train_sec": 281.698
+        }
+      ],
+      "final_test_psnr": 38.4803581237793,
+      "final_test_ssim": 0.9842242002487183,
+      "final_test_lpips": 0.023402879014611244,
+      "train_sec": 281.698,
+      "num_gaussians": 24198
+    }
+  },
+  "timeline": [
+    {
+      "step": 1000,
+      "count": 25581,
+      "cloud_to_mesh": {
+        "mean_mm": 0.0783,
+        "p50_mm": 0.0657,
+        "p95_mm": 0.1887,
+        "max_mm": 2.1942
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.9977,
+        "recall": 0.9617
+      },
+      "normal_abs_dot": {
+        "mean": 0.6128,
+        "p50": 0.6719,
+        "p10": 0.1411
+      }
+    },
+    {
+      "step": 2000,
+      "count": 26056,
+      "cloud_to_mesh": {
+        "mean_mm": 0.1029,
+        "p50_mm": 0.0887,
+        "p95_mm": 0.2321,
+        "max_mm": 2.4132
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.9942,
+        "recall": 0.9603
+      },
+      "normal_abs_dot": {
+        "mean": 0.6228,
+        "p50": 0.6857,
+        "p10": 0.1437
+      }
+    },
+    {
+      "step": 3000,
+      "count": 26438,
+      "cloud_to_mesh": {
+        "mean_mm": 0.1156,
+        "p50_mm": 0.0953,
+        "p95_mm": 0.2739,
+        "max_mm": 2.4705
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.9922,
+        "recall": 0.9587
+      },
+      "normal_abs_dot": {
+        "mean": 0.624,
+        "p50": 0.6872,
+        "p10": 0.1453
+      }
+    },
+    {
+      "step": 5000,
+      "count": 26784,
+      "cloud_to_mesh": {
+        "mean_mm": 0.1352,
+        "p50_mm": 0.1033,
+        "p95_mm": 0.353,
+        "max_mm": 2.5008
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.9848,
+        "recall": 0.9555
+      },
+      "normal_abs_dot": {
+        "mean": 0.6216,
+        "p50": 0.6849,
+        "p10": 0.14
+      }
+    },
+    {
+      "step": 10000,
+      "count": 27724,
+      "cloud_to_mesh": {
+        "mean_mm": 0.1585,
+        "p50_mm": 0.117,
+        "p95_mm": 0.4477,
+        "max_mm": 2.4879
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.964,
+        "recall": 0.9499
+      },
+      "normal_abs_dot": {
+        "mean": 0.6122,
+        "p50": 0.6716,
+        "p10": 0.1344
+      }
+    },
+    {
+      "step": 15000,
+      "count": 28694,
+      "cloud_to_mesh": {
+        "mean_mm": 0.1664,
+        "p50_mm": 0.1208,
+        "p95_mm": 0.4797,
+        "max_mm": 3.0783
+      },
+      "fscore": {
+        "threshold_mm": 0.5,
+        "precision": 0.9563,
+        "recall": 0.9481
+      },
+      "normal_abs_dot": {
+        "mean": 0.6061,
+        "p50": 0.6613,
+        "p10": 0.1301
+      }
+    }
+  ],
+  "caveat": "Cloud→mesh is exact point-to-triangle distance; mesh→cloud is a 120k area-weighted surface sample, so real-data F-score@0.5mm still has a sampling floor. Normal consistency compares the ellipsoid minor axis against the closest triangle face normal. 2DGS PLY stores two trained tangent scales; the third viewer scale is a declared 1% thinness, not a learned thickness. gsplat PLY was mapped back through the exact COLMAP normalization transform before R_y(-90); the l=1 SH vector was rotated by the same combined rotation."
+}

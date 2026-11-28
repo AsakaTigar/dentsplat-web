@@ -1,0 +1,28 @@
+{
+  "schema": "dentsplat-compression-coverage-v1",
+  "generated_at": "2026-11-27T01:05:54.386Z",
+  "definition": "for every full-cloud centre, nearest compressed-cloud centre (coverage holes); full and compressed DSPK positions are decoded through their own bounding boxes",
+  "full": {
+    "file": "public/assets/sceneB_dentvoxel_full.dspk",
+    "count": 111000,
+    "sha256": "85ce0f43dec13de2acae580162544da9d1105e6963a65773867362bca0b0f395"
+  },
+  "uniform": {
+    "full_points": 111000,
+    "compressed_points": 11100,
+    "compressed_sha256": "2e8daadbb3cd2690d6d94c901cf00a3cded969561a4e1ae770181c0f4f0ea9f0",
+    "mean_mm": 0.874,
+    "p50_mm": 0.739,
+    "p95_mm": 2.237,
+    "max_mm": 6.003
+  },
+  "anatomy": {
+    "full_points": 111000,
+    "compressed_points": 11100,
+    "compressed_sha256": "394d69a03b43e68b8113eda0ebecef3189b18952444692bdd3dd57c620ecf273",
+    "mean_mm": 1.221,
+    "p50_mm": 0.754,
+    "p95_mm": 4.193,
+    "max_mm": 15.846
+  }
+}

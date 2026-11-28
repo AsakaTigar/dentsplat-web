@@ -1,0 +1,149 @@
+{
+  "format": "dentsplat-mpr-v1",
+  "case": "DentVoxel v4 case 0095",
+  "dims": [
+    160,
+    140,
+    128
+  ],
+  "bbox_min_mm": [
+    -65.1,
+    -55.8,
+    -79.95001
+  ],
+  "bbox_max_mm": [
+    66.60001,
+    47.10001,
+    51.75
+  ],
+  "spacing_mm": [
+    0.828302,
+    0.740288,
+    1.037008
+  ],
+  "hu_window": [
+    -500.0,
+    2800.0
+  ],
+  "byteOffsets": {
+    "hu": 0,
+    "mask": 2867200
+  },
+  "byteLengths": {
+    "hu": 2867200,
+    "mask": 1433600
+  },
+  "mask": {
+    "packed": true,
+    "bits": 4,
+    "order": "low-nibble-even, high-nibble-odd",
+    "codes": {
+      "0": "background",
+      "1": "teeth",
+      "2": "bone",
+      "3": "nerve",
+      "4": "sinus"
+    }
+  },
+  "transform": {
+    "ras_to_gltf": [
+      [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0
+      ]
+    ],
+    "center_yup_mm": [
+      -0.9,
+      4.2,
+      14.25
+    ],
+    "source_affine": [
+      [
+        -0.30000001192092896,
+        0.0,
+        0.0,
+        66.0
+      ],
+      [
+        0.0,
+        -0.30000001192092896,
+        0.0,
+        66.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.30000001192092896,
+        -51.599998474121094
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "source": {
+    "image": "tools/out/data/img0095.nii.gz",
+    "labels": "tools/out/data/labels_tf3_0095.nii.gz",
+    "dims": [
+      440,
+      440,
+      344
+    ],
+    "spacing_mm": [
+      0.30000001192092896,
+      0.30000001192092896,
+      0.30000001192092896
+    ]
+  },
+  "validation": {
+    "fdi38_source_mm": [
+      37.587,
+      -8.328,
+      -8.381
+    ],
+    "fdi38_resampled_mm": [
+      37.601,
+      -8.375,
+      -8.379
+    ],
+    "fdi38_resample_error_mm": 0.049,
+    "fdi38_3dgs_mm": [
+      37.71,
+      -8.32,
+      -8.47
+    ],
+    "fdi38_source_to_3dgs_mm": 0.152,
+    "nerve_source_mm": [
+      4.362,
+      -15.3,
+      -11.216
+    ],
+    "nerve_resampled_mm": [
+      3.794,
+      -15.702,
+      -11.13
+    ],
+    "nerve_resample_error_mm": 0.701,
+    "nerve_3dgs_mm": [
+      4.954,
+      -15.313,
+      -10.977
+    ],
+    "nerve_source_to_3dgs_mm": 0.639
+  },
+  "generator": "pipeline/build_mpr_volume.py"
+}

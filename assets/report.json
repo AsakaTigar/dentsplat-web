@@ -1,0 +1,619 @@
+{
+  "generator": "tools/gen-dental-assets.ts",
+  "seed": 1337,
+  "density": 1,
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "note": "Curated public demo assets. Per-scene source_note and provenance record source data, processing, and license; some IOS appearance is procedural or optimized from synthetic Blender views, while CBCT scenes use oriented surfel representations derived from labeled volumes.",
+  "scenes": {
+    "sceneA_ios": {
+      "full": {
+        "splats": 59808,
+        "bytes": 1196970,
+        "mb": 1.14,
+        "sh_degree": 0,
+        "bytes_per_splat": 20
+      },
+      "pruned": {
+        "splats": 10168,
+        "bytes": 204174,
+        "mb": 0.19,
+        "sh_degree": 0,
+        "bytes_per_splat": 20
+      },
+      "bytes_ratio": 5.86,
+      "compression_fidelity_mm": {
+        "coverage_gap_mean": 0.178,
+        "coverage_gap_p95": 0.362,
+        "coverage_gap_max": 1.138,
+        "kept_subset_of_original": false,
+        "sampled_pairs": 10168,
+        "note": "pruned->full nearest distance (the two packets are independent surface samplings, so pruned is not a subset); PSNR is measured live in-browser (bench mode)"
+      },
+      "proxy": {
+        "bytes": 244080,
+        "kb": 238.4,
+        "nodes": 14,
+        "triangles": 13134
+      },
+      "metrics": {},
+      "source_note": "geometry+labels: Poseidon3D case 000125 (CC BY 4.0); appearance procedural (the STL has no texture)"
+    },
+    "sceneB_cbct": {
+      "full": {
+        "splats": 111000,
+        "bytes": 3219808,
+        "mb": 3.07,
+        "sh_degree": 1,
+        "bytes_per_splat": 29
+      },
+      "pruned": {
+        "splats": 37000,
+        "bytes": 1073808,
+        "mb": 1.02,
+        "sh_degree": 1,
+        "bytes_per_splat": 29
+      },
+      "bytes_ratio": 3,
+      "compression_fidelity_mm": {
+        "coverage_gap_mean": 0.602,
+        "coverage_gap_p95": 1.395,
+        "coverage_gap_max": 3.701,
+        "kept_subset_of_original": true,
+        "sampled_pairs": 74000,
+        "note": "every third splat retained with sqrt(3)x tangential scale, so this is a true subset: removed -> retained nearest centre distance. PSNR is measured live in-browser (bench mode)"
+      },
+      "proxy": {
+        "bytes": 321296,
+        "kb": 313.8,
+        "nodes": 32,
+        "triangles": 16894
+      },
+      "metrics": {
+        "ian_48_min_mm": 0.16,
+        "tooth_48_at_mm": [
+          -35,
+          -8.1,
+          -25.7
+        ],
+        "nerve_at_mm": [
+          -35.1,
+          -8.1,
+          -25.8
+        ]
+      },
+      "representation": "oriented surfel Gaussians (marching cubes surface, Poisson-thinned sampling, quats aligned to vertex normals, s3 = 0.2 s1, SH1, baked three-point light + curvature AO)",
+      "source_note": "DentVoxel v4 case 0095 (figshare 31239889, CC BY 4.0); ids remapped to the TF3 space by pipeline/dentvoxel_to_tf3.py"
+    },
+    "sceneA_trained": {
+      "full": {
+        "splats": 28691,
+        "bytes": 832835,
+        "mb": 0.79,
+        "sh_degree": 1,
+        "bytes_per_splat": 29
+      },
+      "pruned": {
+        "splats": 9564,
+        "bytes": 278152,
+        "mb": 0.27,
+        "sh_degree": 1,
+        "bytes_per_splat": 29
+      },
+      "bytes_ratio": 2.99,
+      "compression_fidelity_mm": {
+        "coverage_gap_mean": 0.496,
+        "coverage_gap_p95": 0.885,
+        "coverage_gap_max": 2.857,
+        "kept_subset_of_original": true,
+        "sampled_pairs": 19127,
+        "note": "every third splat retained with sqrt(3)x tangential scale; removed -> retained nearest centre distance"
+      },
+      "proxy": {
+        "bytes": 244080,
+        "kb": 238.4,
+        "nodes": 14,
+        "triangles": 13134
+      },
+      "metrics": {},
+      "training": {
+        "tool": "Brush v0.3.0 (WGPU)",
+        "steps": 15000,
+        "views": 120,
+        "sh_degree": 1,
+        "sh1_nonzero": true,
+        "labels": "transferred from the sampled packet, 99.5% within 1.0 mm"
+      },
+      "bench": {
+        "psnr": 31.04,
+        "psnr_in_mask": 26.37,
+        "mae": 0.0106,
+        "identical_fraction": 0.6256,
+        "self_psnr": 999,
+        "self_identical_fraction": 1,
+        "size": 384,
+        "capture": "tools/out/bench-A2-trained.json",
+        "sha256": "a02d190748442adaae0da6398ae531fcfddd095e5fee9467a84a9d71fb760359",
+        "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36 Edg/158.0.0.0"
+      },
+      "source_note": "Poseidon3D case 000125 geometry via 120 Blender renders; appearance optimised by Brush (no real texture exists)"
+    },
+    "sceneU_upper": {
+      "full": {
+        "splats": 27703,
+        "bytes": 804085,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "version": 1,
+        "mb": 0.77
+      },
+      "pruned": {
+        "splats": 9235,
+        "bytes": 268513,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "version": 1,
+        "mb": 0.26
+      },
+      "bytes_ratio": 2.99,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 294888,
+        "kb": 288,
+        "nodes": 11,
+        "triangles": 13339
+      },
+      "metrics": {},
+      "training": {
+        "tool": "Brush v0.3.0 (WGPU)",
+        "steps": 15000,
+        "views": 120,
+        "sh_degree": 1,
+        "render": "Blender Cycles orbit, 1024 px, 48 spp",
+        "labels": "no per-splat FDI side-car in this pass; odontogram intentionally empty"
+      },
+      "provenance": {
+        "source": "Poseidon3D case 000122 (ortho23-000337, Zenodo 15608906)",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_upper_full.dspk",
+          "pruned": "public/assets/scene_upper_pruned.dspk",
+          "proxy": "public/assets/proxy_U.glb"
+        }
+      }
+    },
+    "sceneP_crown": {
+      "full": {
+        "splats": 31083,
+        "bytes": 902105,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "version": 1,
+        "mb": 0.86
+      },
+      "pruned": {
+        "splats": 10361,
+        "bytes": 301167,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "version": 1,
+        "mb": 0.29
+      },
+      "bytes_ratio": 3,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 1465228,
+        "kb": 1430.9,
+        "nodes": 13,
+        "triangles": 72450
+      },
+      "metrics": {},
+      "training": {
+        "tool": "Brush v0.3.0 (WGPU)",
+        "steps": 15000,
+        "views": 120,
+        "sh_degree": 1,
+        "render": "Blender Cycles orbit, 1024 px, 48 spp",
+        "labels": "no per-splat FDI side-car in this pass; odontogram intentionally empty"
+      },
+      "provenance": {
+        "source": "ProsthoObjects3D scan 608 (Zenodo 18488594)",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_crown_full.dspk",
+          "pruned": "public/assets/scene_crown_pruned.dspk",
+          "proxy": "public/assets/proxy_P.glb"
+        }
+      }
+    },
+    "scene_case08": {
+      "full": {
+        "splats": 111000,
+        "bytes": 3219808,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 3.07
+      },
+      "pruned": {
+        "splats": 37000,
+        "bytes": 1073808,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 1.02
+      },
+      "bytes_ratio": 3,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 243420,
+        "kb": 237.7,
+        "nodes": 30,
+        "triangles": 12628
+      },
+      "metrics": {
+        "ian_48_min_mm": 0.06,
+        "tooth_48_at_mm": [
+          -36.5,
+          -20.3,
+          3.5
+        ],
+        "nerve_at_mm": [
+          -36.5,
+          -20.2,
+          3.5
+        ]
+      },
+      "representation": {
+        "generator": "pipeline/cbct_surfel.py",
+        "layers": "teeth / alveolar bone / IAN canal / maxillary sinus",
+        "primitives": "oriented surfels, s3 = 0.2 s1, SH1",
+        "labels": "per-splat FDI read back from the 0.3 mm label volume; row-aligned side-cars guarded by labels_manifest.json"
+      },
+      "source_note": "DentVoxel v4 case 0001: 111,000 oriented surfels from the 0.3 mm label volume; FDI read back per splat",
+      "provenance": {
+        "source": "DentVoxel v4 case 0001 (figshare 31239889), CC BY 4.0",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_case08_full.dspk",
+          "pruned": "public/assets/scene_case08_pruned.dspk",
+          "proxy": "public/assets/proxy_case08.glb"
+        }
+      }
+    },
+    "scene_case09": {
+      "full": {
+        "splats": 111000,
+        "bytes": 3219808,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 3.07
+      },
+      "pruned": {
+        "splats": 37000,
+        "bytes": 1073808,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 1.02
+      },
+      "bytes_ratio": 3,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 250496,
+        "kb": 244.6,
+        "nodes": 28,
+        "triangles": 13084
+      },
+      "metrics": {},
+      "representation": {
+        "generator": "pipeline/cbct_surfel.py",
+        "layers": "teeth / alveolar bone / IAN canal / maxillary sinus",
+        "primitives": "oriented surfels, s3 = 0.2 s1, SH1",
+        "labels": "per-splat FDI read back from the 0.3 mm label volume; row-aligned side-cars guarded by labels_manifest.json"
+      },
+      "source_note": "DentVoxel v4 case 0069: 111,000 oriented surfels; both maxillary sinuses prominent (2,365,232 label voxels)",
+      "provenance": {
+        "source": "DentVoxel v4 case 0069 (figshare 31239889), CC BY 4.0",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_case09_full.dspk",
+          "pruned": "public/assets/scene_case09_pruned.dspk",
+          "proxy": "public/assets/proxy_case09.glb"
+        }
+      }
+    },
+    "scene_case05": {
+      "full": {
+        "splats": 27901,
+        "bytes": 809934,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 0.77
+      },
+      "pruned": {
+        "splats": 9301,
+        "bytes": 270534,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 0.26
+      },
+      "bytes_ratio": 2.99,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 233332,
+        "kb": 227.9,
+        "nodes": 11,
+        "triangles": 12626
+      },
+      "metrics": {},
+      "training": {
+        "tool": "Brush v0.3.0 (WGPU)",
+        "steps": 15000,
+        "views": 120,
+        "sh_degree": 1,
+        "render": "Blender Cycles orbit, 1024 px, 48 spp",
+        "labels": "conservative 1.0 mm nearest-neighbour transfer: 7,440/27,901 (26.7%); 2,055 nonzero-FDI splats across 9 teeth. Geometry QA attributes the low rate to trained-surface deviation, not frame mismatch; radius was not enlarged."
+      },
+      "source_note": "Poseidon3D case 000113: 120 Blender views -> Brush 15,000 steps -> SH1 DSPK. Labels are a nearest-neighbour transfer from the same-source 0.35 mm sampled packet; no clinical finding is asserted.",
+      "provenance": {
+        "source": "Poseidon3D case 000113 (Zenodo 15608906), CC BY 4.0",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_case05_full.dspk",
+          "pruned": "public/assets/scene_case05_pruned.dspk",
+          "proxy": "public/assets/proxy_case05.glb"
+        }
+      },
+      "label_diagnostics": {
+        "metric": "nearest reference splat-centre distance; not FDI classification accuracy",
+        "reference": "same-source 0.35 mm Poseidon3D sample",
+        "reference_count": 44963,
+        "trained_count": 27901,
+        "reference_nn_spacing_mm": {
+          "median": 0.187,
+          "p90": 0.302,
+          "p99": 0.403
+        },
+        "bbox_max_abs_delta_mm": 0.08,
+        "full_yaw_best_deg": 2.5,
+        "within_mm": {
+          "1": 26.67,
+          "2": 47.25,
+          "3": 64.85,
+          "5": 81.45,
+          "10": 98.58,
+          "0.5": 13.45,
+          "1.5": 37.65
+        },
+        "distance_percentiles_mm": {
+          "p50": 2.145,
+          "p75": 3.966,
+          "p90": 6.566,
+          "p95": 8.17,
+          "p99": 10.408,
+          "max": 12.021
+        },
+        "conclusion": "Dense reference and matching bbox rule out a global scale/translation or 90-degree frame error. The mismatch is regional: FDI 33 retains 91.14% reference coverage within 1 mm, while 42/43 retain 0%. This is trained-surface deviation, not an undersized nearest-neighbour radius. Radius remains 1.0 mm; unmatched splats keep FDI 0.",
+        "per_tooth_reference_coverage": {
+          "31": {
+            "reference_splats": 974,
+            "within_1mm_pct": 7.08,
+            "median_mm": 5.578,
+            "p90_mm": 7.785
+          },
+          "32": {
+            "reference_splats": 1078,
+            "within_1mm_pct": 12.15,
+            "median_mm": 3.354,
+            "p90_mm": 5.676
+          },
+          "33": {
+            "reference_splats": 1196,
+            "within_1mm_pct": 91.14,
+            "median_mm": 0.43,
+            "p90_mm": 0.964
+          },
+          "34": {
+            "reference_splats": 1297,
+            "within_1mm_pct": 21.97,
+            "median_mm": 2.412,
+            "p90_mm": 4.282
+          },
+          "35": {
+            "reference_splats": 1594,
+            "within_1mm_pct": 16.44,
+            "median_mm": 3.253,
+            "p90_mm": 6.198
+          },
+          "37": {
+            "reference_splats": 2715,
+            "within_1mm_pct": 36.94,
+            "median_mm": 1.335,
+            "p90_mm": 3.077
+          },
+          "41": {
+            "reference_splats": 1081,
+            "within_1mm_pct": 2.87,
+            "median_mm": 7.052,
+            "p90_mm": 9.242
+          },
+          "42": {
+            "reference_splats": 1282,
+            "within_1mm_pct": 0,
+            "median_mm": 8.224,
+            "p90_mm": 10.163
+          },
+          "43": {
+            "reference_splats": 1235,
+            "within_1mm_pct": 0,
+            "median_mm": 9.29,
+            "p90_mm": 11.323
+          },
+          "44": {
+            "reference_splats": 1307,
+            "within_1mm_pct": 7.5,
+            "median_mm": 4.055,
+            "p90_mm": 6.412
+          },
+          "45": {
+            "reference_splats": 1484,
+            "within_1mm_pct": 38.34,
+            "median_mm": 1.33,
+            "p90_mm": 2.479
+          }
+        }
+      }
+    },
+    "scene_case06": {
+      "full": {
+        "splats": 29036,
+        "bytes": 842852,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 0.8
+      },
+      "pruned": {
+        "splats": 9679,
+        "bytes": 281499,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 0.27
+      },
+      "bytes_ratio": 2.99,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 229600,
+        "kb": 224.2,
+        "nodes": 12,
+        "triangles": 12388
+      },
+      "metrics": {},
+      "training": {
+        "tool": "Brush v0.3.0 (WGPU)",
+        "steps": 15000,
+        "views": 120,
+        "sh_degree": 1,
+        "render": "Blender Cycles orbit, 1024 px, 48 spp",
+        "labels": "nearest-neighbour transfer from the same-source 0.35 mm sampled packet: 28,898/29,036 within 1.0 mm; 7,686 splats carry a nonzero FDI (12 teeth). The reference was rotated 180 deg about Y to match this case's Brush/COLMAP reconstruction."
+      },
+      "source_note": "Poseidon3D case 000114: 120 Blender views (raw_up=Y) -> Brush 15,000 steps -> SH1 DSPK. Sampled proxy and labels share the trained frame after a 180 deg yaw correction; no clinical finding is asserted.",
+      "provenance": {
+        "source": "Poseidon3D case 000114 (Zenodo 15608906), CC BY 4.0",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_case06_full.dspk",
+          "pruned": "public/assets/scene_case06_pruned.dspk",
+          "proxy": "public/assets/proxy_case06.glb"
+        }
+      }
+    },
+    "scene_case07": {
+      "full": {
+        "splats": 27937,
+        "bytes": 810977,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 0.77
+      },
+      "pruned": {
+        "splats": 9313,
+        "bytes": 270881,
+        "sh_degree": 1,
+        "bytes_per_splat": 29,
+        "mb": 0.26
+      },
+      "bytes_ratio": 2.99,
+      "compression_fidelity_mm": {},
+      "proxy": {
+        "bytes": 233968,
+        "kb": 228.5,
+        "nodes": 14,
+        "triangles": 12572
+      },
+      "metrics": {},
+      "training": {
+        "tool": "Brush v0.3.0 (WGPU)",
+        "steps": 15000,
+        "views": 120,
+        "sh_degree": 1,
+        "render": "Blender Cycles orbit, 1024 px, 48 spp",
+        "labels": "nearest-neighbour transfer from the same-source 0.35 mm sampled packet: 27,820/27,937 within 1.0 mm; 9,386 splats carry a nonzero FDI (14 teeth)"
+      },
+      "source_note": "Poseidon3D case 000178: 120 Blender views -> Brush 15,000 steps -> SH1 DSPK. Labels are a nearest-neighbour transfer from the same-source 0.35 mm sampled packet; no clinical finding is asserted.",
+      "provenance": {
+        "source": "Poseidon3D case 000178 (Zenodo 15608906), CC BY 4.0",
+        "license": "CC BY 4.0",
+        "added": "2026-11-25",
+        "files": {
+          "full": "public/assets/scene_case07_full.dspk",
+          "pruned": "public/assets/scene_case07_pruned.dspk",
+          "proxy": "public/assets/proxy_case07.glb"
+        }
+      }
+    }
+  },
+  "compression_ablation": {
+    "source_scene": "sceneB_cbct",
+    "generated_by": "tools/build-anatomy-10x.mjs",
+    "budget_rule": "equal count, stride, metadata length and bbox; both 11,100 splats / 322,708 bytes",
+    "base": {
+      "file": "public/assets/sceneB_dentvoxel_full.dspk",
+      "bytes": 3219808,
+      "splats": 111000,
+      "sha256": "85ce0f43dec13de2acae580162544da9d1105e6963a65773867362bca0b0f395"
+    },
+    "uniform": {
+      "file": "public/assets/sceneB_10x_uniform.dspk",
+      "bytes": 322708,
+      "splats": 11100,
+      "sh_degree": 1,
+      "bytes_per_splat": 29,
+      "mb": 0.31,
+      "sha256": "2e8daadbb3cd2690d6d94c901cf00a3cded969561a4e1ae770181c0f4f0ea9f0",
+      "layer_counts": {
+        "1": 6500,
+        "3": 3000,
+        "4": 800,
+        "7": 800
+      },
+      "method": "every 10th record",
+      "layer_retention": {
+        "1": 0.1,
+        "3": 0.1,
+        "4": 0.1,
+        "7": 0.1
+      },
+      "tangential_scale": "sqrt(10)",
+      "normal_scale": "unchanged"
+    },
+    "anatomy": {
+      "file": "public/assets/sceneB_10x_anatomy.dspk",
+      "bytes": 322708,
+      "splats": 11100,
+      "sh_degree": 1,
+      "bytes_per_splat": 29,
+      "mb": 0.31,
+      "sha256": "394d69a03b43e68b8113eda0ebecef3189b18952444692bdd3dd57c620ecf273",
+      "layer_counts": {
+        "1": 7200,
+        "3": 650,
+        "4": 3000,
+        "7": 250
+      },
+      "method": "layer-stratified clinical budget",
+      "layer_retention": {
+        "1": 0.11076923076923077,
+        "3": 0.021666666666666667,
+        "4": 0.375,
+        "7": 0.03125
+      },
+      "tangential_scale": "sqrt(layer parent count / layer kept count)",
+      "normal_scale": "unchanged",
+      "pareto_note": "teeth 7,200 > uniform 6,500; nerve 3,000 > uniform 800; bone+sinus 900 vs uniform 3,800"
+    }
+  }
+}

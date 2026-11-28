@@ -1,0 +1,181 @@
+{
+  "name": "poseidon000113",
+  "kind": "ios",
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "source": {
+    "ply": "tools/out/poseidon_extra/000113/brush/caseC05_viewer.ply",
+    "ply_sha256": "06cdf9180e4586a7e3712c95cbcf5639",
+    "ply_vertices": 27901,
+    "format": "format binary_little_endian 1.0",
+    "labels_manifest": "tools/out/poseidon_extra/000113/trained2/labels_manifest.json",
+    "order": "writer order of the trained PLY, no permutation",
+    "spacing_mm": null,
+    "appearance": {
+      "color": "f_dc_ bands (trained SH0)",
+      "alpha": "sigmoid(opacity)",
+      "scale": "exp(scale_ bands)",
+      "rotation": "rot_ bands (w,x,y,z -> x,y,z,w)",
+      "sh1": "f_rest_0..8"
+    }
+  },
+  "provenance": "trained 3DGS splats + side-car semantics via tools/ply2dspk.ts",
+  "teeth": {
+    "FDI_31": {
+      "fdi": 31,
+      "arch": "lower",
+      "at": [
+        15.63,
+        6.56,
+        9.51
+      ],
+      "splats": 54
+    },
+    "FDI_32": {
+      "fdi": 32,
+      "arch": "lower",
+      "at": [
+        17.42,
+        7.99,
+        5.3
+      ],
+      "splats": 81
+    },
+    "FDI_33": {
+      "fdi": 33,
+      "arch": "lower",
+      "at": [
+        18.65,
+        8.34,
+        -0.02
+      ],
+      "splats": 695
+    },
+    "FDI_34": {
+      "fdi": 34,
+      "arch": "lower",
+      "at": [
+        16.16,
+        6.99,
+        -8.22
+      ],
+      "splats": 119
+    },
+    "FDI_35": {
+      "fdi": 35,
+      "arch": "lower",
+      "at": [
+        10.77,
+        4.73,
+        -13.85
+      ],
+      "splats": 128
+    },
+    "FDI_37": {
+      "fdi": 37,
+      "arch": "lower",
+      "at": [
+        -8.24,
+        5.84,
+        -25.24
+      ],
+      "splats": 530
+    },
+    "FDI_41": {
+      "fdi": 41,
+      "arch": "lower",
+      "at": [
+        12.17,
+        5.7,
+        14.15
+      ],
+      "splats": 20
+    },
+    "FDI_44": {
+      "fdi": 44,
+      "arch": "lower",
+      "at": [
+        -3.56,
+        6.61,
+        23.63
+      ],
+      "splats": 70
+    },
+    "FDI_45": {
+      "fdi": 45,
+      "arch": "lower",
+      "at": [
+        -9.45,
+        6.7,
+        25.4
+      ],
+      "splats": 358
+    }
+  },
+  "conversion": {
+    "out": "public/assets/scene_case05_full.dspk",
+    "converted_at": "2026-11-25T11:04:07.892Z",
+    "bytes": 809934,
+    "splats": 27901,
+    "dropped": 0,
+    "sh_degree": 1,
+    "bytes_per_splat": 29.03,
+    "bbox_mm": [
+      [
+        -24.24,
+        -13.32,
+        -31.28
+      ],
+      [
+        24.23,
+        13.32,
+        31.25
+      ]
+    ],
+    "encoded": {
+      "scale_mm": [
+        0,
+        9.256
+      ],
+      "alpha_byte": [
+        2,
+        255
+      ],
+      "distinct_colors": 15826,
+      "distinct_rotations": 7659,
+      "input_kind": "trained_3dgs"
+    },
+    "appearance": {
+      "color": "f_dc_ bands (trained SH0)",
+      "alpha": "sigmoid(opacity)",
+      "scale": "exp(scale_ bands)",
+      "rotation": "rot_ bands (w,x,y,z -> x,y,z,w)",
+      "sh1": "f_rest_0..8"
+    },
+    "fdi_histogram": {
+      "0": 25846,
+      "31": 54,
+      "32": 81,
+      "33": 695,
+      "34": 119,
+      "35": 128,
+      "37": 530,
+      "41": 20,
+      "44": 70,
+      "45": 358
+    },
+    "layer_histogram": {
+      "0": 25846,
+      "1": 2055
+    },
+    "alignment": {
+      "ply_vertices": 27901,
+      "fdi_rows": 27901,
+      "layer_rows": 27901,
+      "manifest_count": null,
+      "manifest_order": "writer order of the trained PLY, no permutation",
+      "ply_sha256": "06cdf9180e4586a7e3712c95cbcf5639",
+      "manifest_ply_sha256": "06cdf9180e4586a7e3712c95cbcf5639"
+    }
+  }
+}

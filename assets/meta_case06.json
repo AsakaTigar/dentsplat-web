@@ -1,0 +1,214 @@
+{
+  "name": "poseidon000114",
+  "kind": "ios",
+  "unit": "mm",
+  "coordinate_system": "glTF_Y_up",
+  "source": {
+    "ply": "tools/out/poseidon_extra/000114/brush/caseC06_viewer.ply",
+    "ply_sha256": "64779f661bfdc3bff72af41ebdd15712",
+    "ply_vertices": 29036,
+    "format": "format binary_little_endian 1.0",
+    "labels_manifest": "tools/out/poseidon_extra/000114/trained_yaw/labels_manifest.json",
+    "order": "writer order of the trained PLY, no permutation",
+    "spacing_mm": null,
+    "appearance": {
+      "color": "f_dc_ bands (trained SH0)",
+      "alpha": "sigmoid(opacity)",
+      "scale": "exp(scale_ bands)",
+      "rotation": "rot_ bands (w,x,y,z -> x,y,z,w)",
+      "sh1": "f_rest_0..8"
+    }
+  },
+  "provenance": "trained 3DGS splats + side-car semantics via tools/ply2dspk.ts",
+  "teeth": {
+    "FDI_11": {
+      "fdi": 11,
+      "arch": "upper",
+      "at": [
+        -25.98,
+        -0.25,
+        5.28
+      ],
+      "splats": 651
+    },
+    "FDI_12": {
+      "fdi": 12,
+      "arch": "upper",
+      "at": [
+        -21.53,
+        -1.35,
+        12.77
+      ],
+      "splats": 430
+    },
+    "FDI_13": {
+      "fdi": 13,
+      "arch": "upper",
+      "at": [
+        -18.37,
+        0.6,
+        20.04
+      ],
+      "splats": 564
+    },
+    "FDI_15": {
+      "fdi": 15,
+      "arch": "upper",
+      "at": [
+        -8.96,
+        -5.21,
+        20.64
+      ],
+      "splats": 552
+    },
+    "FDI_16": {
+      "fdi": 16,
+      "arch": "upper",
+      "at": [
+        0.56,
+        -7.4,
+        23.92
+      ],
+      "splats": 826
+    },
+    "FDI_17": {
+      "fdi": 17,
+      "arch": "upper",
+      "at": [
+        11.49,
+        -7.97,
+        28.4
+      ],
+      "splats": 735
+    },
+    "FDI_21": {
+      "fdi": 21,
+      "arch": "upper",
+      "at": [
+        -26.56,
+        0.17,
+        -4.81
+      ],
+      "splats": 667
+    },
+    "FDI_22": {
+      "fdi": 22,
+      "arch": "upper",
+      "at": [
+        -22.68,
+        -0.82,
+        -13.01
+      ],
+      "splats": 542
+    },
+    "FDI_23": {
+      "fdi": 23,
+      "arch": "upper",
+      "at": [
+        -17.99,
+        -1.14,
+        -19.55
+      ],
+      "splats": 588
+    },
+    "FDI_25": {
+      "fdi": 25,
+      "arch": "upper",
+      "at": [
+        -7.71,
+        -6.48,
+        -22.84
+      ],
+      "splats": 579
+    },
+    "FDI_26": {
+      "fdi": 26,
+      "arch": "upper",
+      "at": [
+        1.13,
+        -8.48,
+        -26.46
+      ],
+      "splats": 787
+    },
+    "FDI_27": {
+      "fdi": 27,
+      "arch": "upper",
+      "at": [
+        12.93,
+        -9.01,
+        -28.95
+      ],
+      "splats": 765
+    }
+  },
+  "conversion": {
+    "out": "public/assets/scene_case06_full.dspk",
+    "converted_at": "2026-11-25T11:03:47.797Z",
+    "bytes": 842852,
+    "splats": 29036,
+    "dropped": 0,
+    "sh_degree": 1,
+    "bytes_per_splat": 29.03,
+    "bbox_mm": [
+      [
+        -29.39,
+        -12.66,
+        -35.89
+      ],
+      [
+        29.31,
+        12.68,
+        35.87
+      ]
+    ],
+    "encoded": {
+      "scale_mm": [
+        0,
+        9.273
+      ],
+      "alpha_byte": [
+        2,
+        255
+      ],
+      "distinct_colors": 15224,
+      "distinct_rotations": 7673,
+      "input_kind": "trained_3dgs"
+    },
+    "appearance": {
+      "color": "f_dc_ bands (trained SH0)",
+      "alpha": "sigmoid(opacity)",
+      "scale": "exp(scale_ bands)",
+      "rotation": "rot_ bands (w,x,y,z -> x,y,z,w)",
+      "sh1": "f_rest_0..8"
+    },
+    "fdi_histogram": {
+      "0": 21350,
+      "11": 651,
+      "12": 430,
+      "13": 564,
+      "15": 552,
+      "16": 826,
+      "17": 735,
+      "21": 667,
+      "22": 542,
+      "23": 588,
+      "25": 579,
+      "26": 787,
+      "27": 765
+    },
+    "layer_histogram": {
+      "0": 21350,
+      "1": 7686
+    },
+    "alignment": {
+      "ply_vertices": 29036,
+      "fdi_rows": 29036,
+      "layer_rows": 29036,
+      "manifest_count": null,
+      "manifest_order": "writer order of the trained PLY, no permutation",
+      "ply_sha256": "64779f661bfdc3bff72af41ebdd15712",
+      "manifest_ply_sha256": "64779f661bfdc3bff72af41ebdd15712"
+    }
+  }
+}

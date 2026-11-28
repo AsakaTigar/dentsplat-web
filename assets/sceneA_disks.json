@@ -1,0 +1,17 @@
+{
+  "schema": "dentsplat-representation-baseline-v1",
+  "file": "sceneA_disks_full.dspk",
+  "bytes": 1196956,
+  "splats": 59808,
+  "sha256": "fc62c839c15c9ad94af5975f5d1c9ed54363543282d91d7806c7522e86594751",
+  "method": "mesh-derived surface-aligned flat disks",
+  "tangent_sigma_mm": 0.3,
+  "normal_sigma_mm": 0.03,
+  "source": {
+    "sample": "tools/out/poseidon/poseidon125_full.ply",
+    "mesh": "Poseidon3D 000125 mandible",
+    "fdi_sidecar": "tools/out/poseidon/poseidon125_full_fdi.bin",
+    "layer_sidecar": "tools/out/poseidon/poseidon125_full_layer.bin"
+  },
+  "note": "Same centres/colours/FDI as Case 10; only covariance is changed. Not a 2DGS implementation."
+}
